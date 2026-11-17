@@ -18,12 +18,13 @@ import { PageTracker } from './components/PageTracker';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 
-import { Images, Radio } from 'lucide-react';
+import { Images, Users2, Home, FileText, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
-import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
+import { PageRefreshButton } from './components/PageRefreshButton';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import GiftIcon from '@/components/GiftIcon';
+import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
 
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -53,7 +54,6 @@ function getPageInfo(pathname: string, userRole?: string) {
     },
     '/dashboard/students': {
       title: 'Students',
-      section: 'Workspace',
     },
     '/dashboard/english-hub': {
       title: 'English Hub',
@@ -463,12 +463,20 @@ export default function DashboardLayout({
 
           <div className="w-full min-w-0">
             {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
-            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-16 pb-4">
+            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-14 pb-16">
               <div className="w-full min-w-0">
                 {/* PAGE HEADING */}
                 {pathname !==
                   '/dashboard' &&
                   pathname !== '/dashboard/announcements' &&
+                  pathname !== '/dashboard/profile' &&
+                  pathname !== '/dashboard/courses' &&
+                  !pathname.startsWith('/dashboard/students') &&
+                  !pathname.startsWith('/dashboard/teacher') &&
+                  !pathname.startsWith('/dashboard/admin/teachers') &&
+                  !pathname.startsWith('/dashboard/cleaning') &&
+                  !pathname.startsWith('/dashboard/admin/tuition') &&
+                  !pathname.startsWith('/dashboard/policies') &&
                   !isAiPage &&
                   !isMessagesPage &&
                   !isConnectionsPage &&
@@ -575,70 +583,107 @@ export default function DashboardLayout({
           )}
 
           {/* ================================================== */}
-          {/* QUICK ACCESS - Bottom Right */}
+          {/* BOTTOM NAVIGATION BAR */}
           {/* ================================================== */}
 
-          {!isAiPage && (
-            <motion.div
-              initial={{
-                opacity: 0,
-                scale: 0.9,
-                y: 8,
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.35,
-                delay: 0.25,
-              }}
-              className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2"
-            >
-              <Link
-                href="/dashboard/live-streaming"
-                aria-label="Go Live"
-                className={cn(
-                  'group flex items-center gap-2',
-                  'rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-3 py-1.5 text-white',
-                  'shadow-[0_4px_16px_rgba(220,38,38,0.25)]',
-                  'transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_24px_rgba(220,38,38,0.35)] hover:from-red-700 hover:to-red-800',
-                  'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2'
-                )}
-              >
-                <Radio aria-hidden="true" className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-semibold tracking-wide">Go Live</span>
-              </Link>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1A2B4C] border-t border-[#243857]"
+          >
+            <div className="flex items-stretch justify-around px-1" style={{ height: 52 }}>
 
-              <Link
-                href="/dashboard/gallery"
-                aria-label="Open Posts"
-                className={cn(
-                  'group flex items-center gap-2',
-                  'bg-gradient-to-r from-slate-800 to-slate-900 text-white',
-                  'px-3 py-1.5 rounded-lg',
-                  'shadow-[0_4px_16px_rgba(15,23,42,0.25)]',
-                  'hover:scale-105 hover:shadow-[0_8px_24px_rgba(15,23,42,0.35)] hover:from-slate-900 hover:to-slate-950',
-                  'transition-all duration-300'
-                )}
-              >
-                <Images aria-hidden="true" className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-semibold tracking-wide">Posts</span>
-                <span
-                  aria-live="polite"
-                  className="min-w-4 rounded-full bg-white/20 px-1 py-0.5 text-center text-[9px] font-semibold tabular-nums backdrop-blur-sm"
-                  title={
-                    isPostCountError
-                      ? 'Post count unavailable'
-                      : `${postCount ?? 0} posts`
-                  }
-                >
-                  {isPostCountPending ? '…' : isPostCountError ? '!' : postCount}
-                </span>
-              </Link>
-            </motion.div>
-          )}
+              {/* Home */}
+              {(() => {
+                const active = pathname === '/dashboard';
+                return (
+                  <Link href="/dashboard" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
+                    <Home className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Home</span>
+                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  </Link>
+                );
+              })()}
+
+              {/* Posts */}
+              {(() => {
+                const active = pathname === '/dashboard/gallery' || pathname.startsWith('/dashboard/gallery/');
+                return (
+                  <Link href="/dashboard/gallery" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
+                    <div className="relative">
+                      <Images className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                      {postCount !== undefined && postCount > 0 && (
+                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#B98A3E] text-[7px] font-bold text-white border border-[#1A2B4C] leading-none">
+                          {postCount > 9 ? '9+' : postCount}
+                        </motion.span>
+                      )}
+                    </div>
+                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Posts</span>
+                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  </Link>
+                );
+              })()}
+
+              {/* Courses — center pill */}
+              {(() => {
+                const active = pathname === '/dashboard/courses' || pathname.startsWith('/dashboard/courses/');
+                return (
+                  <Link href="/dashboard/courses" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
+                    <div className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200',
+                      active
+                        ? 'bg-[#B98A3E] shadow-[0_0_12px_rgba(185,138,62,0.5)]'
+                        : 'bg-white/15 group-hover:bg-white/25'
+                    )}>
+                      <BookOpen className="h-[16px] w-[16px] text-white" />
+                    </div>
+                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Courses</span>
+                  </Link>
+                );
+              })()}
+
+              {/* Connections */}
+              {(() => {
+                const active = pathname === '/dashboard/connections' || pathname.startsWith('/dashboard/connections/');
+                return (
+                  <Link href="/dashboard/connections" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
+                    <Users2 className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Connect</span>
+                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  </Link>
+                );
+              })()}
+
+              {/* Tutors / Dev Dashboard — role-aware */}
+              {(() => {
+                const isDev = userRole === 'dev';
+                const isSuperAdmin = userRole === 'super_admin';
+                // super_admin goes to the same tutors page (they have isSuperAdmin() access)
+                // dev goes to their own dev dashboard
+                const href = isDev ? '/dashboard/dev' : '/dashboard/policies';
+                const label = isDev ? 'Dev' : 'Policies';
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <Link href={href} className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
+                    <FileText className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>{label}</span>
+                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  </Link>
+                );
+              })()}
+
+              {/* Refresh */}
+              <div className="relative flex flex-1 flex-col items-center justify-center gap-0.5">
+                <PageRefreshButton
+                  variant="icon"
+                  className="!w-[18px] !h-[18px] !p-0 !rounded-none text-white/70 hover:text-white hover:!bg-transparent"
+                />
+                <span className="text-[9px] font-semibold leading-none tracking-wide text-white/70">Refresh</span>
+              </div>
+
+            </div>
+          </motion.div>
         </div>
       </div>
     </>

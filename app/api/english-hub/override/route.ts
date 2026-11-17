@@ -26,10 +26,12 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { techCenterId: true },
+      select: { techCenterId: true, previousTechCenterId: true },
     });
 
-    if (!user?.techCenterId) {
+    const techCenterId = user?.techCenterId ?? user?.previousTechCenterId ?? null;
+
+    if (!techCenterId) {
       return NextResponse.json(
         { success: false, error: 'User not associated with a tech center' },
         { status: 400 }
@@ -45,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     const row = await prisma.englishHubRegistration.findFirst({
       where: {
-        techCenterId: user.techCenterId,
+        techCenterId: techCenterId,
         sessionDate,
         manualOverrideAt: { not: null },
       },
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, techCenterId: true },
+      select: { role: true, techCenterId: true, previousTechCenterId: true },
     });
 
     if (!user || !STAFF_ROLES.includes(user.role?.name ?? '')) {
@@ -103,7 +105,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.techCenterId) {
+    const techCenterId = user.techCenterId ?? user.previousTechCenterId ?? null;
+
+    if (!techCenterId) {
       return NextResponse.json(
         { success: false, error: 'User not associated with a tech center' },
         { status: 400 }
@@ -138,7 +142,7 @@ export async function POST(request: NextRequest) {
       },
       create: {
         userId: session.user.id,
-        techCenterId: user.techCenterId,
+        techCenterId: techCenterId,
         sessionDate,
         attendanceStatus: 'OVERRIDE_ROW',
         manuallyOpened: action === 'open',

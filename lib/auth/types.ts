@@ -32,6 +32,7 @@ export type AuthUser = {
   preferredTeamType?: string | null;
   preferredTeamRole?: string | null;
   teacherId?: string | null;
+  profileImageUrls?: string[] | null;
 };
 
 declare module 'next-auth' {
@@ -62,6 +63,7 @@ declare module 'next-auth' {
       preferredTeamRole?: string | null;
       teacherId?: string | null;
       tokenVersion?: number;
+      profileImageUrls?: string[] | null;
     } & DefaultSession['user'];
   }
 
@@ -92,6 +94,7 @@ declare module 'next-auth' {
     teacherId?: string | null;
     roleUpdatedAt?: Date | string | null;
     tokenVersion?: number;
+    profileImageUrls?: string[] | null;
   }
 }
 

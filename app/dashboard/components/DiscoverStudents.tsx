@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import {
   useCallback,
   useEffect,
@@ -25,6 +26,7 @@ export type DiscoverStudent = {
   firstName: string;
   lastName: string;
   profileImageUrl?: string | null;
+  hasVerifiedBadge?: boolean | null;
   generalCourse?: string | null | { id?: string; name?: string };
   techCenter?: string | null | { id?: string; name?: string };
   role?: {
@@ -256,7 +258,7 @@ function useDiscoverStudents(
       try {
         const res = await fetch(url.toString(), { cache: "no-store" });
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-        const data: DiscoverStudent[] = await res.json();
+        const data = (await res.json()) as DiscoverStudent[];
 
         if (data.length < BATCH_SIZE) {
           setHasMore(false);
@@ -596,8 +598,11 @@ export function DiscoverStudents({
                 <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
                   <div className="flex flex-col gap-2.5">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="text-lg font-bold leading-tight text-white drop-shadow sm:text-xl">
-                        {fullName}
+                      <h3 className="flex items-center gap-1.5 text-lg font-bold leading-tight text-white drop-shadow sm:text-xl">
+                        <span className="truncate">{fullName}</span>
+                        {currentStudent.hasVerifiedBadge && (
+                          <VerifiedBadge className="h-4 w-4 shrink-0" />
+                        )}
                       </h3>
                       {roleLabel && (
                         <span className="rounded-full border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold text-white/95 backdrop-blur-sm">

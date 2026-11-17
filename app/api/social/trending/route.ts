@@ -100,6 +100,7 @@ export async function GET(request: Request) {
         firstName: true,
         lastName: true,
         profileImageUrl: true,
+        hasVerifiedBadge: true,
         role: { select: { name: true } },
         previousTechCenterId: true,
         techCenter: { select: { id: true, name: true } },

@@ -4,8 +4,6 @@ export const dynamic = 'force-dynamic';
 
 /* ============================================================
    DASHBOARD PAGE
-   ------------------------------------------------------------
-   Editorial, bold, solid. Structure over decoration.
 ============================================================ */
 
 import {
@@ -54,6 +52,8 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { DiscoverStudents, type DiscoverStudent } from './components/DiscoverStudents';
 import { VideoPlayer } from './components/VideoPlayer';
+import SpinningGlobe from '@/components/SpinningGlobe';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import type { PageCacheAdapter } from '@/lib/social/cacheKeys';
 import {
   findInStudentsShape,
@@ -160,6 +160,7 @@ interface SocialUser {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  hasVerifiedBadge?: boolean;
   status?: string;
   role?: string | null;
   techCenter: { id: string; name: string } | null;
@@ -363,12 +364,16 @@ const DASHBOARD_TRENDING_ADAPTERS: PageCacheAdapter[] = [
         },
       };
     },
-    find: (old, targetId) => findInStudentsShape((old as SocialSummary)?.trending?.students || [], targetId),
+    find: (old, targetId) =>
+      findInStudentsShape(
+        (old as SocialSummary)?.trending?.students || [],
+        targetId,
+      ),
   },
 ];
 
 /* ============================================================
-   SECTION HEADER — bold, editorial
+   DIRECTORS
 ============================================================ */
 
 function DirectorsDisplay({
@@ -389,9 +394,14 @@ function DirectorsDisplay({
     <SuggestedStudents
       trending={directors}
       isLoading={isLoading}
+      showVerified
     />
   );
 }
+
+/* ============================================================
+   ANNOUNCEMENTS
+============================================================ */
 
 interface DashboardAnnouncement {
   id: string;
@@ -405,7 +415,9 @@ interface DashboardAnnouncement {
 }
 
 function RecentAnnouncementsPanel() {
-  const { data: announcements = [], isLoading, error } = useQuery<DashboardAnnouncement[]>({
+  const { data: announcements = [], isLoading, error } = useQuery<
+    DashboardAnnouncement[]
+  >({
     queryKey: ['announcements', 'dashboard-preview'],
     queryFn: async () => {
       const response = await fetch('/api/announcements');
@@ -417,56 +429,54 @@ function RecentAnnouncementsPanel() {
         throw new Error('Invalid announcements response');
       }
       return data.announcements
-        .filter((announcement): announcement is DashboardAnnouncement =>
-          isRecord(announcement) &&
-          typeof announcement.id === 'string' &&
-          typeof announcement.title === 'string' &&
-          typeof announcement.createdAt === 'string' &&
-          typeof announcement.isGlobal === 'boolean',
+        .filter(
+          (announcement): announcement is DashboardAnnouncement =>
+            isRecord(announcement) &&
+            typeof announcement.id === 'string' &&
+            typeof announcement.title === 'string' &&
+            typeof announcement.createdAt === 'string' &&
+            typeof announcement.isGlobal === 'boolean',
         )
-        .slice(0, 5);
+        .slice(0, 3);
     },
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
   return (
-    <div className="space-y-2">
+    <div className="mt-3 border-t border-white/10 pt-2.5">
       <Link
         href="/dashboard/announcements"
-        className="mb-2 text-xs font-bold tracking-wide text-white transition hover:text-[#E2BD75] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+        className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#D4A84B] transition-colors hover:text-white"
       >
         Recent announcements
       </Link>
 
       {isLoading ? (
-        <div className="space-y-1" aria-label="Loading announcements">
+        <div className="mt-2 space-y-1.5" aria-label="Loading announcements">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="h-3 animate-pulse bg-white/10" />
+            <div key={item} className="h-2.5 w-full animate-pulse rounded bg-white/10" />
           ))}
         </div>
       ) : error ? (
-        <p role="status" className="text-xs text-red-200">
+        <p role="status" className="mt-2 text-[11px] text-red-300">
           Announcements could not be loaded.
         </p>
       ) : announcements.length === 0 ? (
-        <p className="text-xs text-white/60">No announcements yet.</p>
+        <p className="mt-2 text-[11px] text-white/50">No announcements yet.</p>
       ) : (
-        <ul className="max-h-28 space-y-1 overflow-y-auto pr-1">
+        <ul className="mt-2 space-y-1 pr-1">
           {announcements.map((announcement) => (
-            <li key={announcement.id}>
+            <li key={announcement.id} className="border-b border-white/5 py-1 last:border-b-0">
               <Link
                 href="/dashboard/announcements"
                 title={announcement.title}
-                className="block truncate text-left text-[11px] leading-4 text-white/85 transition hover:text-white hover:underline"
+                className="block break-words text-[11.5px] leading-4 text-white/85 transition-colors hover:text-white hover:underline"
               >
                 {announcement.title}
               </Link>
-              <span className="block truncate pt-0.5 text-[9px] text-white/45">
-                {[
-                  announcement.author?.firstName,
-                  announcement.author?.lastName,
-                ]
+              <span className="block truncate text-[9.5px] text-white/40">
+                {[announcement.author?.firstName, announcement.author?.lastName]
                   .filter(Boolean)
                   .join(' ') || 'Selfless'}{' '}
                 ·{' '}
@@ -485,6 +495,10 @@ function RecentAnnouncementsPanel() {
   );
 }
 
+/* ============================================================
+   RECENT POSTS
+============================================================ */
+
 function RecentPostsSection() {
   const router = useRouter();
   const { user } = useAuth();
@@ -492,6 +506,7 @@ function RecentPostsSection() {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [videoActionErrorId, setVideoActionErrorId] = useState<string | null>(null);
   const postsCarouselRef = useRef<HTMLDivElement>(null);
+
   const { data: posts = [], isLoading, error } = useQuery<MediaItem[]>({
     queryKey: ['dashboard-recent-posts'],
     queryFn: async () => {
@@ -518,12 +533,10 @@ function RecentPostsSection() {
 
   useEffect(() => {
     if (!selectedMedia) return;
-
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setSelectedMedia(null);
     };
-
     document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -533,44 +546,44 @@ function RecentPostsSection() {
   }, [selectedMedia]);
 
   return (
-    <section className="py-2">
-      <div className="mb-4 flex items-end justify-between gap-3">
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3 border-b border-[#E5E7EB] pb-2">
         <div>
-          <h2 className="text-lg font-black tracking-tight text-[#1A2B4C] sm:text-xl">
+          <h2 className="text-[15px] font-semibold tracking-tight text-[#1A2B4C]">
             Recent posts
           </h2>
-          <p className="mt-0.5 text-xs text-[#687386]">
+          <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
             Discover community stories, videos, and updates
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-[#F3F5F8] px-3 py-1 text-xs font-semibold text-[#1A2B4C]">
+        <span className="shrink-0 rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 text-[11px] font-medium text-[#4B5646]">
           {posts.length} {posts.length === 1 ? 'post' : 'posts'}
         </span>
       </div>
 
       {isLoading ? (
-        <div className="flex snap-x gap-4 overflow-x-auto pb-2">
+        <div className="flex snap-x gap-3 overflow-x-auto pb-2">
           {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
-            <div key={item} className="w-[280px] shrink-0 animate-pulse sm:w-[290px]">
-              <div className="aspect-[3/4] w-full rounded-2xl bg-gradient-to-br from-[#E5E7EB] to-[#D1D5DB]" />
+            <div key={item} className="w-[240px] shrink-0 animate-pulse sm:w-[260px]">
+              <div className="aspect-[3/4] w-full rounded-lg bg-[#F3F4F6]" />
             </div>
           ))}
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-center">
-          <p role="status" className="text-sm font-medium text-[#DC2626]">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+          <p role="status" className="text-[12px] font-medium text-red-700">
             Posts could not be loaded. Please try again.
           </p>
         </div>
       ) : posts.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E5E7EB]">
-            <ImageIcon className="h-6 w-6 text-[#6B7280]" />
+        <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-[#F8F9FA] p-6 text-center">
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#E5E7EB]">
+            <ImageIcon className="h-5 w-5 text-[#9CA3AF]" />
           </div>
-          <p className="text-sm font-semibold text-[#1A2B4C]">
+          <p className="text-[13px] font-semibold text-[#1A2B4C]">
             No recent posts yet
           </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
+          <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
             Be the first to share with the community
           </p>
         </div>
@@ -578,7 +591,7 @@ function RecentPostsSection() {
         <div
           ref={postsCarouselRef}
           aria-label="Recent posts"
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 scroll-smooth"
         >
           {posts.map((post) => {
             const isVideo = post.contentType.startsWith('video/');
@@ -587,9 +600,7 @@ function RecentPostsSection() {
             return (
               <article
                 key={post.id}
-                className={`w-[280px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 sm:w-[290px] ${
-                  isVideo || isAudio ? 'border border-[#E5E7EB]' : ''
-                }`}
+                className="w-[240px] shrink-0 snap-start overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-sm transition-colors hover:border-[#C59B4C]/50 sm:w-[260px]"
               >
                 {isVideo ? (
                   <div
@@ -624,7 +635,7 @@ function RecentPostsSection() {
                         );
                       }}
                     />
-                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 opacity-90 transition-opacity group-hover:opacity-100" />
+                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/85" />
 
                     <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
                       {post.user?.id ? (
@@ -637,25 +648,26 @@ function RecentPostsSection() {
                             <Image
                               src={post.user.profileImageUrl}
                               alt=""
-                              width={28}
-                              height={28}
-                              className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/70"
+                              width={24}
+                              height={24}
+                              className="h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-white/70"
                             />
                           ) : (
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
-                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-[9px] font-bold">
+                              {post.user.firstName[0]}
+                              {post.user.lastName[0]}
                             </span>
                           )}
-                          <span className="truncate text-[11px] font-semibold drop-shadow">
+                          <span className="truncate text-[10.5px] font-semibold drop-shadow">
                             {post.user.firstName} {post.user.lastName}
                           </span>
                         </Link>
                       ) : (
-                        <span className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
+                        <span className="min-w-0 truncate text-[10.5px] font-semibold text-white drop-shadow">
                           Selfless community
                         </span>
                       )}
-                      <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+                      <div className="pointer-events-auto flex shrink-0 items-center gap-1">
                         <button
                           type="button"
                           onClick={(event) => {
@@ -672,13 +684,12 @@ function RecentPostsSection() {
                             }
                           }}
                           aria-label={playingVideoId === post.id ? 'Pause video' : 'Play video'}
-                          title={playingVideoId === post.id ? 'Pause' : 'Play'}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >
                           {playingVideoId === post.id ? (
-                            <Pause className="h-4 w-4" />
+                            <Pause className="h-3.5 w-3.5" />
                           ) : (
-                            <Play className="h-4 w-4 fill-current" />
+                            <Play className="h-3.5 w-3.5 fill-current" />
                           )}
                         </button>
                         <button
@@ -692,10 +703,9 @@ function RecentPostsSection() {
                             setSelectedMedia(post);
                           }}
                           aria-label={`Watch ${post.title || 'video'} fullscreen`}
-                          title="Expand video"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                         >
-                          <Maximize2 className="h-4 w-4" />
+                          <Maximize2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
@@ -703,25 +713,29 @@ function RecentPostsSection() {
                     {videoActionErrorId === post.id && (
                       <p
                         role="status"
-                        className="absolute inset-x-3 top-12 rounded-md bg-black/70 px-2 py-1 text-[11px] text-white"
+                        className="absolute inset-x-3 top-11 rounded-md bg-black/70 px-2 py-1 text-[10px] text-white"
                       >
                         Video playback or fullscreen is unavailable.
                       </p>
                     )}
 
-                    <div className={`pointer-events-none absolute inset-x-3 ${user ? 'bottom-16' : 'bottom-3'} text-white`}>
+                    <div
+                      className={`pointer-events-none absolute inset-x-2.5 ${
+                        user ? 'bottom-14' : 'bottom-2.5'
+                      } text-white`}
+                    >
                       {post.title && (
-                        <h3 className="line-clamp-2 text-sm font-bold leading-5 drop-shadow">
+                        <h3 className="line-clamp-2 text-[12px] font-bold leading-4 drop-shadow">
                           {post.title}
                         </h3>
                       )}
                       {post.description && (
-                        <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/90 drop-shadow">
+                        <p className="mt-1 line-clamp-2 text-[9.5px] leading-3.5 text-white/85 drop-shadow">
                           {post.description}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <p className="text-[9px] font-medium text-white/80">
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <p className="text-[8.5px] font-medium text-white/75">
                           {new Date(post.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -731,7 +745,7 @@ function RecentPostsSection() {
                         {post.category && (
                           <>
                             <span className="h-0.5 w-0.5 rounded-full bg-white/50" />
-                            <span className="text-[9px] font-medium text-white/80 capitalize">
+                            <span className="text-[8.5px] font-medium capitalize text-white/75">
                               {post.category}
                             </span>
                           </>
@@ -756,8 +770,8 @@ function RecentPostsSection() {
                   </div>
                 ) : isAudio ? (
                   <>
-                    <div className="flex aspect-video flex-col items-center justify-center gap-4 bg-gradient-to-br from-[#1A2B4C] to-[#334B72] p-4 text-white">
-                      <Music2 className="h-12 w-12 text-white/85" />
+                    <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-[#1A2B4C] p-3 text-white">
+                      <Music2 className="h-9 w-9 text-white/85" />
                       <audio
                         src={post.publicUrl}
                         controls
@@ -766,38 +780,39 @@ function RecentPostsSection() {
                         className="w-full"
                       />
                     </div>
-                    <div className="space-y-2.5 p-4">
+                    <div className="space-y-2 p-3">
                       {post.user && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {post.user.profileImageUrl ? (
                             <Image
                               src={post.user.profileImageUrl}
                               alt=""
-                              width={24}
-                              height={24}
-                              className="h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-[#E5E7EB]"
+                              width={20}
+                              height={20}
+                              className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-[#E5E7EB]"
                             />
                           ) : (
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-[10px] font-bold text-[#1A2B4C]">
-                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E5E7EB] text-[9px] font-bold text-[#1A2B4C]">
+                              {post.user.firstName[0]}
+                              {post.user.lastName[0]}
                             </span>
                           )}
-                          <p className="truncate text-xs font-semibold text-[#1A2B4C]">
+                          <p className="truncate text-[11px] font-semibold text-[#1A2B4C]">
                             {post.user.firstName} {post.user.lastName}
                           </p>
                         </div>
                       )}
                       {post.title && (
-                        <h3 className="line-clamp-2 text-sm font-bold leading-5 text-[#172033]">
+                        <h3 className="line-clamp-2 text-[12.5px] font-bold leading-5 text-[#1A2B4C]">
                           {post.title}
                         </h3>
                       )}
                       {post.description && (
-                        <p className="line-clamp-2 text-xs leading-4 text-[#526078]">
+                        <p className="line-clamp-2 text-[11px] leading-4 text-[#6B7280]">
                           {post.description}
                         </p>
                       )}
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#8791A1]">
+                      <div className="flex items-center gap-1.5 text-[9.5px] text-[#9CA3AF]">
                         <time dateTime={post.createdAt}>
                           {new Date(post.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
@@ -833,10 +848,10 @@ function RecentPostsSection() {
                         src={post.publicUrl}
                         alt={post.title || 'Community photo'}
                         fill
-                        sizes="(max-width: 640px) 280px, 290px"
+                        sizes="(max-width: 640px) 240px, 260px"
                         className="object-cover transition duration-300 group-hover:scale-105"
                       />
-                      <span className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 opacity-85 transition-opacity group-hover:opacity-100" />
+                      <span className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/75" />
                     </div>
 
                     <div className="pointer-events-none absolute inset-x-2 top-2 flex items-center justify-between gap-2">
@@ -850,21 +865,22 @@ function RecentPostsSection() {
                             <Image
                               src={post.user.profileImageUrl}
                               alt=""
-                              width={28}
-                              height={28}
-                              className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/70"
+                              width={24}
+                              height={24}
+                              className="h-6 w-6 shrink-0 rounded-full object-cover ring-1 ring-white/70"
                             />
                           ) : (
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
-                              {post.user.firstName[0]}{post.user.lastName[0]}
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-[9px] font-bold">
+                              {post.user.firstName[0]}
+                              {post.user.lastName[0]}
                             </span>
                           )}
-                          <span className="truncate text-[11px] font-semibold drop-shadow">
+                          <span className="truncate text-[10.5px] font-semibold drop-shadow">
                             {post.user.firstName} {post.user.lastName}
                           </span>
                         </Link>
                       ) : (
-                        <span className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">
+                        <span className="min-w-0 truncate text-[10.5px] font-semibold text-white drop-shadow">
                           Selfless community
                         </span>
                       )}
@@ -872,26 +888,29 @@ function RecentPostsSection() {
                         type="button"
                         onClick={() => setSelectedMedia(post)}
                         aria-label={`View ${post.title || 'photo'} fullscreen`}
-                        title="View fullscreen"
-                        className="pointer-events-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        className="pointer-events-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/50 bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       >
-                        <Maximize2 className="h-4 w-4" />
+                        <Maximize2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    <div className={`pointer-events-none absolute inset-x-3 ${user ? 'bottom-16' : 'bottom-3'} text-white`}>
+                    <div
+                      className={`pointer-events-none absolute inset-x-2.5 ${
+                        user ? 'bottom-14' : 'bottom-2.5'
+                      } text-white`}
+                    >
                       {post.title && (
-                        <h3 className="line-clamp-2 text-sm font-bold leading-5 drop-shadow">
+                        <h3 className="line-clamp-2 text-[12px] font-bold leading-4 drop-shadow">
                           {post.title}
                         </h3>
                       )}
                       {post.description && (
-                        <p className="mt-1.5 line-clamp-2 text-[10px] leading-4 text-white/90 drop-shadow">
+                        <p className="mt-1 line-clamp-2 text-[9.5px] leading-3.5 text-white/85 drop-shadow">
                           {post.description}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <p className="text-[9px] font-medium text-white/80">
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <p className="text-[8.5px] font-medium text-white/75">
                           {new Date(post.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -901,7 +920,7 @@ function RecentPostsSection() {
                         {post.category && (
                           <>
                             <span className="h-0.5 w-0.5 rounded-full bg-white/50" />
-                            <span className="text-[9px] font-medium text-white/80 capitalize">
+                            <span className="text-[8.5px] font-medium capitalize text-white/75">
                               {post.category}
                             </span>
                           </>
@@ -930,43 +949,48 @@ function RecentPostsSection() {
           })}
         </div>
       )}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
           <Link
             href="/dashboard/gallery"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#1A2B4C] px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#263D66] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+            className="inline-flex items-center gap-1 rounded-md bg-[#1A2B4C] px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66]"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3.5 w-3.5" />
             Create post
           </Link>
           {posts.length > 1 && (
             <button
               type="button"
-              onClick={() => postsCarouselRef.current?.scrollBy({ left: -306, behavior: 'smooth' })}
+              onClick={() =>
+                postsCarouselRef.current?.scrollBy({ left: -252, behavior: 'smooth' })
+              }
               aria-label="Show previous posts"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5646] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </button>
           )}
           {posts.length > 1 && (
             <button
               type="button"
-              onClick={() => postsCarouselRef.current?.scrollBy({ left: 306, behavior: 'smooth' })}
+              onClick={() =>
+                postsCarouselRef.current?.scrollBy({ left: 252, behavior: 'smooth' })
+              }
               aria-label="Show next posts"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#4B5646] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
         <button
           type="button"
           onClick={() => router.push('/dashboard/gallery')}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#1A2B4C] shadow-sm transition-all duration-200 hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B98A3E]"
+          className="inline-flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-[#4B5646] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
         >
           View all posts
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -984,9 +1008,9 @@ function RecentPostsSection() {
             type="button"
             onClick={() => setSelectedMedia(null)}
             aria-label="Close fullscreen media"
-            className="absolute right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
           {selectedMedia.contentType.startsWith('video/') ? (
             <video
@@ -1017,6 +1041,10 @@ function RecentPostsSection() {
   );
 }
 
+/* ============================================================
+   SECTION HEADER — flat
+============================================================ */
+
 function SectionHeader({
   label,
   count,
@@ -1027,13 +1055,13 @@ function SectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex items-end justify-between gap-4 border-t-2 border-[#1A2B4C] pt-3">
-      <div className="flex items-baseline gap-3">
-        <h2 className="text-[17px] font-black uppercase tracking-tight text-[#1A2B4C] sm:text-[19px]">
+    <div className="mb-3 flex items-end justify-between gap-3 border-b border-[#E5E7EB] pb-2">
+      <div className="flex items-baseline gap-2">
+        <h2 className="text-[14px] font-semibold tracking-tight text-[#1A2B4C]">
           {label}
         </h2>
         {typeof count === 'number' && (
-          <span className="font-mono text-[13px] font-bold tabular-nums text-[#B98A3E]">
+          <span className="text-[11px] font-semibold tabular-nums text-[#C59B4C]">
             {count}
           </span>
         )}
@@ -1083,8 +1111,8 @@ function MediaLibrary() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 bg-[#0F1923] py-16 text-sm text-white/40">
-        <Loader2 className="h-4 w-4 animate-spin" />
+      <div className="flex items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-white py-12 text-[12.5px] text-[#6B7280]">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Loading reels…
       </div>
     );
@@ -1092,7 +1120,7 @@ function MediaLibrary() {
 
   if (error) {
     return (
-      <div className="border border-[#A4462F]/30 bg-[#A4462F]/5 p-4 text-sm text-[#A4462F]">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-[12.5px] text-red-700">
         {error instanceof Error ? error.message : 'Could not load reels'}
       </div>
     );
@@ -1100,11 +1128,11 @@ function MediaLibrary() {
 
   if (videos.length === 0) {
     return (
-      <div className="border border-[#1A2B4C] bg-white">
+      <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-white">
         <div className="px-5 py-10 text-center">
-          <Video className="mx-auto mb-3 h-6 w-6 text-[#9CA3AF]" />
-          <p className="text-[15px] font-bold text-[#1A2B4C]">No reels yet</p>
-          <p className="mt-1 text-[12px] text-[#6B7280]">
+          <Video className="mx-auto mb-2 h-5 w-5 text-[#9CA3AF]" />
+          <p className="text-[13px] font-semibold text-[#1A2B4C]">No reels yet</p>
+          <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
             Be the first to share a video with the community
           </p>
         </div>
@@ -1113,8 +1141,8 @@ function MediaLibrary() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl overflow-hidden bg-white">
-      <div className="mx-auto w-full max-w-3xl bg-black">
+    <div className="mx-auto w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="mx-auto w-full bg-black">
         {current && (
           <VideoPlayer
             key={`video-${current.id}`}
@@ -1129,10 +1157,12 @@ function MediaLibrary() {
           />
         )}
       </div>
-      <ul aria-label="Available videos" className="mx-auto max-h-64 w-full max-w-3xl space-y-1 overflow-y-auto bg-white p-3">
+      <ul
+        aria-label="Available videos"
+        className="mx-auto max-h-56 w-full space-y-0.5 overflow-y-auto bg-white p-2"
+      >
         {videos.map((video, index) => {
           const isCurrentVideo = index === currentIndex;
-
           return (
             <li key={video.id}>
               <button
@@ -1142,18 +1172,16 @@ function MediaLibrary() {
                   setRawIndex(index);
                   window.setTimeout(() => videoPlayerRef.current?.play(), 150);
                 }}
-                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#B98A3E] ${
+                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors ${
                   isCurrentVideo
-                    ? 'bg-[#F8F9FA] font-semibold text-blue-700'
-                    : 'text-blue-700 hover:bg-[#F8F9FA]'
+                    ? 'bg-[#FBF7EE] font-semibold text-[#8A6328]'
+                    : 'text-[#4B5646] hover:bg-[#F8F9FA]'
                 }`}
               >
-                <Video className="h-4 w-4 shrink-0 text-[#B98A3E]" />
-                <span className="min-w-0 flex-1 break-words underline decoration-1 underline-offset-2">
-                  {video.title}
-                </span>
+                <Video className="h-3.5 w-3.5 shrink-0 text-[#C59B4C]" />
+                <span className="min-w-0 flex-1 truncate">{video.title}</span>
                 {isCurrentVideo && (
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#8A642D]">
+                  <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-[#C59B4C]">
                     Playing
                   </span>
                 )}
@@ -1166,6 +1194,10 @@ function MediaLibrary() {
   );
 }
 
+/* ============================================================
+   LOADING SKELETON — matches full hero with status bar + globe
+============================================================ */
+
 function DashboardLoadingSkeleton() {
   return (
     <main
@@ -1174,51 +1206,49 @@ function DashboardLoadingSkeleton() {
       aria-busy="true"
     >
       <div className="w-full min-w-0 py-3 sm:py-5">
-        <header className="bg-[#1A2B4C] px-5 py-6 text-white sm:px-8 sm:py-8">
-          <div className="flex items-start justify-between gap-6">
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="h-3 w-28 animate-pulse bg-white/15" />
-              <div className="h-10 w-56 max-w-full animate-pulse bg-white/15 sm:h-12" />
-              <div className="h-3 w-52 max-w-full animate-pulse bg-white/10" />
-            </div>
-            <div className="h-16 w-16 shrink-0 animate-pulse bg-white/10 sm:h-20 sm:w-20" />
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-white/10 pt-6 sm:grid-cols-4">
-            {[0, 1, 2, 3].map((stat) => (
-              <div key={stat} className="space-y-2">
-                <div className="h-7 w-12 animate-pulse bg-white/15 sm:h-8" />
-                <div className="h-2.5 w-16 animate-pulse bg-white/10" />
+        <header className="relative overflow-hidden bg-[#1A2B4C] text-white">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1B33]/92 via-[#1A2B4C]/82 to-[#0F1B33]/95" />
+          <div className="relative px-4 py-5 sm:px-6 sm:py-6">
+            <div className="flex items-start justify-between gap-5">
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="h-2.5 w-24 animate-pulse rounded bg-white/15" />
+                <div className="h-8 w-48 max-w-full animate-pulse rounded bg-white/15 sm:h-9" />
+                <div className="h-2.5 w-44 max-w-full animate-pulse rounded bg-white/10" />
               </div>
-            ))}
+              <div className="h-14 w-14 shrink-0 animate-pulse rounded-xl bg-white/10 sm:h-16 sm:w-16" />
+            </div>
+            <div className="mt-6 grid grid-cols-4 gap-3 border-t border-white/10 pt-5">
+              {[0, 1, 2, 3].map((stat) => (
+                <div key={stat} className="space-y-1.5">
+                  <div className="h-5 w-10 animate-pulse rounded bg-white/15 sm:h-6" />
+                  <div className="h-2 w-14 animate-pulse rounded bg-white/10" />
+                </div>
+              ))}
+            </div>
           </div>
         </header>
 
-        <section className="mt-10" aria-hidden="true">
-          <div className="mb-3 h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+        <section className="mt-8">
+          <div className="mb-2 h-3.5 w-40 animate-pulse rounded bg-[#E5E7EB]" />
           <div className="flex gap-3 overflow-hidden">
             {[0, 1, 2, 3].map((card) => (
               <div key={card} className="w-40 shrink-0">
-                <div className="aspect-square w-full animate-pulse bg-[#E5E7EB]" />
-                <div className="mt-3 h-3 w-3/4 animate-pulse bg-[#E5E7EB]" />
-                <div className="mt-2 h-2.5 w-1/2 animate-pulse bg-[#ECEEF0]" />
-                <div className="mt-3 space-y-2">
-                  <div className="h-2.5 w-full animate-pulse bg-[#ECEEF0]" />
-                  <div className="h-2.5 w-4/5 animate-pulse bg-[#ECEEF0]" />
-                </div>
+                <div className="aspect-square w-full animate-pulse rounded-lg bg-[#E5E7EB]" />
+                <div className="mt-2 h-2.5 w-3/4 animate-pulse rounded bg-[#E5E7EB]" />
+                <div className="mt-1.5 h-2 w-1/2 animate-pulse rounded bg-[#F3F4F6]" />
               </div>
             ))}
           </div>
         </section>
 
         <section
-          className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6"
+          className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
           aria-hidden="true"
         >
           {[0, 1, 2, 3, 4, 5].map((item) => (
             <div
               key={item}
-              className="h-24 animate-pulse border border-[#E5E7EB] bg-white"
+              className="h-20 animate-pulse rounded-lg border border-[#E5E7EB] bg-white"
             />
           ))}
         </section>
@@ -1228,32 +1258,33 @@ function DashboardLoadingSkeleton() {
 }
 
 /* ============================================================
-   SUGGESTED STUDENTS — mobile-first, no borders
+   SUGGESTED STUDENTS
 ============================================================ */
 
 function SuggestedStudents({
   trending = [],
   isLoading,
+  showVerified = false,
 }: {
   trending?: SocialUser[];
   isLoading?: boolean;
+  showVerified?: boolean;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
-  // Prioritize superadmin with profile image first, then profile images, then followers and likes.
   const sortedTrending = useMemo(() => {
     return [...trending].sort(compareSuperadminWithImageFirst).slice(0, 50);
   }, [trending]);
 
   if (isLoading) {
     return (
-      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-72 w-[320px] shrink-0 animate-pulse bg-[#E5E7EB]"
+            className="h-64 w-[240px] shrink-0 animate-pulse rounded-lg bg-[#F3F4F6] sm:w-[260px]"
           />
         ))}
       </div>
@@ -1262,12 +1293,12 @@ function SuggestedStudents({
 
   if (sortedTrending.length === 0) {
     return (
-      <div className="border border-[#D1D5DB] bg-white px-6 py-8 text-center">
-        <TrendingUp className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
-        <p className="text-[14px] font-bold text-[#1A2B4C]">
+      <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-white px-5 py-8 text-center">
+        <TrendingUp className="mx-auto mb-2 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[13px] font-semibold text-[#1A2B4C]">
           No active students yet
         </p>
-        <p className="mt-1 text-[12px] text-[#6B7280]">
+        <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
           Students appear here as they get followers and likes
         </p>
       </div>
@@ -1276,16 +1307,15 @@ function SuggestedStudents({
 
   return (
     <div className="relative">
-      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 scroll-smooth">
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
         {sortedTrending.map((user) => {
-          const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''
-            }`.toUpperCase();
+          const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
           const isSelf = user.id === currentUserId;
 
           return (
             <article
               key={user.id}
-              className="shrink-0 overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md w-[280px] sm:w-[290px]"
+              className="w-[240px] shrink-0 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-sm transition-colors hover:border-[#C59B4C]/50 sm:w-[260px]"
             >
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
                 {user.profileImageUrl ? (
@@ -1293,41 +1323,43 @@ function SuggestedStudents({
                     src={user.profileImageUrl}
                     alt={`${user.firstName} ${user.lastName}`}
                     fill
-                    sizes="240px"
+                    sizes="260px"
                     className="object-cover object-top"
-                    quality={100}
+                    quality={95}
                     priority
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <span className="font-mono text-2xl font-black text-white/90">
+                    <span className="text-2xl font-bold text-white/90">
                       {initials}
                     </span>
                   </div>
                 )}
 
-                {/* View Profile - Top Right */}
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     router.push(`/dashboard/students/${user.id}`);
                   }}
-                  className="absolute right-2 top-2 z-10 rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  className="absolute right-2 top-2 z-10 rounded border border-white/30 bg-black/40 px-2 py-0.5 text-[9.5px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/60"
                   aria-label={`View ${user.firstName} ${user.lastName}'s profile`}
                 >
-                  View profile
+                  View
                 </button>
 
-                {/* Gradient overlay for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 
-                {/* Content overlay */}
-                <div className="absolute inset-0 flex flex-col justify-end p-3">
-                  <p className="truncate text-[15px] font-bold leading-tight text-white">
-                    {user.firstName} {user.lastName}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] leading-snug text-white/90">
+                <div className="absolute inset-0 flex flex-col justify-end p-2.5">
+                  <div className="flex items-center gap-1">
+                    <p className="truncate text-[12.5px] font-bold leading-tight text-white">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    {(showVerified || user.hasVerifiedBadge) && (
+                      <VerifiedBadge className="h-3.5 w-3.5" />
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1 truncate text-[10px] leading-snug text-white/85">
                     {(user.role === 'super_admin'
                       ? user.previousTechCenter ?? user.techCenter
                       : user.techCenter) && (
@@ -1351,34 +1383,34 @@ function SuggestedStudents({
                     )}
                   </div>
 
-                  <div className="mt-2 flex items-center gap-2 text-[10px]">
-                    <span className="font-mono font-bold text-white">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9.5px] text-white/85">
+                    <span className="font-semibold text-white tabular-nums">
                       {user.followersCount}
                     </span>
-                    <span className="text-white/80">followers</span>
-                    <span className="text-white/80">•</span>
-                    <span className="font-mono font-bold text-white">
+                    <span>followers</span>
+                    <span className="text-white/50">·</span>
+                    <span className="font-semibold text-white tabular-nums">
                       {user.likesReceivedCount}
                     </span>
-                    <span className="text-white/80">likes</span>
-                    <span className="text-white/80">•</span>
-                    <span className="font-mono font-bold text-white">
+                    <span>likes</span>
+                    <span className="text-white/50">·</span>
+                    <span className="font-semibold text-white tabular-nums">
                       {user.profileViewsCount}
                     </span>
-                    <span className="text-white/80">views</span>
+                    <span>views</span>
                   </div>
 
-                  <div className="mt-3 flex flex-nowrap items-center justify-between gap-1">
+                  <div className="mt-2 flex items-center justify-between gap-1">
                     {!isSelf && (
                       <button
                         type="button"
                         onClick={() =>
                           router.push(`/dashboard/messages?userId=${user.id}`)
                         }
-                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2 py-1 text-[10px] font-semibold text-white transition-all hover:border-white/50 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                        className="inline-flex shrink-0 items-center gap-1 rounded border border-white/30 bg-black/25 px-1.5 py-0.5 text-[9.5px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/35"
                         aria-label={`Message ${user.firstName} ${user.lastName}`}
                       >
-                        <MessageSquare className="h-3 w-3 shrink-0" />
+                        <MessageSquare className="h-2.5 w-2.5 shrink-0" />
                         Message
                       </button>
                     )}
@@ -1406,11 +1438,9 @@ function SuggestedStudents({
       </div>
 
       {sortedTrending.length > 3 && (
-        <div className="flex items-center justify-center gap-2 mt-3 text-[11px] text-[#6B7280]">
-          <span className="font-mono text-[10px] uppercase tracking-wider">
-            Scroll to discover more
-          </span>
-          <ChevronRight className="w-4 h-4" />
+        <div className="mt-2 flex items-center justify-center gap-1.5 text-[10.5px] text-[#9CA3AF]">
+          <span className="uppercase tracking-wide">Scroll to discover more</span>
+          <ChevronRight className="h-3 w-3" />
         </div>
       )}
     </div>
@@ -1476,10 +1506,10 @@ function RecentSocialActivity({
 
   if (events.length === 0) {
     return (
-      <div className="bg-white px-6 py-8 text-center">
-        <Heart className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
-        <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
-        <p className="mt-1 text-[12px] text-[#6B7280]">
+      <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-white px-5 py-8 text-center">
+        <Heart className="mx-auto mb-2 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[13px] font-semibold text-[#1A2B4C]">No activity yet</p>
+        <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
           Likes and follows on your profile appear here
         </p>
       </div>
@@ -1487,32 +1517,32 @@ function RecentSocialActivity({
   }
 
   return (
-    <ul className="max-h-[328px] space-y-1 overflow-y-auto overscroll-contain pr-2">
+    <ul className="max-h-[328px] divide-y divide-[#F3F4F6] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white">
       {events.map((event) => {
-        const initials = `${event.user.firstName[0] ?? ''}${event.user.lastName[0] ?? ''
-          }`.toUpperCase();
+        const initials = `${event.user.firstName[0] ?? ''}${event.user.lastName[0] ?? ''}`.toUpperCase();
         const isLike = event.kind === 'like';
         const eventKey = `${event.id}-${event.at}`;
 
         return (
-          <li key={eventKey} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
-            <div className="relative h-9 w-9 shrink-0">
+          <li key={eventKey} className="flex items-center gap-2.5 px-3 py-2">
+            <div className="relative h-8 w-8 shrink-0">
               {event.user.profileImageUrl ? (
                 <Image
                   src={event.user.profileImageUrl}
                   alt={`${event.user.firstName} ${event.user.lastName}`}
                   fill
-                  sizes="36px"
-                  className="object-cover"
+                  sizes="32px"
+                  className="rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A2B4C] text-[10px] font-bold text-white">
                   {initials}
                 </div>
               )}
               <span
-                className={`absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white ${isLike ? 'bg-[#A4462F]' : 'bg-[#55705B]'
-                  }`}
+                className={`absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white ${
+                  isLike ? 'bg-[#A4462F]' : 'bg-[#55705B]'
+                }`}
               >
                 {isLike ? (
                   <Heart className="h-2 w-2 text-white" fill="currentColor" />
@@ -1523,8 +1553,8 @@ function RecentSocialActivity({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
-                <span className="font-bold">
+              <p className="truncate text-[12px] leading-5 text-[#1A2B4C]">
+                <span className="font-semibold">
                   {event.user.firstName} {event.user.lastName}
                 </span>{' '}
                 <span className="text-[#6B7280]">
@@ -1533,7 +1563,7 @@ function RecentSocialActivity({
               </p>
             </div>
 
-            <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
+            <span className="shrink-0 text-[10px] tabular-nums text-[#9CA3AF]">
               {new Date(event.at).toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -1581,9 +1611,7 @@ function TechCenterActivity({
     queryFn: async () => {
       if (isSuperAdminOrDev) {
         const res = await fetch('/api/admin/activity-logs?limit=all');
-        if (!res.ok) {
-          throw new Error('Failed to fetch all activities');
-        }
+        if (!res.ok) throw new Error('Failed to fetch all activities');
         const json: unknown = await res.json();
         if (!isRecord(json) || !Array.isArray(json.logs)) return [];
         return json.logs.filter(isTechCenterActivityItem);
@@ -1618,29 +1646,29 @@ function TechCenterActivity({
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'course_submission':
-        return <BookOpen className="h-3 w-3" />;
+        return <BookOpen className="h-2.5 w-2.5" />;
       case 'cleaning_registration':
       case 'cleaning_day_change':
       case 'cleaning_week_created':
       case 'cleaning_day_created':
-        return <Briefcase className="h-3 w-3" />;
+        return <Briefcase className="h-2.5 w-2.5" />;
       case 'football_team_joined':
-        return <Trophy className="h-3 w-3" />;
+        return <Trophy className="h-2.5 w-2.5" />;
       default:
-        return <Sparkles className="h-3 w-3" />;
+        return <Sparkles className="h-2.5 w-2.5" />;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="bg-white p-5">
-        <div className="space-y-2">
+      <div className="rounded-lg border border-[#E5E7EB] bg-white p-3">
+        <div className="space-y-1.5">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="h-9 w-9 animate-pulse rounded-full bg-[#E5E7EB]" />
+            <div key={i} className="flex items-center gap-2.5">
+              <div className="h-8 w-8 animate-pulse rounded-full bg-[#F3F4F6]" />
               <div className="flex-1 space-y-1">
-                <div className="h-3 w-32 animate-pulse bg-[#E5E7EB]" />
-                <div className="h-2 w-24 animate-pulse bg-[#ECEEF0]" />
+                <div className="h-2.5 w-32 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="h-2 w-24 animate-pulse rounded bg-[#F3F4F6]" />
               </div>
             </div>
           ))}
@@ -1651,10 +1679,10 @@ function TechCenterActivity({
 
   if (!activities || activities.length === 0) {
     return (
-      <div className="bg-white px-6 py-8 text-center">
-        <Sparkles className="mx-auto mb-3 h-5 w-5 text-[#9CA3AF]" />
-        <p className="text-[14px] font-bold text-[#1A2B4C]">No activity yet</p>
-        <p className="mt-1 text-[12px] text-[#6B7280]">
+      <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-white px-5 py-8 text-center">
+        <Sparkles className="mx-auto mb-2 h-5 w-5 text-[#9CA3AF]" />
+        <p className="text-[13px] font-semibold text-[#1A2B4C]">No activity yet</p>
+        <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
           {isSuperAdminOrDev
             ? 'Activities from all tech centers will appear here'
             : 'Recent activities from your tech center will appear here'}
@@ -1664,49 +1692,48 @@ function TechCenterActivity({
   }
 
   return (
-    <ul className="max-h-[400px] space-y-2 overflow-y-auto">
+    <ul className="max-h-[400px] divide-y divide-[#F3F4F6] overflow-y-auto rounded-lg border border-[#E5E7EB] bg-white">
       {activities.map((activity) => {
-        const initials = `${activity.user.firstName[0] ?? ''}${activity.user.lastName[0] ?? ''
-          }`.toUpperCase();
+        const initials = `${activity.user.firstName[0] ?? ''}${activity.user.lastName[0] ?? ''}`.toUpperCase();
 
         return (
-          <li key={activity.id} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5">
-            <div className="relative h-9 w-9 shrink-0">
+          <li key={activity.id} className="flex items-center gap-2.5 px-3 py-2">
+            <div className="relative h-8 w-8 shrink-0">
               {activity.user.profileImageUrl ? (
                 <Image
                   src={activity.user.profileImageUrl}
                   alt={`${activity.user.firstName} ${activity.user.lastName}`}
                   fill
-                  sizes="36px"
-                  className="object-cover"
+                  sizes="32px"
+                  className="rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center bg-[#1A2B4C] font-mono text-[11px] font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1A2B4C] text-[10px] font-bold text-white">
                   {initials}
                 </div>
               )}
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center border border-white bg-[#B98A3E]">
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#C59B4C]">
                 {getActionIcon(activity.action)}
               </span>
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] leading-snug text-[#1A2B4C]">
-                <span className="font-bold">
+              <p className="truncate text-[12px] leading-5 text-[#1A2B4C]">
+                <span className="font-semibold">
                   {activity.user.firstName} {activity.user.lastName}
                 </span>{' '}
                 <span className="text-[#6B7280]">
                   {getActionLabel(activity.action)}
                 </span>
                 {activity.techCenter && (
-                  <span className="ml-2 text-[11px] text-[#B98A3E]">
+                  <span className="ml-1.5 text-[10.5px] text-[#C59B4C]">
                     ({activity.techCenter.name})
                   </span>
                 )}
               </p>
             </div>
 
-            <span className="shrink-0 font-mono text-[10px] tabular-nums text-[#9CA3AF]">
+            <span className="shrink-0 text-[10px] tabular-nums text-[#9CA3AF]">
               {new Date(activity.createdAt).toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -1729,7 +1756,10 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
   const techCenterId = user?.techCenterId;
+
+  // Kept: motivation message rotation state
   const [, setMessageIndex] = useState(0);
+  // Kept: real-time clock
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const { data: socialSummary } = useQuery<SocialSummary>({
@@ -1744,17 +1774,18 @@ export default function DashboardPage() {
       return result;
     },
     enabled: !!currentUserId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: false, // Remove auto-polling
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: false,
   });
 
   const meStats = socialSummary?.me;
-  const directorProfiles = socialSummary?.trending.students.filter(
-    (profile) =>
-      profile.role === 'super_admin' &&
-      profile.status === 'ACTIVE' &&
-      Boolean(profile.previousTechCenter),
-  ) ?? [];
+  const directorProfiles =
+    socialSummary?.trending.students.filter(
+      (profile) =>
+        profile.role === 'super_admin' &&
+        profile.status === 'ACTIVE' &&
+        Boolean(profile.previousTechCenter),
+    ) ?? [];
   const trendingProfiles = socialSummary?.trending.students.filter(
     (profile) => profile.role !== 'super_admin',
   );
@@ -1847,6 +1878,7 @@ export default function DashboardPage() {
   const tutorInfo = assignmentData?.tutor || null;
   const studentCount = assignmentData?.studentCount || 0;
 
+  // Kept: motivation messages + rotation
   const motivationMessages = useMemo(
     () => [
       'Learn with purpose. Build with confidence.',
@@ -1870,7 +1902,7 @@ export default function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [motivationMessages.length]);
 
-  // Update current time every second
+  // Kept: real-time clock update
   useEffect(() => {
     const interval = window.setInterval(() => {
       setCurrentTime(new Date());
@@ -1885,8 +1917,6 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  // Friendly UI labels for staff roles. Admins are shown as "Manager" and
-  // super admins as "Director"; other roles fall back to a cleaned-up string.
   const getRoleLabel = (role?: string | null) => {
     if (!role) return '';
     if (role === 'admin') return 'Manager';
@@ -1903,33 +1933,33 @@ export default function DashboardPage() {
 
     if (userRole === 'super_admin') {
       return [
-        { icon: <Users className="h-5 w-5" />, label: 'Tech Centers', description: 'Manage all', path: '/dashboard/super-admin/centers' },
-        { icon: <Users className="h-5 w-5" />, label: 'All Users', description: 'Manage system', path: '/dashboard/super-admin/users' },
-        { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
-        { icon: <Library className="h-5 w-5" />, label: 'Policy Book', description: 'Read policies', path: '/dashboard/policies' },
-        { icon: <BookOpen className="h-5 w-5" />, label: 'Tuition', description: 'View info', path: '/dashboard/courses' },
-        { icon: <MessageCircle className="h-5 w-5" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
+        { icon: <Users className="h-4 w-4" />, label: 'Tech Centers', description: 'Manage all', path: '/dashboard/super-admin/centers' },
+        { icon: <Users className="h-4 w-4" />, label: 'All Users', description: 'Manage system', path: '/dashboard/super-admin/users' },
+        { icon: <Briefcase className="h-4 w-4" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+        { icon: <Library className="h-4 w-4" />, label: 'Policy Book', description: 'Read policies', path: '/dashboard/policies' },
+        { icon: <BookOpen className="h-4 w-4" />, label: 'Tuition', description: 'View info', path: '/dashboard/courses' },
+        { icon: <MessageCircle className="h-4 w-4" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
       ];
     }
 
     if (userRole === 'admin') {
       return [
-        { icon: <GraduationCap className="h-5 w-5" />, label: 'Tutors', description: 'Assign students', path: '/dashboard/admin/teachers' },
-        { icon: <BookOpen className="h-5 w-5" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
-        { icon: <Users className="h-5 w-5" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
-        { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
-        { icon: <Clock className="h-5 w-5" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
-        { icon: <MessageCircle className="h-5 w-5" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
+        { icon: <GraduationCap className="h-4 w-4" />, label: 'Tutors', description: 'Assign students', path: '/dashboard/admin/teachers' },
+        { icon: <BookOpen className="h-4 w-4" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
+        { icon: <Users className="h-4 w-4" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
+        { icon: <Briefcase className="h-4 w-4" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+        { icon: <Clock className="h-4 w-4" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
+        { icon: <MessageCircle className="h-4 w-4" />, label: 'Support', description: 'IT team', path: '/dashboard/support' },
       ];
     }
 
     return [
-      { icon: <BookOpen className="h-5 w-5" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
-      { icon: <Users className="h-5 w-5" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
-      { icon: <Briefcase className="h-5 w-5" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
-      { icon: <Clock className="h-5 w-5" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
-      { icon: <Library className="h-5 w-5" />, label: 'Policies', description: 'Read policies', path: '/dashboard/policies' },
-      { icon: <Trophy className="h-5 w-5" />, label: 'Sports', description: 'Join team', path: '/dashboard/football-team' },
+      { icon: <BookOpen className="h-4 w-4" />, label: 'Courses', description: 'Enrolled units', path: '/dashboard/courses' },
+      { icon: <Users className="h-4 w-4" />, label: 'Students', description: 'Peer network', path: '/dashboard/students' },
+      { icon: <Briefcase className="h-4 w-4" />, label: 'Internships', description: 'Opportunities', path: '/dashboard/internships' },
+      { icon: <Clock className="h-4 w-4" />, label: 'Cleaning', description: 'Your schedule', path: '/dashboard/cleaning' },
+      { icon: <Library className="h-4 w-4" />, label: 'Policies', description: 'Read policies', path: '/dashboard/policies' },
+      { icon: <Trophy className="h-4 w-4" />, label: 'Sports', description: 'Join team', path: '/dashboard/football-team' },
     ];
   }, [user?.role]);
 
@@ -1941,44 +1971,53 @@ export default function DashboardPage() {
     <div className="min-h-screen w-full min-w-0 bg-[#F8F9FA] text-[#1A2B4C]">
       <div className="w-full min-w-0 py-3 sm:py-5">
         {/* ============================================================
-            HERO — greeting + stats + announcements + directors (unified)
+            HERO — full featured with globe, status bar, clock, stats
         ============================================================ */}
         <header className="relative overflow-hidden bg-[#1A2B4C] text-white">
-          {/* Video Background */}
-          <video
-            src="/uganda video.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 h-full w-full object-cover opacity-40"
-            aria-hidden="true"
-          />
           {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4C]/85 via-[#1A2B4C]/75 to-[#1A2B4C]/90" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1B33]/92 via-[#1A2B4C]/82 to-[#0F1B33]/95" />
 
-          {/* Content */}
+          {/* Spinning globe accents — kept, subtler */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+          >
+            <div className="absolute -right-28 -top-28 h-[440px] w-[440px] opacity-25">
+              <SpinningGlobe />
+            </div>
+            <div className="absolute -bottom-32 -left-24 h-[380px] w-[380px] opacity-15">
+              <SpinningGlobe />
+            </div>
+          </div>
+
           <div className="relative z-10">
-            {/* Status Bar */}
+            {/* Status Bar — kept, tightened */}
             <div className="border-b border-white/10 px-4 py-1.5 sm:px-6">
-              <div className="flex items-center justify-between font-mono text-[9px] text-white/70">
+              <div className="flex items-center justify-between text-[9px] text-white/65">
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1.5">
-                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#B98A3E]" />
-                    <span className="uppercase tracking-wider text-[#B98A3E]">Live</span>
+                    <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#C59B4C]" />
+                    <span className="uppercase tracking-wider text-[#D4A84B]">Live</span>
                   </span>
                   <span className="text-white/20">•</span>
                   <span className="uppercase tracking-wider">
-                    {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {currentTime.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </span>
-                  <span className="text-white/20">•</span>
+                  <span className="text-white/20">·</span>
                   <span className="uppercase tracking-wider">
-                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    {currentTime.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
                   </span>
                 </div>
                 <div className="hidden items-center gap-1 sm:flex">
-                  <span className="inline-flex items-center gap-1.5 font-mono text-[8px] font-bold uppercase tracking-wider text-[#B98A3E]">
-                    <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-[#B98A3E]" />
+                  <span className="inline-flex items-center gap-1.5 text-[8px] font-semibold uppercase tracking-wider text-[#D4A84B]">
+                    <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-[#C59B4C]" />
                     Online
                   </span>
                 </div>
@@ -1987,93 +2026,91 @@ export default function DashboardPage() {
 
             {/* Profile + Stats */}
             <div className="px-4 py-5 sm:px-6 sm:py-6">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(16rem,0.8fr)] md:items-center md:gap-6">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(14rem,0.7fr)] md:items-start md:gap-6">
                 <div className="min-w-0">
-                <div className="flex items-start gap-4">
-                  {/* Avatar */}
-                  <div className="relative shrink-0">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-xl border-2 border-[#B98A3E]/40 sm:h-16 sm:w-16">
-                      {user?.profileImageUrl ? (
-                        <Image
-                          src={user.profileImageUrl}
-                          alt={userName}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-[#B98A3E]/10">
-                          <span className="font-mono text-xl font-black text-[#B98A3E]">
-                            {firstName?.charAt(0) ?? <User className="h-5 w-5" />}
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <div className="relative h-12 w-12 overflow-hidden rounded-lg sm:h-14 sm:w-14">
+                        {user?.profileImageUrl ? (
+                          <Image
+                            src={user.profileImageUrl}
+                            alt={userName}
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-[#C59B4C]/15">
+                            <span className="text-lg font-bold text-[#D4A84B]">
+                              {firstName?.charAt(0) ?? <User className="h-4 w-4" />}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#1A2B4C] bg-[#55705B]" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#D4A84B]">
+                        {greeting}
+                      </p>
+                      <h1 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-white sm:text-[26px]">
+                        {firstName}
+                        <span className="text-[#E6C779]">.</span>
+                      </h1>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                        <span className="inline-flex items-center gap-1 text-[#D4A84B]">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#C59B4C]" />
+                          <span className="uppercase tracking-wide">Active</span>
+                        </span>
+                        {user?.role && (
+                          <span className="uppercase tracking-wide text-white/70">
+                            {getRoleLabel(user.role)}
+                          </span>
+                        )}
+                        {techCenter && (
+                          <span className="inline-flex items-center gap-1 text-white/70">
+                            <MapPin className="h-2.5 w-2.5 text-[#D4A84B]" />
+                            <span>{techCenter.name}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-3">
+                    {[
+                      { icon: <Users className="h-3 w-3" />, label: 'Followers', value: meStats?.followersCount ?? 0 },
+                      { icon: <UserPlus className="h-3 w-3" />, label: 'Following', value: meStats?.followingCount ?? 0 },
+                      { icon: <Eye className="h-3 w-3" />, label: 'Views', value: meStats?.profileViewsCount ?? 0 },
+                      { icon: <Heart className="h-3 w-3" />, label: 'Likes', value: meStats?.likesReceivedCount ?? 0 },
+                    ].map(({ icon, label, value }) => (
+                      <div key={label} className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1 text-[#D4A84B]">
+                          {icon}
+                          <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-white/65">
+                            {label}
                           </span>
                         </div>
-                      )}
-                    </div>
-                    {/* Online dot on avatar */}
-                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#1A2B4C] bg-[#55705B]" />
-                  </div>
-
-                  {/* Name + badges */}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-[#B98A3E]">
-                      {greeting}
-                    </p>
-                    <h1 className="mt-0.5 text-2xl font-black leading-tight tracking-tight sm:text-3xl">
-                      {firstName}<span className="text-[#B98A3E]">.</span>
-                    </h1>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9.5px]">
-                      <span className="inline-flex items-center gap-1 text-[#B98A3E]">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#B98A3E]" />
-                        <span className="uppercase tracking-wider">Active</span>
-                      </span>
-                      {user?.role && (
-                        <span className="uppercase tracking-wider text-white/75">
-                          {getRoleLabel(user.role)}
-                        </span>
-                      )}
-                      {techCenter && (
-                        <span className="inline-flex items-center gap-1 text-white/75">
-                          <MapPin className="h-2.5 w-2.5 text-[#B98A3E]" />
-                          <span>{techCenter.name}</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="mt-5 grid grid-cols-4 gap-2 sm:gap-3">
-                  {[
-                    { icon: <Users className="h-3 w-3" />, label: 'Followers', value: meStats?.followersCount ?? 0 },
-                    { icon: <UserPlus className="h-3 w-3" />, label: 'Following', value: meStats?.followingCount ?? 0 },
-                    { icon: <Eye className="h-3 w-3" />, label: 'Views', value: meStats?.profileViewsCount ?? 0 },
-                    { icon: <Heart className="h-3 w-3" />, label: 'Likes', value: meStats?.likesReceivedCount ?? 0 },
-                  ].map(({ icon, label, value }) => (
-                    <div key={label} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5 text-[#B98A3E]">
-                        {icon}
-                        <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-white/75">
-                          {label}
+                        <span className="text-[16px] font-bold tabular-nums text-[#E6C779] sm:text-[18px]">
+                          {value}
                         </span>
                       </div>
-                      <span className="font-mono text-lg font-black tabular-nums text-[#B98A3E] sm:text-xl">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+
+                <RecentAnnouncementsPanel />
               </div>
-              <RecentAnnouncementsPanel />
             </div>
           </div>
-          </div>
-
         </header>
 
         {/* ============================================================
-            MAIN CONTENT - Unified layout
+            MAIN CONTENT
         ============================================================ */}
-        <div className="mt-10 space-y-12">
+        <div className="mt-6 space-y-8 px-4 sm:px-6">
           <RecentPostsSection />
 
           {(!socialSummary || directorProfiles.length > 0) && (
@@ -2086,7 +2123,6 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* Discover Students */}
           {discoverStudents.length > 0 && (
             <section>
               <SectionHeader label="Discover students" />
@@ -2097,7 +2133,6 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* Trending Students */}
           <section>
             <SectionHeader
               label="Trending student profiles"
@@ -2105,7 +2140,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => router.push('/dashboard/students')}
-                  className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A2B4C] transition-colors hover:text-[#6B7280]"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4B5646] transition-colors hover:text-[#1A2B4C]"
                 >
                   See all
                   <ChevronRight className="h-3 w-3" />
@@ -2118,15 +2153,12 @@ export default function DashboardPage() {
             />
           </section>
 
-          {/* Reels and profile activity remain full-width stacked rows */}
-          <div className="grid grid-cols-1 gap-10">
-            {/* Reels */}
+          <div className="grid grid-cols-1 gap-8">
             <section>
               <SectionHeader label="Reels" />
               <MediaLibrary />
             </section>
 
-            {/* Recent Activity */}
             <section>
               <SectionHeader label="On your profile" />
               <RecentSocialActivity
@@ -2136,245 +2168,238 @@ export default function DashboardPage() {
             </section>
           </div>
 
-          {/* Tech Center Activity - Full Width */}
           {(techCenter?.id ||
             user?.role === 'super_admin' ||
             user?.role === 'dev') && (
-              <section>
-                <SectionHeader
-                  label={
-                    user?.role === 'super_admin' || user?.role === 'dev'
-                      ? 'All tech centers activity'
-                      : `${techCenter?.name || 'Your tech center'} activity`
-                  }
-                />
-                <TechCenterActivity
-                  techCenterId={techCenter?.id}
-                  userRole={user?.role}
-                />
-              </section>
-            )}
-        </div>
+            <section>
+              <SectionHeader
+                label={
+                  user?.role === 'super_admin' || user?.role === 'dev'
+                    ? 'All tech centers activity'
+                    : `${techCenter?.name || 'Your tech center'} activity`
+                }
+              />
+              <TechCenterActivity
+                techCenterId={techCenter?.id}
+                userRole={user?.role}
+              />
+            </section>
+          )}
 
-        {/* ============================================================
-            FULL-WIDTH ROW SECTIONS (desktop rows, mobile stacked)
-        ============================================================ */}
-
-        {/* Quick Access — full width row */}
-        <section className="mt-12">
-          <SectionHeader label="Quick access" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-            {quickLinks.slice(0, 6).map((link) => (
-              <button
-                key={`${link.label}-${link.path}`}
-                type="button"
-                onClick={() => router.push(link.path)}
-                className="group flex flex-col items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white p-4 text-center transition-all hover:border-[#B98A3E] hover:bg-[#FBF7EE] hover:shadow-md active:scale-[0.98]"
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1A2B4C] text-white transition-colors group-hover:bg-[#B98A3E]">
-                  {link.icon}
-                </span>
-                <span className="text-[13px] font-bold leading-tight text-[#1A2B4C]">
-                  {link.label}
-                </span>
-                <span className="text-[11px] leading-snug text-[#6B7280]">
-                  {link.description}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Action Needed — full width banner (admins only) */}
-        {user?.role === 'admin' && (
-          <section className="mt-12">
-            <div className="flex flex-col gap-4 rounded-r-lg border-l-4 border-[#B98A3E] bg-[#FBF7EE] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-              <div>
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#8A6328]">
-                  Action needed
-                </p>
-                <h3 className="mt-1 text-[15px] font-black text-[#1A2B4C]">
-                  Assign students to tutors
-                </h3>
-                <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6B7280]">
-                  Help students get regular support by assigning them to tutors.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/admin/teachers')}
-                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#B98A3E]"
-              >
-                Open
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
+          {/* Quick Access */}
+          <section>
+            <SectionHeader label="Quick access" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {quickLinks.slice(0, 6).map((link) => (
+                <button
+                  key={`${link.label}-${link.path}`}
+                  type="button"
+                  onClick={() => router.push(link.path)}
+                  className="group flex flex-col items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white p-3 text-center transition-colors hover:border-[#C59B4C] hover:bg-[#FBF7EE]"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#1A2B4C] text-white transition-colors group-hover:bg-[#C59B4C]">
+                    {link.icon}
+                  </span>
+                  <span className="text-[12px] font-semibold leading-tight text-[#1A2B4C]">
+                    {link.label}
+                  </span>
+                  <span className="text-[10.5px] leading-snug text-[#6B7280]">
+                    {link.description}
+                  </span>
+                </button>
+              ))}
             </div>
           </section>
-        )}
 
-        {/* Admins — full width row */}
-        {(adminsLoading || centerAdmins.length > 0) &&
-          user?.role !== 'super_admin' && (
-            <section className="mt-12">
-              <SectionHeader
-                label={`${techCenter?.name || 'Your'} admins`}
-                count={centerAdmins.length}
-              />
-              {adminsLoading ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="h-14 animate-pulse rounded-lg bg-[#E5E7EB]"
-                    />
-                  ))}
+          {/* Action Needed */}
+          {user?.role === 'admin' && (
+            <section>
+              <div className="flex flex-col gap-3 rounded-lg border border-[#E5E7EB] border-l-2 border-l-[#C59B4C] bg-[#FBF7EE] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8A6328]">
+                    Action needed
+                  </p>
+                  <h3 className="mt-0.5 text-[13px] font-semibold text-[#1A2B4C]">
+                    Assign students to tutors
+                  </h3>
+                  <p className="mt-0.5 max-w-2xl text-[11.5px] leading-5 text-[#6B7280]">
+                    Help students get regular support by assigning them to tutors.
+                  </p>
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-                  {centerAdmins.map((admin) => (
-                    <div
-                      key={admin.id}
-                      className="inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5"
-                    >
-                      {admin.profileImageUrl ? (
-                        <Image
-                          src={admin.profileImageUrl}
-                          alt={`${admin.firstName} ${admin.lastName}`}
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A2B4C] font-mono text-[10px] font-bold text-white">
-                          {admin.firstName.charAt(0)}
-                          {admin.lastName.charAt(0)}
-                        </div>
-                      )}
-                      <span className="truncate text-[12px] font-bold text-[#1A2B4C]">
-                        {admin.firstName} {admin.lastName}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-        {/* Tutors — full width row */}
-        {(tutorsLoading || tutors.length > 0) &&
-          user?.role !== 'super_admin' && (
-            <section className="mt-12">
-              <SectionHeader
-                label={`${techCenter?.name || 'Your'} tutors`}
-                count={tutors.length}
-              />
-              {tutorsLoading ? (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className="h-14 animate-pulse rounded-lg bg-[#E5E7EB]"
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-                  {tutors.map((tutor: Tutor) => (
-                    <div
-                      key={tutor.id}
-                      className="inline-flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5"
-                    >
-                      {tutor.profileImageUrl ? (
-                        <Image
-                          src={tutor.profileImageUrl}
-                          alt={`${tutor.firstName} ${tutor.lastName}`}
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1A2B4C] font-mono text-[10px] font-bold text-white">
-                          {tutor.firstName.charAt(0)}
-                          {tutor.lastName.charAt(0)}
-                        </div>
-                      )}
-                      <span className="truncate text-[12px] font-bold text-[#1A2B4C]">
-                        {tutor.firstName} {tutor.lastName}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
-
-        {/* ============================================================
-            ASSIGNMENT (student / teacher)
-        ============================================================ */}
-        {(user?.role === 'student' || user?.role === 'teacher') && (
-          <section className="mt-12">
-            <SectionHeader label={isTeacher ? 'Your students' : 'Your tutor(s)'} />
-            {loadingAssignment ? (
-              <div className="border border-[#E5E7EB] bg-white p-5">
-                <div className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/admin/teachers')}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-[#1A2B4C] px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66]"
+                >
+                  Open
+                  <ArrowRight className="h-3 w-3" />
+                </button>
               </div>
-            ) : isTeacher ? (
-              studentCount > 0 ? (
-                <div className="border border-[#E5E7EB] bg-white p-5">
-                  <p className="text-[14px] font-black text-[#1A2B4C]">
-                    {studentCount} student{studentCount > 1 ? 's' : ''} under
-                    your mentorship
-                  </p>
+            </section>
+          )}
+
+          {/* Admins */}
+          {(adminsLoading || centerAdmins.length > 0) &&
+            user?.role !== 'super_admin' && (
+              <section>
+                <SectionHeader
+                  label={`${techCenter?.name || 'Your'} admins`}
+                  count={centerAdmins.length}
+                />
+                {adminsLoading ? (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="h-12 animate-pulse rounded-md bg-[#F3F4F6]"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                    {centerAdmins.map((admin) => (
+                      <div
+                        key={admin.id}
+                        className="inline-flex items-center gap-2 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5"
+                      >
+                        {admin.profileImageUrl ? (
+                          <Image
+                            src={admin.profileImageUrl}
+                            alt={`${admin.firstName} ${admin.lastName}`}
+                            width={24}
+                            height={24}
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1A2B4C] text-[9px] font-bold text-white">
+                            {admin.firstName.charAt(0)}
+                            {admin.lastName.charAt(0)}
+                          </div>
+                        )}
+                        <span className="truncate text-[11.5px] font-medium text-[#1A2B4C]">
+                          {admin.firstName} {admin.lastName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+          {/* Tutors */}
+          {(tutorsLoading || tutors.length > 0) &&
+            user?.role !== 'super_admin' && (
+              <section>
+                <SectionHeader
+                  label={`${techCenter?.name || 'Your'} tutors`}
+                  count={tutors.length}
+                />
+                {tutorsLoading ? (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div
+                        key={i}
+                        className="h-12 animate-pulse rounded-md bg-[#F3F4F6]"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+                    {tutors.map((tutor: Tutor) => (
+                      <div
+                        key={tutor.id}
+                        className="inline-flex items-center gap-2 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5"
+                      >
+                        {tutor.profileImageUrl ? (
+                          <Image
+                            src={tutor.profileImageUrl}
+                            alt={`${tutor.firstName} ${tutor.lastName}`}
+                            width={24}
+                            height={24}
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1A2B4C] text-[9px] font-bold text-white">
+                            {tutor.firstName.charAt(0)}
+                            {tutor.lastName.charAt(0)}
+                          </div>
+                        )}
+                        <span className="truncate text-[11.5px] font-medium text-[#1A2B4C]">
+                          {tutor.firstName} {tutor.lastName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+          {/* Assignment */}
+          {(user?.role === 'student' || user?.role === 'teacher') && (
+            <section>
+              <SectionHeader label={isTeacher ? 'Your students' : 'Your tutor(s)'} />
+              {loadingAssignment ? (
+                <div className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                  <div className="h-3.5 w-40 animate-pulse rounded bg-[#F3F4F6]" />
                 </div>
-              ) : (
-                <div className="border border-[#E5E7EB] bg-white p-5">
-                  <p className="text-[14px] font-black text-[#1A2B4C]">
-                    No students assigned yet
-                  </p>
-                  <p className="mt-1 text-[12px] text-[#6B7280]">
-                    Contact your tech center admin to be assigned students.
-                  </p>
-                </div>
-              )
-            ) : tutorInfo ? (
-              <div className="border border-[#E5E7EB] bg-white p-5">
-                <div className="flex items-center gap-4">
-                  {tutorInfo.profileImageUrl ? (
-                    <Image
-                      src={tutorInfo.profileImageUrl}
-                      alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
-                      width={44}
-                      height={44}
-                      className="h-11 w-11 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-11 w-11 items-center justify-center bg-[#1A2B4C] font-mono text-[13px] font-bold text-white">
-                      {tutorInfo.firstName.charAt(0)}
-                      {tutorInfo.lastName.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-black text-[#1A2B4C]">
-                      {tutorInfo.firstName} {tutorInfo.lastName}
-                    </p>
-                    <p className="font-mono text-[11px] text-[#6B7280]">
-                      {tutorInfo.email}
+              ) : isTeacher ? (
+                studentCount > 0 ? (
+                  <div className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                    <p className="text-[13px] font-semibold text-[#1A2B4C]">
+                      {studentCount} student{studentCount > 1 ? 's' : ''} under
+                      your mentorship
                     </p>
                   </div>
+                ) : (
+                  <div className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                    <p className="text-[13px] font-semibold text-[#1A2B4C]">
+                      No students assigned yet
+                    </p>
+                    <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
+                      Contact your tech center admin to be assigned students.
+                    </p>
+                  </div>
+                )
+              ) : tutorInfo ? (
+                <div className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                  <div className="flex items-center gap-2.5">
+                    {tutorInfo.profileImageUrl ? (
+                      <Image
+                        src={tutorInfo.profileImageUrl}
+                        alt={`${tutorInfo.firstName} ${tutorInfo.lastName}`}
+                        width={36}
+                        height={36}
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1A2B4C] text-[11px] font-bold text-white">
+                        {tutorInfo.firstName.charAt(0)}
+                        {tutorInfo.lastName.charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[#1A2B4C]">
+                        {tutorInfo.firstName} {tutorInfo.lastName}
+                      </p>
+                      <p className="truncate text-[11px] text-[#6B7280]">
+                        {tutorInfo.email}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="border border-[#E5E7EB] bg-white p-5">
-                <p className="text-[14px] font-black text-[#1A2B4C]">
-                  Not assigned to a tutor yet
-                </p>
-                <p className="mt-1 text-[12px] text-[#6B7280]">
-                  Contact your tech center admin for support.
-                </p>
-              </div>
-            )}
-          </section>
-        )}
+              ) : (
+                <div className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                  <p className="text-[13px] font-semibold text-[#1A2B4C]">
+                    Not assigned to a tutor yet
+                  </p>
+                  <p className="mt-0.5 text-[11.5px] text-[#6B7280]">
+                    Contact your tech center admin for support.
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

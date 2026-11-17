@@ -7,6 +7,7 @@ export interface User {
   firstName: string;
   lastName: string;
   fullName?: string;
+  hasVerifiedBadge?: boolean;
   email?: string;
   image?: string | null;
   roleName?: string;
@@ -30,6 +31,7 @@ export interface Conversation {
     firstName: string;
     lastName: string;
     fullName: string;
+    hasVerifiedBadge?: boolean;
     image?: string | null;
     techCenter?: {
       id: string;

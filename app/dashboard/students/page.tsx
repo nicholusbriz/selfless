@@ -33,6 +33,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { SocialActions } from '@/components/social/SocialActions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import {
   compareProfileImageFirst,
 } from '@/lib/social/ranking';
@@ -53,6 +54,7 @@ interface Student {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  hasVerifiedBadge?: boolean;
   role: { name: string } | null;
   techCenter: {
     id: string;
@@ -422,6 +424,9 @@ const StudentCard = ({
               >
                 {fullName}
               </Link>
+              {student.hasVerifiedBadge && (
+                <VerifiedBadge className="ml-1 inline h-3.5 w-3.5 align-middle" />
+              )}
             </h3>
             {roleLabel && (
               <span className="text-[11px] font-medium text-white/90 shrink-0">

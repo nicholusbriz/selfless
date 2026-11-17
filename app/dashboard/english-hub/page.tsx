@@ -237,13 +237,11 @@ export default function EnglishHubPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [registrationLoadError, setRegistrationLoadError] = useState<string | null>(null);
 
-  // Optimistic in-flight flags so action buttons can show feedback
   const [isRegistering, setIsRegistering] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [isOverriding, setIsOverriding] = useState(false);
 
-  // Auto-rotate active track
   useEffect(() => {
     const interval = window.setInterval(() => {
       setActiveTrack((current) => (current + 1) % tracks.length);
@@ -268,7 +266,6 @@ export default function EnglishHubPage() {
       if (previousDay === currentDay) {
         return;
       }
-
       currentDayRef.current = currentDay;
       setTodayDate(currentDay);
       setAvailableDates((dates) => [
@@ -280,7 +277,6 @@ export default function EnglishHubPage() {
       }
       hasLoadedRegistrations.current = false;
     };
-
     const interval = window.setInterval(checkForNewDay, 30000);
     return () => window.clearInterval(interval);
   }, [isTeacherOrAdmin, selectedDate]);
@@ -380,12 +376,11 @@ export default function EnglishHubPage() {
     if (!currentUserId || !selectedDate) {
       return;
     }
-
     const initialFetch = window.setTimeout(() => {
       void fetchRegistrations();
     }, 0);
     const refreshInterval = isSelectedToday
-      ? window.setInterval(() => void fetchRegistrations(), 120000) // 2 minutes
+      ? window.setInterval(() => void fetchRegistrations(), 120000)
       : null;
     return () => {
       window.clearTimeout(initialFetch);
@@ -399,13 +394,12 @@ export default function EnglishHubPage() {
     if (!currentUserId) {
       return;
     }
-
     const initialStatusFetch = window.setTimeout(() => {
       void updateRegistrationStatus();
     }, 0);
     const interval = window.setInterval(() => {
       void updateRegistrationStatus();
-    }, 300000); // 5 minutes
+    }, 300000);
     return () => {
       window.clearTimeout(initialStatusFetch);
       window.clearInterval(interval);
@@ -416,7 +410,6 @@ export default function EnglishHubPage() {
     if (!registrationClosesAt) {
       return;
     }
-    // Use requestAnimationFrame for smooth countdown timer instead of setInterval
     let animationFrameId: number;
     const updateCountdown = () => {
       setCountdownNow(Date.now());
@@ -439,9 +432,6 @@ export default function EnglishHubPage() {
     return () => window.clearTimeout(timeout);
   }, [registrationClosesAt, updateRegistrationStatus]);
 
-  // ------------------------------------------------------------
-  // OPTIMISTIC REGISTER
-  // ------------------------------------------------------------
   const handleRegister = async () => {
     if (!session?.user || isRegistering) return;
 
@@ -463,7 +453,6 @@ export default function EnglishHubPage() {
       },
     };
 
-    // ⚡ Instant UI update
     setRegistrations((prev) => [...prev, optimistic]);
     setCurrentUserRegistration(optimistic);
     setIsRegistering(true);
@@ -476,12 +465,10 @@ export default function EnglishHubPage() {
       });
       const data = await response.json() as { success: boolean; error?: string };
       if (!response.ok || !data.success) {
-        // Rollback
         setRegistrations((prev) => prev.filter((r) => r.id !== tempId));
         setCurrentUserRegistration(null);
         alert(data.error || 'Failed to register');
       } else {
-        // Reconcile with server truth
         await fetchRegistrations();
       }
     } catch (error) {
@@ -494,13 +481,8 @@ export default function EnglishHubPage() {
     }
   };
 
-  // ------------------------------------------------------------
-  // OPTIMISTIC CANCEL
-  // ------------------------------------------------------------
   const handleCancelRegistration = async (registrationId: string) => {
     if (cancelingId) return;
-
-    // ⚡ Instant UI update
     setRegistrations((prev) => prev.filter((r) => r.id !== registrationId));
     setCurrentUserRegistration(null);
     setCancelingId(registrationId);
@@ -524,13 +506,9 @@ export default function EnglishHubPage() {
     }
   };
 
-  // ------------------------------------------------------------
-  // OPTIMISTIC ATTENDANCE MARK (teacher/admin)
-  // ------------------------------------------------------------
   const handleMarkAttendance = async (registrationId: string, status: 'ATTENDED' | 'NO_SHOW') => {
     if (markingId) return;
 
-    // ⚡ Instant UI update
     setRegistrations((prev) =>
       prev.map((r) =>
         r.id === registrationId
@@ -572,9 +550,6 @@ export default function EnglishHubPage() {
     }
   };
 
-  // ------------------------------------------------------------
-  // OPTIMISTIC OVERRIDE (teacher/admin)
-  // ------------------------------------------------------------
   const handleOverride = async (action: 'open' | 'close') => {
     if (isOverriding) return;
 
@@ -615,13 +590,6 @@ export default function EnglishHubPage() {
     }
   };
 
-  const getRoleDisplayName = (roleName: string | null | undefined) => {
-    if (!roleName) return 'student';
-    if (roleName === 'teacher') return 'tutor';
-    if (roleName === 'admin' || roleName === 'super_admin') return 'manager';
-    return roleName;
-  };
-
   const registrationMinutesRemaining = registrationClosesAt
     ? Math.max(0, Math.ceil((registrationClosesAt.getTime() - countdownNow) / 60000))
     : null;
@@ -636,26 +604,26 @@ export default function EnglishHubPage() {
     : registrations.filter((registration) => registration.attendanceStatus === attendanceFilter);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#F4F5F1] text-[#172033]">
+    <main className="min-h-screen overflow-x-hidden bg-[#F8F9FA] text-[#1A2B4C]">
 
       {/* HEADER */}
-      <section className="bg-[#142B46]">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="border-b border-[#E5E7EB] bg-[#1A2B4C]">
+        <div className="mx-auto max-w-6xl px-3 py-4 sm:px-5 sm:py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B8D7E8]">English Hub</p>
-              <h1 className="mt-1 text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C59B4C]">English Hub</p>
+              <h1 className="mt-0.5 text-[17px] font-bold leading-tight tracking-tight text-white sm:text-[19px]">
                 English Hub Learning &amp; Attendance
               </h1>
-              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#B8D7E8]">
+              <p className="mt-1 max-w-2xl text-[11.5px] leading-5 text-[#A8B8D0]">
                 These requirements apply to every English Hub session. Read them carefully before attending.
               </p>
             </div>
-            <div className="flex items-center gap-3 rounded-lg bg-white/5 px-4 py-2.5">
-              <ShieldCheck className="h-5 w-5 shrink-0 text-[#B98A3E]" />
+            <div className="flex items-center gap-2.5 rounded-md border border-white/10 bg-white/5 px-3 py-2">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[#C59B4C]" />
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#B98A3E]">Status</p>
-                <p className="text-xs font-semibold text-white">Mandatory for all students</p>
+                <p className="text-[9.5px] font-semibold uppercase tracking-wide text-[#C59B4C]">Status</p>
+                <p className="text-[11.5px] font-medium text-white">Mandatory for all students</p>
               </div>
             </div>
           </div>
@@ -663,39 +631,39 @@ export default function EnglishHubPage() {
       </section>
 
       {/* CRITICAL RULES + DEADLINE */}
-      <section className="bg-[#F4F5F1]">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#A4462F] text-white">
-              <AlertTriangle className="h-4 w-4" />
+      <section className="border-b border-[#E5E7EB] bg-[#F8F9FA]">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
+          <div className="mb-3 flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#A4462F] text-white">
+              <AlertTriangle className="h-3.5 w-3.5" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#A4462F]">The non-negotiables</p>
-              <h2 className="text-base font-bold text-[#172033] sm:text-lg">Four rules that decide attendance</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A4462F]">The non-negotiables</p>
+              <h2 className="text-[14px] font-semibold text-[#1A2B4C] sm:text-[15px]">Four rules that decide attendance</h2>
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
               {criticalRules.map((rule) => {
                 const Icon = rule.icon;
                 return (
-                  <div key={rule.title} className="bg-white p-4">
+                  <div key={rule.title} className="rounded-lg border border-[#E5E7EB] bg-white p-3">
                     <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-[#B98A3E]" />
-                      <h3 className="text-sm font-bold leading-snug text-[#172033]">{rule.title}</h3>
+                      <Icon className="h-3.5 w-3.5 text-[#C59B4C]" />
+                      <h3 className="text-[12.5px] font-semibold leading-snug text-[#1A2B4C]">{rule.title}</h3>
                     </div>
-                    <p className="mt-2 text-xs leading-5 text-[#687268]">{rule.description}</p>
+                    <p className="mt-1.5 text-[11.5px] leading-5 text-[#6B7280]">{rule.description}</p>
                   </div>
                 );
               })}
             </div>
 
-            <div className="flex flex-col justify-center bg-[#142B46] p-5 text-white">
-              <Clock3 className="h-5 w-5 text-[#B98A3E]" />
-              <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">Registration window</p>
-              <h3 className="mt-1 text-base font-bold leading-snug">1:30 PM to 2:00 PM — no exceptions.</h3>
-              <p className="mt-2 text-xs leading-5 text-[#B8D7E8]">
+            <div className="flex flex-col justify-center rounded-lg bg-[#1A2B4C] p-4 text-white">
+              <Clock3 className="h-4 w-4 text-[#C59B4C]" />
+              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C59B4C]">Registration window</p>
+              <h3 className="mt-0.5 text-[13px] font-semibold leading-snug">1:30 PM to 2:00 PM — no exceptions.</h3>
+              <p className="mt-1.5 text-[11.5px] leading-5 text-[#A8B8D0]">
                 Registration opens at 1:30 PM and closes exactly at 2:00 PM. Late registration will not be accepted.
               </p>
             </div>
@@ -704,41 +672,41 @@ export default function EnglishHubPage() {
       </section>
 
       {/* FULL CODE OF CONDUCT */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="border-b border-[#E5E7EB] bg-white">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
+          <div className="mb-3 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-[#55705B]">
-                <FileText className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em]">Full policy</span>
+              <div className="flex items-center gap-1.5 text-[#4B5646]">
+                <FileText className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">Full policy</span>
               </div>
-              <h2 className="mt-1.5 text-xl font-bold leading-tight text-[#172033] sm:text-2xl">Code of Conduct</h2>
+              <h2 className="mt-1 text-[16px] font-semibold leading-tight text-[#1A2B4C] sm:text-[17px]">Code of Conduct</h2>
             </div>
-            <p className="max-w-md text-xs leading-5 text-[#687268]">
+            <p className="max-w-md text-[11.5px] leading-5 text-[#6B7280]">
               All rules are grouped by theme so you can review them quickly. Not knowing these policies will not be accepted as an excuse.
             </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {conductGroups.map((group) => {
               const GroupIcon = group.icon;
               return (
-                <div key={group.id} className="bg-[#FBFBF8] p-4 sm:p-5">
-                  <div className="mb-3 flex items-center gap-2.5 pb-2.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EEF2F8] text-[#142B46]">
-                      <GroupIcon className="h-3.5 w-3.5" />
+                <div key={group.id} className="rounded-lg border border-[#E5E7EB] bg-white p-3.5">
+                  <div className="mb-2.5 flex items-center gap-2 border-b border-[#F3F4F6] pb-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EEF1F5] text-[#1A2B4C]">
+                      <GroupIcon className="h-3 w-3" />
                     </div>
-                    <h3 className="text-[11px] font-bold uppercase tracking-wide text-[#142B46]">{group.label}</h3>
+                    <h3 className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#1A2B4C]">{group.label}</h3>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {group.rules.map((rule) => (
-                      <article key={rule.number} className="grid grid-cols-[36px_1fr] gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#142B46] font-mono text-[11px] font-bold text-white">
+                      <article key={rule.number} className="grid grid-cols-[28px_1fr] gap-2.5">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#1A2B4C] text-[9.5px] font-bold text-white">
                           {rule.number}
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-[#172033]">{rule.title}</h4>
-                          <p className="mt-1 text-xs leading-5 text-[#59655C]">{rule.text}</p>
+                          <h4 className="text-[12.5px] font-semibold text-[#1A2B4C]">{rule.title}</h4>
+                          <p className="mt-0.5 text-[11.5px] leading-5 text-[#4B5646]">{rule.text}</p>
                         </div>
                       </article>
                     ))}
@@ -748,12 +716,12 @@ export default function EnglishHubPage() {
             })}
           </div>
 
-          <div className="mt-4 flex flex-col items-start gap-2 bg-[#142B46] px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex flex-col items-start gap-2 rounded-lg bg-[#1A2B4C] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#B98A3E]">Final reminder</p>
-              <h3 className="mt-0.5 text-sm font-bold sm:text-base">Respect the space. Participate. Come prepared.</h3>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C59B4C]">Final reminder</p>
+              <h3 className="mt-0.5 text-[12.5px] font-semibold sm:text-[13px]">Respect the space. Participate. Come prepared.</h3>
             </div>
-            <p className="max-w-xl text-xs leading-5 text-[#B8D7E8]">
+            <p className="max-w-xl text-[11.5px] leading-5 text-[#A8B8D0]">
               By remaining in the English Hub, you agree to abide by all regulations above.
             </p>
           </div>
@@ -761,24 +729,24 @@ export default function EnglishHubPage() {
       </section>
 
       {/* LEARNING PATH */}
-      <section className="bg-[#F4F5F1]">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          <div className="mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#55705B]">Once you are ready to practice</p>
-            <h2 className="mt-1.5 text-xl font-bold leading-tight text-[#172033] sm:text-2xl">Your learning path</h2>
-            <p className="mt-1.5 max-w-xl text-xs leading-5 text-[#687268]">
+      <section className="border-b border-[#E5E7EB] bg-[#F8F9FA]">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
+          <div className="mb-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#4B5646]">Once you are ready to practice</p>
+            <h2 className="mt-1 text-[16px] font-semibold leading-tight text-[#1A2B4C] sm:text-[17px]">Your learning path</h2>
+            <p className="mt-1 max-w-xl text-[11.5px] leading-5 text-[#6B7280]">
               Three ways to keep improving, once you understand the standard.
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {tracks.map((track) => (
               <Link
                 key={track.title}
                 href={track.href}
-                className="group flex items-center gap-3 text-sm font-semibold text-[#172033] transition-colors hover:text-[#B98A3E]"
+                className="group flex items-center gap-2.5 text-[12.5px] font-semibold text-[#1A2B4C] transition-colors hover:text-[#C59B4C]"
               >
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                 {track.title}
               </Link>
             ))}
@@ -787,57 +755,57 @@ export default function EnglishHubPage() {
       </section>
 
       {/* DAILY PRACTICE + COMMUNITY */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          <div className="grid gap-6 lg:grid-cols-2">
+      <section className="border-b border-[#E5E7EB] bg-white">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
+          <div className="grid gap-5 lg:grid-cols-2">
             <div>
-              <div className="flex items-center gap-2 text-[#B98A3E]">
-                <Target className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.16em]">Daily practice</span>
+              <div className="flex items-center gap-1.5 text-[#C59B4C]">
+                <Target className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em]">Daily practice</span>
               </div>
-              <h2 className="mt-1.5 text-lg font-bold leading-tight text-[#172033] sm:text-xl">Small practice. Real progress.</h2>
-              <p className="mt-1.5 max-w-md text-xs leading-5 text-[#687268]">
+              <h2 className="mt-1 text-[15px] font-semibold leading-tight text-[#1A2B4C] sm:text-[16px]">Small practice. Real progress.</h2>
+              <p className="mt-1 max-w-md text-[11.5px] leading-5 text-[#6B7280]">
                 A simple routine beats a long session. Return to it consistently.
               </p>
 
-              <div className="mt-4 divide-y divide-[#E7E9E5]">
+              <div className="mt-3 divide-y divide-[#F3F4F6]">
                 {practiceSteps.map((step) => {
                   const Icon = step.icon;
                   return (
-                    <div key={step.number} className="group grid grid-cols-[28px_20px_1fr] items-center gap-3 py-3">
-                      <span className="font-mono text-[10px] font-bold text-[#9A9F97]">{step.number}</span>
-                      <Icon className="h-4 w-4 text-[#55705B] transition-transform duration-300 group-hover:scale-110" />
+                    <div key={step.number} className="grid grid-cols-[24px_16px_1fr] items-center gap-2.5 py-2.5">
+                      <span className="text-[9.5px] font-bold text-[#9CA3AF]">{step.number}</span>
+                      <Icon className="h-3.5 w-3.5 text-[#4B5646]" />
                       <div>
-                        <h3 className="text-sm font-bold text-[#172033]">{step.title}</h3>
-                        <p className="text-xs leading-5 text-[#687268]">{step.description}</p>
+                        <h3 className="text-[12.5px] font-semibold text-[#1A2B4C]">{step.title}</h3>
+                        <p className="text-[11.5px] leading-5 text-[#6B7280]">{step.description}</p>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              <Link href="/dashboard/live-streaming" className="group mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#55705B]">
+              <Link href="/dashboard/live-streaming" className="group mt-2.5 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#4B5646]">
                 Begin today&apos;s practice
-                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
             </div>
 
-            <div className="flex flex-col justify-between rounded-lg bg-[#EDEFEA] p-5">
+            <div className="flex flex-col justify-between rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] p-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-[#55705B]" />
-                  <h2 className="text-sm font-bold text-[#172033]">Keep your momentum</h2>
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5 text-[#4B5646]" />
+                  <h2 className="text-[12.5px] font-semibold text-[#1A2B4C]">Keep your momentum</h2>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-[#687268]">
+                <p className="mt-1.5 text-[11.5px] leading-5 text-[#6B7280]">
                   Consistency matters more than long study sessions. Learn something useful, practice it, and use it with someone.
                 </p>
               </div>
-              <div className="mt-4 pt-4">
-                <p className="text-xs font-semibold text-[#172033]">Learning is better together.</p>
-                <p className="mt-0.5 text-xs text-[#687268]">Practice with someone from your community.</p>
-                <Link href="/dashboard/messages" className="group mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#55705B]">
+              <div className="mt-3 border-t border-[#E5E7EB] pt-3">
+                <p className="text-[11.5px] font-semibold text-[#1A2B4C]">Learning is better together.</p>
+                <p className="mt-0.5 text-[11.5px] text-[#6B7280]">Practice with someone from your community.</p>
+                <Link href="/dashboard/messages" className="group mt-1.5 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#4B5646]">
                   Open messages
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                  <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
                 </Link>
               </div>
             </div>
@@ -847,40 +815,38 @@ export default function EnglishHubPage() {
 
       {/* REGISTRATION */}
       <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
-          {/* Status Banner */}
-          <p className="mb-2 text-xs font-semibold text-[#687268]">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
+          <p className="mb-1.5 text-[11.5px] font-medium text-[#6B7280]">
             {todayDate ? `Today: ${formatRegistrationDate(todayDate)}` : (
-              <span className="inline-block h-3 w-48 animate-pulse rounded bg-[#E7E9E5]" aria-hidden="true" />
+              <span className="inline-block h-3 w-48 animate-pulse rounded bg-[#F3F4F6]" aria-hidden="true" />
             )}
           </p>
           <div
             aria-busy={isStatusLoading}
-            className={`flex items-center justify-between rounded-lg p-4 ${
+            className={`flex items-center justify-between rounded-lg p-3 ${
               isStatusLoading || statusLoadError
-                ? 'bg-[#E7E9E5] text-[#172033]'
-                :
-              registrationStatus.status === 'OPEN'
-                ? 'bg-[#55705B] text-white'
-                : registrationStatus.status === 'NOT_AVAILABLE'
-                ? 'bg-[#A4462F] text-white'
-                : 'bg-[#E7E9E5] text-[#172033]'
+                ? 'border border-[#E5E7EB] bg-[#F8F9FA] text-[#1A2B4C]'
+                : registrationStatus.status === 'OPEN'
+                  ? 'bg-[#4B5646] text-white'
+                  : registrationStatus.status === 'NOT_AVAILABLE'
+                    ? 'bg-[#A4462F] text-white'
+                    : 'border border-[#E5E7EB] bg-[#F8F9FA] text-[#1A2B4C]'
             }`}
           >
             {isStatusLoading ? (
-              <div className="w-full space-y-2" aria-hidden="true">
-                <div className="h-3 w-56 animate-pulse rounded bg-[#D9DDD7]" />
-                <div className="h-4 w-40 animate-pulse rounded bg-[#D9DDD7]" />
+              <div className="w-full space-y-1.5" aria-hidden="true">
+                <div className="h-2.5 w-56 animate-pulse rounded bg-[#E5E7EB]" />
+                <div className="h-3.5 w-40 animate-pulse rounded bg-[#E5E7EB]" />
               </div>
             ) : statusLoadError ? (
-              <p className="text-sm font-semibold text-[#A4462F]" role="alert">
+              <p className="text-[12.5px] font-semibold text-[#A4462F]" role="alert">
                 {statusLoadError}
               </p>
             ) : (
-              <div className="flex items-center gap-3">
-                <Clock3 className="h-5 w-5" />
+              <div className="flex items-center gap-2.5">
+                <Clock3 className="h-4 w-4" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide">
                     {session?.user?.techCenter?.name
                       ? `${session.user.techCenter.name} — `
                       : ''}
@@ -888,7 +854,7 @@ export default function EnglishHubPage() {
                       ? 'English Hub Registration Open'
                       : 'English Hub Registration Closed'}
                   </p>
-                  <p className="text-sm font-semibold">
+                  <p className="text-[12.5px] font-medium">
                     {registrationStatus.status === 'OPEN' &&
                     registrationStatus.message === 'Registration reopened by tutor/manager' &&
                     overrideActorName
@@ -896,7 +862,7 @@ export default function EnglishHubPage() {
                       : registrationStatus.message}
                   </p>
                   {registrationStatus.status === 'OPEN' && registrationClosesAt && registrationMinutesRemaining !== null && (
-                    <p className="text-xs font-medium">
+                    <p className="text-[11px] font-medium">
                       Closing in {registrationMinutesRemaining} min
                     </p>
                   )}
@@ -905,37 +871,35 @@ export default function EnglishHubPage() {
             )}
           </div>
 
-          {/* Registration controls */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
             {isTeacherOrAdmin && isSelectedToday && !isStatusLoading && !statusLoadError && (
               <button
                 onClick={() => handleOverride(registrationStatus.status === 'OPEN' ? 'close' : 'open')}
                 disabled={isOverriding}
-                className={`text-xs font-bold underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50 ${
-                  registrationStatus.status === 'OPEN' ? 'text-[#A4462F]' : 'text-[#55705B]'
+                className={`text-[11.5px] font-semibold underline-offset-2 transition-colors hover:underline disabled:cursor-not-allowed disabled:opacity-50 ${
+                  registrationStatus.status === 'OPEN' ? 'text-[#A4462F]' : 'text-[#4B5646]'
                 }`}
               >
                 {isOverriding
                   ? 'Updating…'
                   : registrationStatus.status === 'OPEN'
-                  ? 'Close registration'
-                  : 'Open registration'}
+                    ? 'Close registration'
+                    : 'Open registration'}
               </button>
             )}
             {isSelectedToday && registrationStatus.canRegister && !currentUserRegistration && (
               <button
                 onClick={handleRegister}
                 disabled={isRegistering}
-                className="ml-auto text-sm font-bold text-[#9A7335] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-[#C59B4C] px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#B08A3F] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRegistering ? 'Registering…' : 'Register now'}
               </button>
             )}
           </div>
 
-          {/* Registrations for selected day */}
-          <div className="mt-6">
-            <div className="mb-4 flex justify-start">
+          <div className="mt-5">
+            <div className="mb-3 flex justify-start">
               {isTeacherOrAdmin && (
                 <label className="flex w-full items-center justify-start">
                   <span className="sr-only">Filter registrations by day</span>
@@ -950,12 +914,12 @@ export default function EnglishHubPage() {
                       setIsLoading(true);
                       setSelectedDate(event.target.value);
                     }}
-                    className="w-auto min-w-[300px] rounded-lg border border-[#D0D5CE] bg-[#FBFBF8] px-4 py-2.5 pr-10 text-sm font-semibold text-[#172033] shadow-sm outline-none transition focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/20 appearance-none"
+                    className="w-auto min-w-[280px] rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 pr-9 text-[12px] font-medium text-[#1A2B4C] shadow-sm outline-none transition-colors focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15 appearance-none"
                     style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23B98A3E'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23C59B4C'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
                       backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 0.75rem center',
-                      backgroundSize: '1rem',
+                      backgroundPosition: 'right 0.65rem center',
+                      backgroundSize: '0.9rem',
                     }}
                   >
                     {availableDates.map((date) => (
@@ -969,26 +933,26 @@ export default function EnglishHubPage() {
             </div>
 
             {!isSelectedToday && isTeacherOrAdmin && (
-              <p className="mb-4 text-xs text-[#687268]">
+              <p className="mb-3 text-[11.5px] text-[#6B7280]">
                 Staff will update your status.
               </p>
             )}
 
             {isLoading ? (
-              <div className="mb-4 flex flex-wrap items-center gap-3" aria-hidden="true">
-                <div className="h-4 w-40 animate-pulse rounded bg-[#E7E9E5]" />
-                <div className="h-4 w-16 animate-pulse rounded bg-[#E7E9E5]" />
-                <div className="h-4 w-24 animate-pulse rounded bg-[#E7E9E5]" />
-                <div className="h-4 w-20 animate-pulse rounded bg-[#E7E9E5]" />
-                <div className="h-4 w-20 animate-pulse rounded bg-[#E7E9E5]" />
+              <div className="mb-3 flex flex-wrap items-center gap-3" aria-hidden="true">
+                <div className="h-3.5 w-36 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="h-3.5 w-14 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="h-3.5 w-20 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="h-3.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="h-3.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
               </div>
             ) : !registrationLoadError ? (
-              <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <button
                   onClick={() => setAttendanceFilter('ALL')}
                   aria-pressed={attendanceFilter === 'ALL'}
-                  className={`mr-1 text-xs font-semibold underline-offset-4 transition hover:underline ${
-                    attendanceFilter === 'ALL' ? 'text-[#142B46] underline' : 'text-[#687268]'
+                  className={`mr-1 text-[11.5px] font-semibold underline-offset-2 transition-colors hover:underline ${
+                    attendanceFilter === 'ALL' ? 'text-[#1A2B4C] underline' : 'text-[#6B7280]'
                   }`}
                 >
                   Total registered: {registrations.length}
@@ -1001,8 +965,8 @@ export default function EnglishHubPage() {
                     key={status}
                     onClick={() => setAttendanceFilter(status)}
                     aria-pressed={attendanceFilter === status}
-                    className={`text-xs font-semibold underline-offset-4 transition hover:underline ${
-                      attendanceFilter === status ? 'text-[#142B46] underline' : 'text-[#687268]'
+                    className={`text-[11.5px] font-semibold underline-offset-2 transition-colors hover:underline ${
+                      attendanceFilter === status ? 'text-[#1A2B4C] underline' : 'text-[#6B7280]'
                     }`}
                   >
                     {label} ({attendanceCounts[status]})
@@ -1012,12 +976,12 @@ export default function EnglishHubPage() {
             ) : null}
 
             {isTeacherOrAdmin && dayOverrides.length > 0 && (
-              <div className="mb-4 space-y-2 border-l-2 border-[#B98A3E] pl-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#687268]">
+              <div className="mb-3 space-y-1 border-l-2 border-[#C59B4C] bg-[#FBF7EE] px-3 py-2">
+                <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#6B7280]">
                   Registration changes
                 </p>
                 {dayOverrides.map((dayOverride) => (
-                  <p key={`${dayOverride.sessionDate}-${dayOverride.manualOverrideAt ?? 'override'}`} className="text-xs text-[#172033]">
+                  <p key={`${dayOverride.sessionDate}-${dayOverride.manualOverrideAt ?? 'override'}`} className="text-[11.5px] text-[#1A2B4C]">
                     {formatRegistrationDate(dayOverride.sessionDate)}:
                     {' Registration '}
                     {dayOverride.manuallyClosed ? 'closed' : 'opened'}
@@ -1033,34 +997,34 @@ export default function EnglishHubPage() {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2 lg:gap-y-4 xl:grid-cols-3" aria-label="Loading registrations">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-2 lg:grid-cols-2 xl:grid-cols-3" aria-label="Loading registrations">
                 {Array.from({ length: 6 }, (_, index) => (
-                  <div key={index} className="flex items-start gap-3 rounded-lg bg-[#FBFBF8] p-3 sm:gap-4">
-                    <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[#E7E9E5] sm:h-12 sm:w-12" />
-                    <div className="min-w-0 flex-1 space-y-2 py-1">
-                      <div className="h-4 w-2/3 animate-pulse rounded bg-[#E7E9E5]" />
-                      <div className="h-3 w-1/2 animate-pulse rounded bg-[#E7E9E5]" />
-                      <div className="h-3 w-1/3 animate-pulse rounded bg-[#E7E9E5]" />
+                  <div key={index} className="flex items-start gap-2.5 rounded-md border border-[#F3F4F6] bg-white p-2.5">
+                    <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-[#F3F4F6]" />
+                    <div className="min-w-0 flex-1 space-y-1.5 py-1">
+                      <div className="h-3 w-2/3 animate-pulse rounded bg-[#F3F4F6]" />
+                      <div className="h-2.5 w-1/2 animate-pulse rounded bg-[#F3F4F6]" />
+                      <div className="h-2.5 w-1/3 animate-pulse rounded bg-[#F3F4F6]" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : registrationLoadError ? (
-              <div className="py-8 text-center text-sm text-[#A4462F]" role="alert">
+              <div className="py-6 text-center text-[12px] text-[#A4462F]" role="alert">
                 {registrationLoadError}
               </div>
             ) : registrations.length === 0 ? (
-              <div className="py-8 text-center text-sm text-[#687268]">
+              <div className="rounded-md border border-dashed border-[#E5E7EB] bg-[#F8F9FA] py-8 text-center text-[12px] text-[#6B7280]">
                 {isSelectedToday
                   ? 'No registrations yet today.'
                   : `No registrations yet for ${formatRegistrationDate(selectedDate)}.`}
               </div>
             ) : filteredRegistrations.length === 0 ? (
-              <div className="py-8 text-center text-sm text-[#687268]">
+              <div className="rounded-md border border-dashed border-[#E5E7EB] bg-[#F8F9FA] py-8 text-center text-[12px] text-[#6B7280]">
                 No users match the {attendanceFilter === 'NO_SHOW' ? 'No Show' : attendanceFilter.toLowerCase()} filter.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-x-6 gap-y-2 lg:grid-cols-2 lg:gap-y-4 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-2 lg:grid-cols-2 xl:grid-cols-3">
                 {filteredRegistrations.map((registration) => {
                   const isTemp = registration.id.startsWith('temp-');
                   const isCurrentUser = registration.userId === currentUserId;
@@ -1075,33 +1039,35 @@ export default function EnglishHubPage() {
                   return (
                     <div
                       key={registration.id}
-                      className={`flex items-start gap-3 rounded-lg p-3 transition sm:gap-4 ${
-                        isTemp ? 'bg-[#B98A3E]/5 animate-pulse' : 'bg-[#FBFBF8]'
+                      className={`flex items-start gap-2.5 rounded-md border p-2.5 transition-colors ${
+                        isTemp
+                          ? 'border-[#C59B4C]/30 bg-[#FBF7EE] animate-pulse'
+                          : 'border-[#F3F4F6] bg-white'
                       }`}
                     >
-                      <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+                      <div className="flex min-w-0 flex-1 items-start gap-2.5">
                         {registration.user.profileImageUrl ? (
                           <Image
                             src={registration.user.profileImageUrl}
                             alt={`${registration.user.firstName} ${registration.user.lastName}`}
-                            width={48}
-                            height={48}
+                            width={36}
+                            height={36}
                             unoptimized
-                            className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-[#D9DDD7] sm:h-12 sm:w-12"
+                            className="h-9 w-9 shrink-0 rounded-full border border-[#E5E7EB] object-cover"
                           />
                         ) : (
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#142B46] text-sm font-bold text-white ring-1 ring-[#D9DDD7] sm:h-12 sm:w-12">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1A2B4C] text-[11px] font-bold text-white">
                             {registration.user.firstName?.[0] ?? '?'}
                             {registration.user.lastName?.[0] ?? ''}
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                            <p className="break-words text-sm font-semibold leading-5 text-[#172033]">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <p className="break-words text-[12.5px] font-semibold leading-5 text-[#1A2B4C]">
                               {registration.user.firstName} {registration.user.lastName}
                             </p>
                           </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[#687268]">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#6B7280]">
                             <span>
                               {new Date(registration.registeredAt).toLocaleTimeString([], {
                                 hour: 'numeric',
@@ -1110,37 +1076,37 @@ export default function EnglishHubPage() {
                                 timeZone: 'Africa/Nairobi',
                               })}
                             </span>
-                            <span aria-hidden="true">·</span>
+                            <span aria-hidden="true" className="text-[#D1D5DB]">·</span>
                             {registration.attendanceStatus === 'REGISTERED' && (
-                              <span className="font-semibold text-[#687268]">Registered</span>
+                              <span className="font-medium text-[#6B7280]">Registered</span>
                             )}
                             {registration.attendanceStatus === 'ATTENDED' && (
-                              <span className="font-semibold text-[#55705B]">Attended</span>
+                              <span className="font-semibold text-[#2F6B45]">Attended</span>
                             )}
                             {registration.attendanceStatus === 'NO_SHOW' && (
                               <span className="font-semibold text-[#A4462F]">No Show</span>
                             )}
                           </div>
                           {registration.markedBy && (
-                            <p className="mt-0.5 text-[10px] leading-4 text-[#687268]">
-                              Attendance marked by {registration.markedBy.firstName} {registration.markedBy.lastName}
+                            <p className="mt-0.5 text-[10px] leading-4 text-[#9CA3AF]">
+                              Marked by {registration.markedBy.firstName} {registration.markedBy.lastName}
                             </p>
                           )}
 
-                          <div className="mt-1 flex min-h-5 flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                          <div className="mt-1 flex min-h-5 flex-wrap items-center justify-between gap-x-3 gap-y-1">
                             {canMarkAttendance && (
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                                 <button
                                   onClick={() => handleMarkAttendance(registration.id, 'ATTENDED')}
                                   disabled={markingId === registration.id}
-                                  className="text-xs font-bold text-[#55705B] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="text-[11px] font-semibold text-[#2F6B45] underline-offset-2 transition-colors hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   {markingId === registration.id ? 'Marking…' : 'Mark attended'}
                                 </button>
                                 <button
                                   onClick={() => handleMarkAttendance(registration.id, 'NO_SHOW')}
                                   disabled={markingId === registration.id}
-                                  className="text-xs font-bold text-[#A4462F] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="text-[11px] font-semibold text-[#A4462F] underline-offset-2 transition-colors hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   Mark no show
                                 </button>
@@ -1150,7 +1116,7 @@ export default function EnglishHubPage() {
                               <button
                                 onClick={() => handleCancelRegistration(registration.id)}
                                 disabled={cancelingId === registration.id}
-                                className="text-xs font-bold text-[#A4462F] underline-offset-4 transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                className="text-[11px] font-semibold text-[#A4462F] underline-offset-2 transition-colors hover:underline disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {cancelingId === registration.id ? 'Unregistering…' : 'Unregister'}
                               </button>
@@ -1168,17 +1134,17 @@ export default function EnglishHubPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8 lg:px-10">
-          <div className="flex flex-col gap-3 text-xs text-[#687268] sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Video className="h-4 w-4 text-[#55705B]" />
+      <footer className="border-t border-[#E5E7EB] bg-white">
+        <div className="mx-auto max-w-6xl px-3 py-3 sm:px-5">
+          <div className="flex flex-col gap-2 text-[11px] text-[#6B7280] sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-1.5">
+              <Video className="h-3.5 w-3.5 text-[#4B5646]" />
               <span>Learn at your own pace.</span>
             </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-              <Link href="/dashboard/courses" className="font-semibold text-[#55705B] transition hover:text-[#172033]">Courses</Link>
-              <Link href="/dashboard/messages" className="font-semibold text-[#55705B] transition hover:text-[#172033]">Community</Link>
-              <Link href="/dashboard/policies" className="font-semibold text-[#55705B] transition hover:text-[#172033]">Learning policies</Link>
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+              <Link href="/dashboard/courses" className="font-semibold text-[#4B5646] transition-colors hover:text-[#1A2B4C]">Courses</Link>
+              <Link href="/dashboard/messages" className="font-semibold text-[#4B5646] transition-colors hover:text-[#1A2B4C]">Community</Link>
+              <Link href="/dashboard/policies" className="font-semibold text-[#4B5646] transition-colors hover:text-[#1A2B4C]">Learning policies</Link>
             </div>
           </div>
         </div>
@@ -1186,27 +1152,3 @@ export default function EnglishHubPage() {
     </main>
   );
 }
-
-/*
-Verification checklist:
-[ ] Weekday 13:29 -> status NOT_YET_OPEN, no register button
-[ ] Weekday 13:30 -> status OPEN (auto), register button visible
-[ ] Weekday 14:00 -> status CLOSED (auto), register button hidden
-[ ] Weekday 14:05 -> teacher clicks Open -> optimistic OPEN, POST /override upserts OVERRIDE_ROW, refresh confirms OPEN for 2h
-[ ] Weekday 16:05 (2h+ after 14:05) -> status CLOSED, no manual action needed
-[ ] Weekday 22:30 reopen -> banner shows expiresAt = 23:59 same day
-[ ] Weekday 23:59:30 -> status CLOSED (end-of-day cap applied)
-[ ] Next day 13:00 -> status NOT_YET_OPEN (override did NOT leak)
-[ ] Weekend -> status NOT_AVAILABLE for all users
-[ ] Teacher marks attended while status OPEN -> API returns 409, UI shows error
-[ ] Teacher marks attended while status CLOSED -> row updates optimistically
-[ ] Student cancels while status OPEN -> succeeds
-[ ] Student cancels while status CLOSED -> API returns 409, UI rolls back
-[ ] Student GET /registrations -> only today's rows, OVERRIDE_ROW excluded
-[ ] Staff date dropdown includes only days with registrations and defaults to today
-[ ] Selecting a past day shows only that day's registrations and allows attendance updates
-[ ] Past dates do not show registration open/close or register/cancel actions
-[ ] Current-day registrations refresh periodically so new registrations appear
-[ ] Registering twice in one day -> second POST returns 409 "Already registered today"
-[ ] Rows for the same userId and UTC sessionDate never exceed one, as enforced by @@unique
-*/

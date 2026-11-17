@@ -41,6 +41,7 @@ export async function GET(
         email: true, // Email is needed on the profile page
         phoneNumber: true,
         profileImageUrl: true,
+        profileImageUrls: true,
         role: {
           select: {
             name: true,
@@ -150,6 +151,7 @@ export async function GET(
         email: student.email, // Email included for profile page
         phoneNumber: student.phoneNumber,
         profileImage: student.profileImageUrl,
+        profileImageUrls: student.profileImageUrls,
         profileGallery,
         role: student.role?.name || 'student',
         studentId: student.id,

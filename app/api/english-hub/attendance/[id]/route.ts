@@ -19,8 +19,10 @@ export async function PATCH(
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, techCenterId: true },
+      select: { role: true, techCenterId: true, previousTechCenterId: true },
     });
+
+    const techCenterId = user?.techCenterId ?? user?.previousTechCenterId ?? null;
     if (!user || !STAFF_ROLES.includes(user.role?.name ?? '')) {
       return NextResponse.json(
         { success: false, error: 'Only teachers and admins can mark attendance' },
@@ -48,7 +50,7 @@ export async function PATCH(
       );
     }
 
-    if (registration.techCenterId !== user.techCenterId) {
+    if (registration.techCenterId !== techCenterId) {
       return NextResponse.json(
         { success: false, error: 'You can only mark attendance for your tech center' },
         { status: 403 }

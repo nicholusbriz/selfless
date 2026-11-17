@@ -82,12 +82,12 @@ export async function POST(request: Request) {
     const finalCategory =
       category === 'profile'
         ? 'profile'
-        : roleName === 'dev' && category && ['dashboard', 'gallery'].includes(category)
+        : (roleName === 'dev' || roleName === 'super_admin') && category && ['dashboard', 'gallery'].includes(category)
         ? category
         : 'gallery';
 
-    // Non-dev posts require approval
-    const requiresApproval = !isPrivilegedUser;
+    // Profile images and privileged user posts don't require approval
+    const requiresApproval = !isPrivilegedUser && category !== 'profile';
 
     const media = await prisma.media.create({
       data: {
@@ -107,31 +107,33 @@ export async function POST(request: Request) {
       },
     });
 
-    // Notify dev users about the new post
+    // Notify dev users about the new post (only for non-profile posts that need approval)
     const userName = `${user.firstName} ${user.lastName}`.trim();
-    try {
-      await createNotificationForDevs({
-        title: finalCategory === 'profile' ? 'New profile photo' : 'New post created',
-        message: finalCategory === 'profile'
-          ? `${userName} added a profile photo: "${media.title}"`
-          : `${userName} created a new post: "${media.title}"`,
-        type: 'media_created',
-        link: `/dashboard/media-approvals#${media.id}`,
-        generatedBy: user.id,
-        entityType: 'media',
-        entityId: media.id,
-        excludeUserIds: isPrivilegedUser ? [user.id] : [],
-      });
-    } catch (notificationError) {
-      console.error('Failed to notify dev users about new post:', notificationError);
+    if (finalCategory !== 'profile') {
+      try {
+        await createNotificationForDevs({
+          title: 'New post created',
+          message: `${userName} created a new post: "${media.title}"`,
+          type: 'media_created',
+          link: `/dashboard/media-approvals#${media.id}`,
+          generatedBy: user.id,
+          entityType: 'media',
+          entityId: media.id,
+          excludeUserIds: isPrivilegedUser ? [user.id] : [],
+        });
+      } catch (notificationError) {
+        console.error('Failed to notify dev users about new post:', notificationError);
+      }
     }
 
     return NextResponse.json({
       success: true,
       media,
-      message: requiresApproval
-        ? 'Your post has been created and will be published after review'
-        : 'Post created successfully',
+      message: finalCategory === 'profile'
+        ? 'Profile image created successfully'
+        : requiresApproval
+          ? 'Your post has been created and will be published after review'
+          : 'Post created successfully',
     });
   } catch (error) {
     console.error('Save media failed:', error);

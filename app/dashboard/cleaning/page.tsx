@@ -1,5 +1,5 @@
 // app/dashboard/cleaning/page.tsx
-// Cleaning Schedule — Card Grid (Pattern A)
+// Cleaning Schedule — Card Grid
 //
 // Day cards now show their week label so users can see at a glance
 // which week each day belongs to.
@@ -55,39 +55,39 @@ import {
 import { isRecord } from '../response-guards';
 
 // =========================================================
-// DESIGN TOKENS
+// DESIGN TOKENS — standard palette
 // =========================================================
 
 const TOKENS = `
   [data-cleaning-scope] {
-    --ink: #12203B;
+    --ink: #1A2B4C;
     --ink-2: #3D4A61;
     --ink-3: #4B5646;
     --ink-4: #6B7280;
 
     --surface: #FFFFFF;
-    --surface-2: #F7F6F2;
-    --surface-3: #EDECE6;
+    --surface-2: #F8F9FA;
+    --surface-3: #F3F4F6;
 
-    --line: #DADCD3;
-    --line-strong: #C8CABF;
+    --line: #E5E7EB;
+    --line-strong: #D1D5DB;
 
-    --brand: #12203B;
-    --brand-hover: #1C2E4E;
-    --brand-soft: #F0F0EB;
+    --brand: #1A2B4C;
+    --brand-hover: #263D66;
+    --brand-soft: #EEF1F5;
 
-    --brass: #B98A3E;
-    --brass-hover: #A67A34;
-    --brass-soft: #F8F3E8;
+    --brass: #C59B4C;
+    --brass-hover: #B08A3F;
+    --brass-soft: #FBF7EE;
 
     --ok: #2F6B45;
-    --ok-soft: #E6F1EA;
+    --ok-soft: #ECF6F0;
 
     --warn: #6E5520;
-    --warn-soft: #F8F1E0;
+    --warn-soft: #FBF5E5;
 
     --bad: #8B3A24;
-    --bad-soft: #FBE9E3;
+    --bad-soft: #FBEDE8;
 
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1, 'cv05' 1;
@@ -98,9 +98,9 @@ const focusRing =
   'outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
 
 const panel =
-  'border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-[0_1px_2px_rgba(18,32,59,0.03)]';
+  'border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-[0_1px_2px_rgba(26,43,76,0.04)]';
 
-const btnBase = `inline-flex items-center justify-center gap-2 px-3.5 py-2 text-[12px] font-mono font-semibold uppercase tracking-[0.06em] transition-colors disabled:cursor-not-allowed disabled:opacity-45 rounded-md ${focusRing}`;
+const btnBase = `inline-flex items-center justify-center gap-2 px-3 py-1.5 text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45 rounded-md ${focusRing}`;
 
 const btnPrimary = `${btnBase} bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]`;
 const btnQuiet = `${btnBase} border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]`;
@@ -111,12 +111,6 @@ const btnQuiet = `${btnBase} border border-[var(--line)] bg-[var(--surface)] tex
 
 const getInitials = (firstName: string, lastName: string) =>
   `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-
-const daysUntil = (iso: string) => {
-  const target = new Date(iso).getTime();
-  const now = Date.now();
-  return Math.ceil((target - now) / 86_400_000);
-};
 
 const registrationDeadlinePassed = (iso: string) => {
   return new Date() >= new Date(iso);
@@ -150,7 +144,7 @@ function Tag({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] rounded-md ${toneClasses[tone]}`}
+      className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.04em] rounded-md ${toneClasses[tone]}`}
     >
       {children}
     </span>
@@ -211,12 +205,12 @@ function ActionMenu({
         onClick={() => setActiveMenu(isOpen ? null : (menuId as MenuType))}
         aria-label="Open actions"
         aria-expanded={isOpen}
-        className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${isOpen
-          ? 'border-slate-300 bg-slate-100 text-slate-900'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800'
+        className={`flex h-7 w-7 items-center justify-center rounded-md border transition-colors ${isOpen
+          ? 'border-[var(--line-strong)] bg-[var(--surface-3)] text-[var(--ink)]'
+          : 'border-[var(--line)] bg-white text-[var(--ink-4)] hover:border-[var(--line-strong)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'
           }`}
       >
-        <MoreVertical className="h-4 w-4" />
+        <MoreVertical className="h-3.5 w-3.5" />
       </button>
 
       <AnimatePresence>
@@ -226,7 +220,7 @@ function ActionMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className="absolute right-0 top-[calc(100%+8px)] z-[9999] w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+            className="absolute right-0 top-[calc(100%+6px)] z-[9999] w-52 overflow-hidden rounded-lg border border-[var(--line)] bg-white p-1 shadow-lg"
           >
             {children}
           </motion.div>
@@ -249,9 +243,9 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
     >
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--surface-2)]">
         {icon}
       </span>
       <span className="flex-1">{children}</span>
@@ -304,20 +298,20 @@ function SwitchDropdown({
   }, [isOpen, setActiveMenu]);
 
   return (
-    <div ref={menuRef} className="relative shrink-0 w-full">
+    <div ref={menuRef} className="relative w-full">
       <button
         type="button"
         onClick={() => setActiveMenu(isOpen ? null : (menuId as MenuType))}
         aria-label="Switch from registered day"
         aria-expanded={isOpen}
-        className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] rounded-md border transition-colors ${isOpen
+        className={`w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-md border transition-colors ${isOpen
           ? 'border-[var(--brass)] bg-[var(--brass-soft)] text-[var(--brass)]'
-          : 'border-[var(--line)] bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]'
+          : 'border-transparent bg-[var(--brand)] text-white hover:bg-[var(--brand-hover)]'
           }`}
       >
-        <ArrowRightLeft className="h-3.5 w-3.5" />
+        <ArrowRightLeft className="h-3 w-3" />
         Switch
-        <ChevronDown className={`h-3 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -327,10 +321,10 @@ function SwitchDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className="absolute right-0 top-[calc(100%+8px)] z-[9999] w-64 overflow-hidden rounded-xl border border-[var(--line)] bg-white p-1.5 shadow-xl"
+            className="absolute right-0 top-[calc(100%+6px)] z-[9999] w-56 overflow-hidden rounded-lg border border-[var(--line)] bg-white p-1 shadow-lg"
           >
-            <div className="px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-3)]">
+            <div className="px-2.5 py-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-4)]">
                 Switch from
               </p>
             </div>
@@ -343,16 +337,16 @@ function SwitchDropdown({
                     onSelect(day.id, menuId.replace('switch-', ''));
                     setActiveMenu(null);
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--surface-2)]"
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[12.5px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--surface-2)]"
                 >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--brand-soft)] text-[var(--brand)]">
-                    <Calendar className="h-3.5 w-3.5" />
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-[var(--brand-soft)] text-[var(--brand)]">
+                    <Calendar className="h-3 w-3" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-[var(--ink)]">
+                    <p className="truncate text-[12.5px] font-semibold text-[var(--ink)]">
                       {day.dayOfWeek}
                     </p>
-                    <p className="truncate text-[11px] text-[var(--ink-3)]">
+                    <p className="truncate text-[11px] text-[var(--ink-4)]">
                       {formatDate(day.cleaningDate)}
                     </p>
                   </div>
@@ -375,7 +369,7 @@ function Avatar({
   lastName,
   src,
   isSelf,
-  size = 40,
+  size = 32,
 }: {
   firstName: string;
   lastName: string;
@@ -384,34 +378,29 @@ function Avatar({
   size?: number;
 }) {
   return (
-    <div className="relative shrink-0">
-      <div
-        className={`relative shrink-0 overflow-hidden border rounded-full ${isSelf ? 'border-[var(--brass)]' : 'border-[var(--line)]'
-          } bg-[var(--brand)]`}
-        style={{ width: size, height: size }}
-      >
-        {src ? (
-          <Image
-            src={src}
-            alt=""
-            width={size}
-            height={size}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            unoptimized
-          />
-        ) : (
-          <span
-            className="flex h-full w-full items-center justify-center font-mono font-semibold tracking-wide text-white"
-            style={{ fontSize: size * 0.32 }}
-          >
-            {getInitials(firstName, lastName)}
-          </span>
-        )}
-        {isSelf && (
-          <span className="absolute inset-0 border-2 border-[var(--brass)] rounded-full" />
-        )}
-      </div>
+    <div
+      className={`relative shrink-0 overflow-hidden rounded-full ${isSelf ? 'ring-2 ring-[var(--brass)]' : 'border border-[var(--line)]'
+        } bg-[var(--brand)]`}
+      style={{ width: size, height: size }}
+    >
+      {src ? (
+        <Image
+          src={src}
+          alt=""
+          width={size}
+          height={size}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          unoptimized
+        />
+      ) : (
+        <span
+          className="flex h-full w-full items-center justify-center font-semibold text-white"
+          style={{ fontSize: size * 0.36 }}
+        >
+          {getInitials(firstName, lastName)}
+        </span>
+      )}
     </div>
   );
 }
@@ -489,7 +478,7 @@ function ConfirmDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-[var(--ink)]/45"
+            className="absolute inset-0 bg-[var(--ink)]/40"
             onClick={() => !pending && onClose()}
           />
           <motion.div
@@ -502,21 +491,21 @@ function ConfirmDialog({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-            className="relative w-full max-w-md border border-[var(--line)] bg-[var(--surface)] p-6 rounded-xl shadow-xl"
+            className="relative w-full max-w-sm rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5 shadow-xl"
           >
             <h2
               id="confirm-title"
-              className="text-[17px] font-semibold text-[var(--ink)]"
+              className="text-[15px] font-semibold text-[var(--ink)]"
             >
               {state.title}
             </h2>
             <p
               id="confirm-body"
-              className="mt-2 text-[14px] leading-6 text-[var(--ink-3)]"
+              className="mt-1.5 text-[13px] leading-5 text-[var(--ink-3)]"
             >
               {state.body}
             </p>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 className={btnQuiet}
@@ -537,7 +526,7 @@ function ConfirmDialog({
                 }}
                 disabled={pending}
               >
-                {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {pending ? 'Working…' : state.confirmLabel}
               </button>
             </div>
@@ -549,7 +538,7 @@ function ConfirmDialog({
 }
 
 // =========================================================
-// PAGE HEADER — NON-STICKY
+// PAGE HEADER
 // =========================================================
 
 function PageHeader({
@@ -563,22 +552,22 @@ function PageHeader({
 }) {
   return (
     <header className="border-b border-[var(--line)] bg-[var(--surface)]">
-      <div className="mx-auto max-w-5xl px-4 py-3.5 sm:px-6">
+      <div className="mx-auto max-w-6xl px-3 py-3 sm:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               type="button"
               onClick={onBack}
-              className={`${btnQuiet} h-9 w-9 px-0 rounded-md`}
+              className={`${btnQuiet} h-8 w-8 px-0 rounded-md`}
               aria-label="Go back"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <h1 className="truncate text-[17px] font-semibold tracking-tight text-[var(--ink)] sm:text-[18px]">
+              <h1 className="truncate text-[15px] font-semibold tracking-tight text-[var(--ink)] sm:text-[16px]">
                 Cleaning Schedule
               </h1>
-              <p className="mt-0.5 truncate text-[12.5px] leading-4 text-[var(--ink-3)]">
+              <p className="mt-0.5 truncate text-[11.5px] leading-4 text-[var(--ink-3)]">
                 {registeredLabel ?? 'Choose a cleaning day'}
                 {deadlineText && (
                   <>
@@ -589,7 +578,7 @@ function PageHeader({
               </p>
             </div>
           </div>
-          <nav className="hidden items-center gap-1.5 sm:flex">
+          <nav className="hidden items-center gap-1 sm:flex">
             <Link href="/dashboard/courses" className={btnQuiet}>
               Courses
             </Link>
@@ -618,11 +607,11 @@ const scrollingMessages = [
 
 function ScrollingNotice() {
   return (
-    <div className="mb-4 overflow-hidden border border-[var(--line)] bg-[var(--brand)] text-white rounded-lg">
-      <div className="flex h-10 items-center overflow-hidden">
-        <div className="shrink-0 border-r border-white/20 px-3.5 sm:px-4">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-            Important
+    <div className="mb-3 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--brand)] text-white">
+      <div className="flex h-8 items-center overflow-hidden">
+        <div className="shrink-0 border-r border-white/15 px-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white">
+            Notice
           </span>
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">
@@ -634,10 +623,10 @@ function ScrollingNotice() {
             {[...scrollingMessages, ...scrollingMessages].map((message, index) => (
               <span
                 key={`${message}-${index}`}
-                className="mx-6 font-mono text-[11.5px] font-medium tracking-[0.01em] text-white"
+                className="mx-5 text-[11.5px] font-medium tracking-[0.01em] text-white"
               >
                 {message}
-                <span className="ml-6 text-[var(--brass)]">•</span>
+                <span className="ml-5 text-[var(--brass)]">•</span>
               </span>
             ))}
           </motion.div>
@@ -667,72 +656,74 @@ function YourRegistrationBanner({
     return attendance?.status || 'PENDING';
   };
 
-  const tone: StatusTone = 'ok';
-
   return (
     <motion.section
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-4 overflow-hidden border-b border-[var(--line)] bg-transparent"
+      className={`${panel} mb-3`}
     >
-      <div className="py-3 sm:py-4">
-        <div className="mb-3 flex items-center gap-3.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brass)]/10 text-[var(--brass)]">
-            <CheckCircle className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--brass)]">
-              {days.length === 1 ? "You're registered" : `You have ${days.length} registrations`}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {days.map((day) => {
-            const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
-            const status = getAttendanceStatus(day.id);
-
-            return (
-              <div
-                key={day.id}
-                className="flex items-center justify-between gap-3 border-b border-[var(--line)] bg-transparent py-2.5 last:border-b-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold leading-5 text-[var(--ink)]">
-                    {formatDate(day.cleaningDate)}
-                  </p>
-                  <p className="mt-0.5 text-[11.5px] text-[var(--ink-3)]">
-                    {week?.weekLabel}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Tag tone={status === 'ATTENDED' ? 'ok' : status === 'NO_SHOW' ? 'bad' : 'warn'}>
-                    {status.toLowerCase().replace('_', ' ')}
-                  </Tag>
-                  {week && !registrationDeadlinePassed(week.registrationDeadline) && (
-                    <button
-                      type="button"
-                      onClick={() => onUnregisterRequest(day.id)}
-                      className={`${btnQuiet} text-red-600 hover:text-red-700 hover:border-red-300`}
-                      title="Unregister from this day"
-                    >
-                      Unregister
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {days.length < 2 && (
-          <div className="mt-3 text-center">
-            <p className="text-[11.5px] text-[var(--ink-3)]">
-              You can register for up to 2 cleaning days
-            </p>
-          </div>
-        )}
+      <div className="flex items-center gap-2 border-b border-[var(--line)] px-3.5 py-2.5">
+        <CheckCircle className="h-4 w-4 shrink-0 text-[var(--brass)]" />
+        <p className="text-[12px] font-semibold text-[var(--ink)]">
+          {days.length === 1
+            ? "You're registered"
+            : `You have ${days.length} registrations`}
+        </p>
       </div>
+
+      <ul className="divide-y divide-[var(--line)]">
+        {days.map((day) => {
+          const week = weeks.find((w) => w.days.some((d) => d.id === day.id));
+          const status = getAttendanceStatus(day.id);
+
+          return (
+            <li
+              key={day.id}
+              className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-semibold leading-5 text-[var(--ink)]">
+                  {formatDate(day.cleaningDate)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[var(--ink-4)]">
+                  {week?.weekLabel}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Tag
+                  tone={
+                    status === 'ATTENDED'
+                      ? 'ok'
+                      : status === 'NO_SHOW'
+                        ? 'bad'
+                        : 'warn'
+                  }
+                >
+                  {status.toLowerCase().replace('_', ' ')}
+                </Tag>
+                {week && !registrationDeadlinePassed(week.registrationDeadline) && (
+                  <button
+                    type="button"
+                    onClick={() => onUnregisterRequest(day.id)}
+                    className="text-[11.5px] font-medium text-red-600 transition-colors hover:text-red-700 hover:underline"
+                    title="Unregister from this day"
+                  >
+                    Unregister
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {days.length < 2 && (
+        <div className="border-t border-[var(--line)] px-3.5 py-2">
+          <p className="text-[11px] text-[var(--ink-4)]">
+            You can register for up to 2 cleaning days
+          </p>
+        </div>
+      )}
     </motion.section>
   );
 }
@@ -760,8 +751,8 @@ function WeekFilterChips({
   };
 
   const chipBase =
-    'inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-md border transition-colors';
-  const chipOn = 'bg-[var(--ink)] border-[var(--ink)] text-white';
+    'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold rounded-md border transition-colors';
+  const chipOn = 'bg-[var(--brand)] border-[var(--brand)] text-white';
   const chipOff =
     'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]';
 
@@ -775,10 +766,10 @@ function WeekFilterChips({
   ];
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <div className="mr-1 flex items-center gap-1.5 text-[var(--ink-3)]">
-        <Filter className="h-3.5 w-3.5" />
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em]">
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mr-0.5 flex items-center gap-1.5 text-[var(--ink-4)]">
+        <Filter className="h-3 w-3" />
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">
           Filter
         </span>
       </div>
@@ -800,7 +791,7 @@ function WeekFilterChips({
 }
 
 // =========================================================
-// DAY CARD — with week label badge
+// DAY CARD
 // =========================================================
 
 function DayCard({
@@ -875,57 +866,55 @@ function DayCard({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className={`group relative flex flex-col overflow-visible rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-[0_1px_2px_rgba(18,32,59,0.04)] transition-colors sm:p-5 ${isSelf ? 'bg-[var(--surface-2)]/60' : ''}`}
+      transition={{ duration: 0.2 }}
+      className="flex flex-col overflow-visible rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 shadow-[0_1px_2px_rgba(26,43,76,0.04)] transition-colors hover:border-[var(--line-strong)]"
     >
       {/* HEADER */}
-      <div className="flex items-start justify-between gap-2 px-0 py-3.5">
+      <div className="flex items-start justify-between gap-2 border-b border-[var(--line)] pb-2.5">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">
-        {formatDate(day.cleaningDate)}
+          <p className="text-[13.5px] font-semibold tracking-tight text-[var(--ink)]">
+            {formatDate(day.cleaningDate)}
           </p>
-
-          {/* WEEK LABEL + DEADLINE — same row */}
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <p className="text-[11.5px] font-semibold text-[var(--ink-2)]">
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium text-[var(--ink-3)]">
               {week.weekLabel}
             </p>
-            <p className="shrink-0 text-right text-[10.5px] font-medium text-[var(--ink-3)]">
+            <p
+              className={`shrink-0 text-right text-[10.5px] ${registrationDeadlinePassed(week.registrationDeadline)
+                ? 'font-semibold text-[var(--bad)]'
+                : 'font-medium text-[var(--ink-4)]'
+                }`}
+            >
               {deadlineLabel(week.registrationDeadline)}
             </p>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-start">
-          <span
-            className={`inline-flex items-center gap-1.5 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.06em] rounded-md ${toneClasses[statusTone]}`}
-          >
-            {isSelf && <CheckCircle className="h-3 w-3" />}
-            {statusLabel}
-          </span>
-        </div>
+        <Tag tone={statusTone}>
+          {isSelf && <CheckCircle className="h-3 w-3" />}
+          {statusLabel}
+        </Tag>
       </div>
 
       {/* BODY */}
-      <div className="flex flex-1 flex-col gap-3 pb-4 pt-0">
-        <div className="overflow-visible bg-transparent">
-          <div className="flex items-center justify-between gap-2 py-2">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-3)]">
+      <div className="flex flex-1 flex-col gap-2.5 pt-2.5">
+        <div>
+          <div className="flex items-center justify-between gap-2 pb-1.5">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-4)]">
               Participants
               {day.registrations.length > 0 && (
-                <span className="ml-1.5 text-[var(--ink-4)]">
+                <span className="ml-1 text-[var(--ink-4)]">
                   ({day.registrations.length})
                 </span>
               )}
             </span>
             <span
-              className={`rounded-full px-2.5 py-1 font-mono text-xs font-bold ${
-                isFull
-                  ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
-                  : 'bg-[var(--surface-2)] text-[var(--ink)]'
-              }`}
+              className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-bold ${isFull
+                ? 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                : 'bg-[var(--surface-2)] text-[var(--ink-2)]'
+                }`}
               aria-label={`${day.currentRegistrations} of ${day.capacityLimit} places filled`}
               title={`${day.currentRegistrations} of ${day.capacityLimit} places filled`}
             >
@@ -934,44 +923,44 @@ function DayCard({
           </div>
 
           {day.registrations.length === 0 ? (
-            <div className="py-3 text-[12px] text-[var(--ink-4)]">
+            <div className="py-2 text-[11.5px] text-[var(--ink-4)]">
               No participants yet
             </div>
           ) : (
-            <ul className="space-y-2 overflow-visible">
+            <ul className="space-y-1 overflow-visible">
               {allParticipants.map((reg) => {
                 const attendance = (
                   day.attendanceRecords as AttendanceRecord[] | undefined
                 )?.find((r) => r.userId === reg.userId);
-                const isSelf = reg.userId === currentUserId;
+                const isMe = reg.userId === currentUserId;
                 const totalRegistrations = studentRegistrationCounts.get(reg.userId) || 0;
 
                 return (
                   <li
                     key={reg.id}
-                    className="flex items-center gap-3 overflow-visible py-1.5"
+                    className="flex items-center gap-2 overflow-visible py-0.5"
                   >
                     <Avatar
                       firstName={reg.user.firstName}
                       lastName={reg.user.lastName}
                       src={reg.user.profileImageUrl}
-                      isSelf={isSelf}
-                      size={44}
+                      isSelf={isMe}
+                      size={28}
                     />
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="truncate text-sm font-semibold tracking-[0.01em] text-[var(--ink)]">
+                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                      <span className="truncate text-[12px] font-medium text-[var(--ink)]">
                         {reg.user.firstName} {reg.user.lastName}
                       </span>
-                      <span className="shrink-0 rounded-full bg-[var(--brass-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--brass)]">
-                        ({totalRegistrations}/2)
+                      <span className="shrink-0 rounded bg-[var(--brass-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--brass)]">
+                        {totalRegistrations}/2
                       </span>
-                      {isSelf && (
-                        <span className="shrink-0 rounded-full bg-[var(--ok-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ok)]">
-                          (You)
+                      {isMe && (
+                        <span className="shrink-0 rounded bg-[var(--ok-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--ok)]">
+                          You
                         </span>
                       )}
                       {attendance?.status && (
-                        <span className="shrink-0 text-[10px] font-medium capitalize text-[var(--ink-3)]">
+                        <span className="shrink-0 text-[10px] capitalize text-[var(--ink-4)]">
                           {attendance.status.replace('_', ' ').toLowerCase()}
                         </span>
                       )}
@@ -982,11 +971,11 @@ function DayCard({
                         activeMenu={activeMenu}
                         setActiveMenu={setActiveMenu}
                       >
-                        <div className="px-3 py-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <div className="px-2.5 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-4)]">
                             Mark attendance
                           </p>
-                          <p className="mt-0.5 truncate text-xs font-medium text-slate-600">
+                          <p className="mt-0.5 truncate text-[11.5px] font-medium text-[var(--ink-2)]">
                             {reg.user.firstName} {reg.user.lastName}
                           </p>
                         </div>
@@ -995,7 +984,7 @@ function DayCard({
                             onMarkAttendance(reg.userId, day.id, 'ATTENDED');
                             setActiveMenu(null);
                           }}
-                          icon={<UserCheck className="h-4 w-4 text-emerald-600" />}
+                          icon={<UserCheck className="h-3.5 w-3.5 text-emerald-600" />}
                         >
                           Mark attended
                         </MenuItem>
@@ -1004,7 +993,7 @@ function DayCard({
                             onMarkAttendance(reg.userId, day.id, 'NO_SHOW');
                             setActiveMenu(null);
                           }}
-                          icon={<UserX className="h-4 w-4 text-red-600" />}
+                          icon={<UserX className="h-3.5 w-3.5 text-red-600" />}
                         >
                           Mark no show
                         </MenuItem>
@@ -1013,7 +1002,7 @@ function DayCard({
                             onMarkAttendance(reg.userId, day.id, 'PENDING');
                             setActiveMenu(null);
                           }}
-                          icon={<Hourglass className="h-4 w-4 text-amber-600" />}
+                          icon={<Hourglass className="h-3.5 w-3.5 text-amber-600" />}
                         >
                           Mark pending
                         </MenuItem>
@@ -1026,29 +1015,26 @@ function DayCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11.5px] text-[var(--ink-3)]">
-          <span className="inline-flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10.5px] text-[var(--ink-4)]">
+          <span className="inline-flex items-center gap-1">
             <MapPin className="h-3 w-3 shrink-0" />
             <span>Tech Center opens 8:00 AM</span>
           </span>
-          <span className={registrationDeadlinePassed(week.registrationDeadline) ? 'font-semibold text-[var(--bad)]' : 'text-[var(--ink-4)]'}>
-            {deadlineLabel(week.registrationDeadline)}
-          </span>
         </div>
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto pt-1">
           {isSelf ? (
-            <div className="flex items-center justify-center gap-1.5 rounded-md bg-[var(--ok-soft)] px-3 py-2 text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--ok)]">
-              <CheckCircle className="h-3.5 w-3.5" />
+            <div className="flex items-center justify-center gap-1.5 rounded-md bg-[var(--ok-soft)] px-2.5 py-1.5 text-[11.5px] font-semibold text-[var(--ok)]">
+              <CheckCircle className="h-3 w-3" />
               You&apos;re registered
             </div>
           ) : registerable && switchable ? (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <button
                 type="button"
                 onClick={onRegister}
                 disabled={busy}
-                className="rounded-md bg-[var(--brass)] px-3 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
+                className="rounded-md bg-[var(--brass)] px-2 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
               >
                 {busy ? 'Registering…' : 'Register'}
               </button>
@@ -1065,9 +1051,9 @@ function DayCard({
               type="button"
               onClick={onRegister}
               disabled={busy}
-              className="w-full rounded-md bg-[var(--brass)] px-3 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
+              className="w-full rounded-md bg-[var(--brass)] px-2 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[var(--brass-hover)] disabled:opacity-50"
             >
-              {busy ? 'Registering…' : hasMultipleRegistrations ? 'Register for another day' : 'Register'}
+              {busy ? 'Registering…' : hasMultipleRegistrations ? 'Register another day' : 'Register'}
             </button>
           ) : switchable ? (
             <div className="flex items-center justify-center">
@@ -1080,7 +1066,7 @@ function DayCard({
               />
             </div>
           ) : (
-            <div className="text-center text-[11.5px] font-medium text-[var(--ink-4)]">
+            <div className="text-center text-[11px] font-medium text-[var(--ink-4)]">
               {unavailableText}
             </div>
           )}
@@ -1141,7 +1127,7 @@ function StudentDaysModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-[var(--ink)]/45"
+            className="absolute inset-0 bg-[var(--ink)]/40"
             onClick={onClose}
           />
           <motion.div
@@ -1152,27 +1138,27 @@ function StudentDaysModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-            className="relative w-full max-w-sm border border-[var(--line)] bg-[var(--surface)] rounded-lg shadow-lg"
+            className="relative w-full max-w-sm rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
           >
-            <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
-              <h2 className="text-[15px] font-semibold text-[var(--ink)]">
+            <div className="flex items-center justify-between border-b border-[var(--line)] px-3.5 py-2.5">
+              <h2 className="text-[13.5px] font-semibold text-[var(--ink)]">
                 {studentName}
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1 text-[var(--ink-3)] hover:text-[var(--ink)] rounded transition-colors"
+                className="rounded p-1 text-[var(--ink-4)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--ink)]"
                 aria-label="Close"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="px-4 py-3">
+            <div className="px-3.5 py-2.5">
               {days.length === 0 ? (
-                <div className="text-center py-4">
-                  <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
-                  <p className="mt-2 text-[13px] font-medium text-[var(--ink)]">
+                <div className="py-4 text-center">
+                  <Calendar className="mx-auto h-5 w-5 text-[var(--ink-4)]" />
+                  <p className="mt-1.5 text-[12px] font-medium text-[var(--ink)]">
                     No registered days
                   </p>
                 </div>
@@ -1181,17 +1167,17 @@ function StudentDaysModal({
                   {days.map((day) => (
                     <li
                       key={day.dayId}
-                      className="flex items-center justify-between gap-2 rounded border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-2.5 py-1.5"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium text-[var(--ink)]">
+                        <p className="text-[12.5px] font-medium text-[var(--ink)]">
                           {day.dayOfWeek}
                         </p>
-                        <p className="text-[11px] text-[var(--ink-3)]">
+                        <p className="text-[11px] text-[var(--ink-4)]">
                           {formatDate(day.cleaningDate)}
                         </p>
                       </div>
-                      <span className="shrink-0 text-[10px] font-medium text-[var(--ink-3)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--line)]">
+                      <span className="shrink-0 rounded border border-[var(--line)] bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-3)]">
                         {day.weekLabel}
                       </span>
                     </li>
@@ -1207,17 +1193,13 @@ function StudentDaysModal({
 }
 
 // =========================================================
-// PARTICIPANTS DRAWER
+// TYPES
 // =========================================================
 
 type AttendanceRecord = {
   userId: string;
   status: string;
 };
-
-// =========================================================
-// SEARCH RESULT TYPE
-// =========================================================
 
 type ParticipantSearchResult = {
   registrationId: string;
@@ -1254,25 +1236,18 @@ function ParticipantSearch({
   const showResults = focused && search.trim().length > 0;
 
   return (
-    <section className={`${panel} mb-4`}>
-      <div className="px-4 py-4 sm:px-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center bg-[var(--brand)] text-white rounded-md">
-            <Search className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-[15px] font-semibold text-[var(--ink)]">
-              Find a registered participant
-            </h2>
-            <p className="mt-0.5 text-[12.5px] text-[var(--ink-3)]">
-              Search by student name, cleaning day or date.
-            </p>
-          </div>
+    <section className={`${panel} mb-3`}>
+      <div className="px-3.5 py-3">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 shrink-0 text-[var(--ink-3)]" />
+          <h2 className="text-[13px] font-semibold text-[var(--ink)]">
+            Find a registered participant
+          </h2>
         </div>
 
-        <div className="relative mt-3.5">
+        <div className="relative mt-2">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-4)]"
             aria-hidden
           />
           <input
@@ -1282,30 +1257,25 @@ function ParticipantSearch({
             onFocus={() => setFocused(true)}
             placeholder="Search student, day or date..."
             aria-label="Search registered participants"
-            className={`h-11 w-full border border-[var(--line)] bg-[var(--surface)] pl-10 pr-10 text-[13.5px] text-[var(--ink)] placeholder:text-[var(--ink-4)] rounded-md ${focusRing}`}
+            className={`h-9 w-full rounded-md border border-[var(--line)] bg-[var(--surface)] pl-8 pr-8 text-[12.5px] text-[var(--ink)] placeholder:text-[var(--ink-4)] ${focusRing}`}
           />
           {search && (
             <button
               type="button"
               onClick={onClear}
               aria-label="Clear participant search"
-              className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--ink-4)] hover:text-[var(--ink)] rounded ${focusRing}`}
+              className={`absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--ink-4)] hover:text-[var(--ink)] ${focusRing}`}
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
         {search.trim() && (
-          <div className="mt-2.5 flex items-center justify-between gap-3">
-            <p className="text-[12px] font-medium text-[var(--ink-3)]">
-              {results.length}{' '}
-              {results.length === 1 ? 'participant' : 'participants'} found
-            </p>
-            <span className="hidden font-mono text-[10px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
-              Client-side search
-            </span>
-          </div>
+          <p className="mt-1.5 text-[11px] font-medium text-[var(--ink-4)]">
+            {results.length}{' '}
+            {results.length === 1 ? 'participant' : 'participants'} found
+          </p>
         )}
       </div>
 
@@ -1317,44 +1287,44 @@ function ParticipantSearch({
             exit={{ opacity: 0, y: -4 }}
           >
             {results.length > 0 ? (
-              <div className="max-h-[380px] overflow-y-auto border-t border-[var(--line)]">
+              <div className="max-h-[320px] overflow-y-auto border-t border-[var(--line)]">
                 {results.map((result) => (
                   <button
                     type="button"
                     key={`${result.registrationId}-${result.dayId}`}
                     onClick={() => onSelect(result)}
-                    className={`flex w-full items-center gap-3 border-b border-[var(--line)] px-4 py-3 text-left last:border-b-0 hover:bg-[var(--surface-2)] ${focusRing}`}
+                    className={`flex w-full items-center gap-2.5 border-b border-[var(--line)] px-3.5 py-2 text-left last:border-b-0 hover:bg-[var(--surface-2)] ${focusRing}`}
                   >
                     <Avatar
                       firstName={result.firstName}
                       lastName={result.lastName}
                       src={result.profileImageUrl}
-                      size={36}
+                      size={28}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block break-words text-[13.5px] font-semibold text-[var(--brand)]">
+                      <span className="block break-words text-[12.5px] font-semibold text-[var(--brand)]">
                         {result.firstName} {result.lastName}
-                        <span className="ml-1.5 text-[10px] font-medium text-[var(--brass)]">
+                        <span className="ml-1 text-[10px] font-medium text-[var(--brass)]">
                           ({result.totalRegistrations}/2)
                         </span>
                       </span>
-                      <span className="mt-0.5 block text-[11.5px] text-[var(--ink-3)]">
+                      <span className="mt-0.5 block text-[11px] text-[var(--ink-4)]">
                         {result.dayOfWeek}, {formatDate(result.cleaningDate)}
                       </span>
                     </span>
-                    <span className="hidden shrink-0 text-[10.5px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
+                    <span className="hidden shrink-0 text-[10px] uppercase tracking-wide text-[var(--ink-4)] sm:block">
                       {result.weekLabel}
                     </span>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="border-t border-[var(--line)] px-5 py-8 text-center">
-                <User className="mx-auto h-5 w-5 text-[var(--ink-4)]" />
-                <p className="mt-2 text-[13.5px] font-semibold text-[var(--ink)]">
+              <div className="border-t border-[var(--line)] px-3.5 py-6 text-center">
+                <User className="mx-auto h-4 w-4 text-[var(--ink-4)]" />
+                <p className="mt-1.5 text-[12.5px] font-semibold text-[var(--ink)]">
                   No registered participant found
                 </p>
-                <p className="mt-1 text-[12px] text-[var(--ink-3)]">
+                <p className="mt-0.5 text-[11px] text-[var(--ink-4)]">
                   Try a first name, last name, day or date.
                 </p>
               </div>
@@ -1367,7 +1337,7 @@ function ParticipantSearch({
 }
 
 // =========================================================
-// UNREGISTERED STUDENTS — WITH FILTER
+// UNREGISTERED STUDENTS
 // =========================================================
 
 type StudentFilter = 'all' | 'zero' | 'one' | 'two';
@@ -1411,14 +1381,14 @@ function UnregisteredStudentsList({
 
   if (totalStudents === 0) {
     return (
-      <div className="mb-4">
-        <div className="flex items-center gap-2 text-[12.5px] text-[var(--ink-3)]">
-          <CheckCircle className="h-4 w-4 text-[var(--ok)]" />
+      <div className={`${panel} mb-3 px-3.5 py-2.5`}>
+        <div className="flex items-center gap-2 text-[12px] text-[var(--ink-3)]">
+          <CheckCircle className="h-3.5 w-3.5 text-[var(--ok)]" />
           <span className="font-medium">
             Every student is registered for a cleaning day.
           </span>
         </div>
-        <p className="mt-2 text-[12px] text-[var(--ink-3)]">
+        <p className="mt-1 text-[11px] text-[var(--ink-4)]">
           Total weeks: {totalWeeks} · Total days: {totalDays}
         </p>
       </div>
@@ -1433,70 +1403,74 @@ function UnregisteredStudentsList({
   ];
 
   return (
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink-3)]">
+    <div className={`${panel} mb-3`}>
+      <div className="flex items-center justify-between border-b border-[var(--line)] px-3.5 py-2.5">
+        <p className="text-[12px] font-semibold text-[var(--ink)]">
           Students by registration
         </p>
-        <p className="text-[11.5px] text-[var(--ink-4)]">
+        <p className="text-[11px] text-[var(--ink-4)]">
           Total: {totalStudents}
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-3">
-        {filterOptions.map((option) => (
-          <button
-            key={option.key}
-            type="button"
-            onClick={() => setFilter(option.key)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-md border transition-colors ${filter === option.key
-              ? 'bg-[var(--brand)] border-[var(--brand)] text-white'
-              : 'bg-[var(--surface)] border-[var(--line)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]'
-              } ${focusRing}`}
-            title={option.description}
-          >
-            {option.label}
-            <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${filter === option.key
-              ? 'bg-white/20 text-white'
-              : 'bg-[var(--surface-2)] text-[var(--ink-3)]'
-              }`}>
-              {option.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {filteredStudents.length === 0 ? (
-        <div className="text-[12.5px] text-[var(--ink-4)] py-2">
-          No students in this category
-        </div>
-      ) : (
-        <p className="text-[13px] leading-6 text-[var(--ink)]">
-          {filteredStudents
-            .sort((a, b) => a.firstName.localeCompare(b.firstName))
-            .map((s, index) => (
-              <span key={s.id}>
-                {index > 0 && ' · '}
-                <button
-                  type="button"
-                  onClick={() => onStudentClick?.(s.id, `${s.firstName} ${s.lastName}`)}
-                  className={`${s.registrationCount > 0 ? 'text-blue-600 font-semibold' : 'text-[var(--ink)]'} hover:underline decoration-1 underline-offset-2`}
-                >
-                  {s.firstName} {s.lastName}
-                </button>
+      <div className="px-3.5 py-2.5">
+        <div className="mb-2.5 flex flex-wrap gap-1.5">
+          {filterOptions.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setFilter(option.key)}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors ${filter === option.key
+                ? 'border-[var(--brand)] bg-[var(--brand)] text-white'
+                : 'border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--brass)] hover:text-[var(--ink)]'
+                } ${focusRing}`}
+              title={option.description}
+            >
+              {option.label}
+              <span
+                className={`ml-0.5 rounded px-1 py-0.5 text-[10px] font-bold ${filter === option.key
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[var(--surface-2)] text-[var(--ink-3)]'
+                  }`}
+              >
+                {option.count}
               </span>
-            ))}
-        </p>
-      )}
+            </button>
+          ))}
+        </div>
 
-      <div className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--ink-3)] bg-[var(--surface-2)] px-2.5 py-2 rounded border border-[var(--line)]">
-        <span className="font-semibold text-[var(--brass)]">Pro tip:</span>
-        <span>Click on a student name to see their registration status</span>
+        {filteredStudents.length === 0 ? (
+          <div className="py-1.5 text-[11.5px] text-[var(--ink-4)]">
+            No students in this category
+          </div>
+        ) : (
+          <p className="text-[12px] leading-6 text-[var(--ink)]">
+            {filteredStudents
+              .sort((a, b) => a.firstName.localeCompare(b.firstName))
+              .map((s, index) => (
+                <span key={s.id}>
+                  {index > 0 && ' · '}
+                  <button
+                    type="button"
+                    onClick={() => onStudentClick?.(s.id, `${s.firstName} ${s.lastName}`)}
+                    className={`${s.registrationCount > 0
+                      ? 'font-semibold text-blue-600'
+                      : 'text-[var(--ink)]'
+                      } hover:underline decoration-1 underline-offset-2`}
+                  >
+                    {s.firstName} {s.lastName}
+                  </button>
+                </span>
+              ))}
+          </p>
+        )}
+
+        <div className="mt-2 border-t border-[var(--line)] pt-2">
+          <p className="text-[11px] text-[var(--ink-4)]">
+            Click a name to see their registration status. Total weeks: {totalWeeks} · Total days: {totalDays}
+          </p>
+        </div>
       </div>
-
-      <p className="mt-2 text-[12px] text-[var(--ink-3)]">
-        Total weeks: {totalWeeks} · Total days: {totalDays}
-      </p>
     </div>
   );
 }
@@ -1527,7 +1501,7 @@ function GridSkeleton() {
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div
           key={i}
-          className="h-[380px] animate-pulse rounded-xl border border-[var(--line)] bg-[var(--surface)]"
+          className="h-[320px] animate-pulse rounded-lg border border-[var(--line)] bg-[var(--surface)]"
         />
       ))}
     </div>
@@ -1565,10 +1539,6 @@ export default function CleaningPage() {
     days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }>;
   } | null>(null);
 
-  /* ============================================================
-     STUDENT DAYS MODAL
-  ============================================================ */
-
   const handleStudentClick = (studentId: string, studentName: string) => {
     const days: Array<{ dayId: string; dayOfWeek: string; cleaningDate: string; weekLabel: string }> = [];
     weeks.forEach((week) => {
@@ -1599,7 +1569,6 @@ export default function CleaningPage() {
   const weeks = useMemo(() => data?.weeks ?? [], [data]);
   const allDays = useMemo(() => weeks.flatMap((week) => week.days), [weeks]);
 
-  // Count registrations per student (max 2 allowed)
   const studentRegistrationCounts = useMemo(() => {
     const counts = new Map<string, number>();
     weeks.forEach((week) =>
@@ -1772,8 +1741,7 @@ export default function CleaningPage() {
         'ok',
         isRecord(result) && typeof result.message === 'string'
           ? result.message
-          : `Your registration moved to ${newDay?.dayOfWeek ?? 'the selected day'
-          }.`,
+          : `Your registration moved to ${newDay?.dayOfWeek ?? 'the selected day'}.`,
       );
       await Promise.all([refetch(), refetchStatus()]);
     } catch (err: unknown) {
@@ -1953,7 +1921,7 @@ export default function CleaningPage() {
           registeredLabel={null}
           deadlineText={null}
         />
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <main className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
           <ScrollingNotice />
           <GridSkeleton />
         </main>
@@ -1969,22 +1937,22 @@ export default function CleaningPage() {
           registeredLabel={null}
           deadlineText={null}
         />
-        <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <main className="mx-auto max-w-6xl px-3 py-5 sm:px-5">
           <ScrollingNotice />
-          <div className={`${panel} p-5`}>
-            <div className="flex items-start gap-3">
-              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--bad)]" />
+          <div className={`${panel} p-4`}>
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--bad)]" />
               <div>
-                <h2 className="text-[15.5px] font-semibold text-[var(--ink)]">
+                <h2 className="text-[13.5px] font-semibold text-[var(--ink)]">
                   The schedule could not be loaded
                 </h2>
-                <p className="mt-1 max-w-prose text-[13.5px] leading-6 text-[var(--ink-3)]">
+                <p className="mt-1 max-w-prose text-[12.5px] leading-5 text-[var(--ink-3)]">
                   {(error as Error)?.message ?? 'An unexpected error occurred.'}
                 </p>
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className={`${btnPrimary} mt-3`}
+                  className={`${btnPrimary} mt-2.5`}
                 >
                   Try again
                 </button>
@@ -2004,7 +1972,7 @@ export default function CleaningPage() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Back to top"
           title="Back to top"
-          className="fixed bottom-5 left-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--ink)] shadow-md transition-all hover:-translate-y-0.5 hover:border-[var(--brass)] hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-2 sm:left-5"
+          className="fixed bottom-4 left-3 z-40 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--line)] bg-white text-[var(--ink)] shadow-md transition-all hover:-translate-y-0.5 hover:border-[var(--brass)] hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brass)] focus-visible:ring-offset-2 sm:left-5"
         >
           <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
         </button>
@@ -2016,7 +1984,7 @@ export default function CleaningPage() {
         deadlineText={null}
       />
 
-      <main className="mx-auto max-w-5xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8 sm:pb-12 overflow-visible">
+      <main className="mx-auto max-w-6xl px-3 pb-8 pt-4 sm:px-5 sm:pb-10 sm:pt-5 overflow-visible">
         <ScrollingNotice />
 
         <AnimatePresence initial={false}>
@@ -2027,41 +1995,40 @@ export default function CleaningPage() {
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className={`mb-4 flex items-start gap-2.5 border px-3.5 py-3 text-[13px] rounded-md ${notice.tone === 'ok' ? toneClasses.ok : toneClasses.bad
+              className={`mb-3 flex items-start gap-2 rounded-md border px-3 py-2 text-[12px] ${notice.tone === 'ok' ? toneClasses.ok : toneClasses.bad
                 }`}
             >
               {notice.tone === 'ok' ? (
-                <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               ) : (
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               )}
               <p className="flex-1 leading-5 font-medium">{notice.message}</p>
               <button
                 type="button"
                 onClick={() => setNotice(null)}
                 aria-label="Dismiss"
-                className={`shrink-0 p-0.5 rounded ${focusRing}`}
+                className={`shrink-0 rounded p-0.5 ${focusRing}`}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="mb-4 border-b border-[var(--line)] bg-transparent px-0 py-2">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-[#3D4A61]">
-            <span>Weeks: <span className="font-bold text-[#12203B]">{summaryStats.weeks}</span></span>
-            <span className="text-[#DADCD3]">•</span>
-            <span>Days: <span className="font-bold text-[#12203B]">{summaryStats.days}</span></span>
-            <span className="text-[#DADCD3]">•</span>
-            <span>Registered: <span className="font-bold text-[#2F6B45]">{summaryStats.registered}</span></span>
-            <span className="text-[#DADCD3]">•</span>
-            <span>Open: <span className="font-bold text-[#2F6B45]">{summaryStats.open}</span></span>
-            <span className="text-[#DADCD3]">•</span>
-            <span>Full: <span className="font-bold text-[#8B3A24]">{summaryStats.full}</span></span>
-            <span className="text-[#DADCD3]">•</span>
-            <span>Closed: <span className="font-bold text-[#6E5520]">{summaryStats.closed}</span></span>
-          </div>
+        {/* Stats — plain inline text strip */}
+        <div className={`${panel} mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-3.5 py-2 text-[12px] text-[var(--ink-3)]`}>
+          <span>Weeks <span className="font-semibold text-[var(--ink)]">{summaryStats.weeks}</span></span>
+          <span className="text-[var(--line-strong)]">·</span>
+          <span>Days <span className="font-semibold text-[var(--ink)]">{summaryStats.days}</span></span>
+          <span className="text-[var(--line-strong)]">·</span>
+          <span>Registered <span className="font-semibold text-[var(--ok)]">{summaryStats.registered}</span></span>
+          <span className="text-[var(--line-strong)]">·</span>
+          <span>Open <span className="font-semibold text-[var(--ok)]">{summaryStats.open}</span></span>
+          <span className="text-[var(--line-strong)]">·</span>
+          <span>Full <span className="font-semibold text-[var(--bad)]">{summaryStats.full}</span></span>
+          <span className="text-[var(--line-strong)]">·</span>
+          <span>Closed <span className="font-semibold text-[var(--warn)]">{summaryStats.closed}</span></span>
         </div>
 
         {registeredDays.length > 0 && (
@@ -2096,12 +2063,12 @@ export default function CleaningPage() {
         )}
 
         {weeks.length === 0 ? (
-          <div className={`${panel} px-5 py-16 text-center`}>
-            <Calendar className="mx-auto h-7 w-7 text-[var(--ink-4)]" />
-            <h2 className="mt-3 text-[16px] font-semibold text-[var(--ink)]">
+          <div className={`${panel} px-4 py-12 text-center`}>
+            <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
+            <h2 className="mt-2 text-[14px] font-semibold text-[var(--ink)]">
               No cleaning weeks published
             </h2>
-            <p className="mx-auto mt-1.5 max-w-sm text-[13.5px] leading-6 text-[var(--ink-3)]">
+            <p className="mx-auto mt-1 max-w-sm text-[12px] leading-5 text-[var(--ink-3)]">
               When your administrator publishes a schedule, the available days
               will appear here.
             </p>
@@ -2115,15 +2082,15 @@ export default function CleaningPage() {
             />
 
             {filteredDays.length === 0 ? (
-              <div className={`${panel} px-5 py-12 text-center`}>
-                <Calendar className="mx-auto h-6 w-6 text-[var(--ink-4)]" />
-                <p className="mt-3 text-[14px] font-semibold text-[var(--ink)]">
+              <div className={`${panel} px-4 py-10 text-center`}>
+                <Calendar className="mx-auto h-5 w-5 text-[var(--ink-4)]" />
+                <p className="mt-2 text-[13px] font-semibold text-[var(--ink)]">
                   No days match this filter
                 </p>
                 <button
                   type="button"
                   onClick={() => setWeekFilter({ kind: 'all' })}
-                  className={`${btnQuiet} mt-3`}
+                  className={`${btnQuiet} mt-2.5`}
                 >
                   Show all days
                 </button>
@@ -2131,7 +2098,7 @@ export default function CleaningPage() {
             ) : (
               <div
                 id="cleaning-grid"
-                className="grid grid-cols-1 gap-x-5 gap-y-6 overflow-visible sm:grid-cols-2 lg:grid-cols-3"
+                className="grid grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 lg:grid-cols-3"
               >
                 {filteredDays.map(({ day, week }) => {
                   const isSelf = registeredDays.some((d) => d.id === day.id);
@@ -2143,7 +2110,7 @@ export default function CleaningPage() {
                     <div
                       key={day.id}
                       id={`cleaning-day-${day.id}`}
-                      className="scroll-mt-24 overflow-visible"
+                      className="scroll-mt-20 overflow-visible"
                     >
                       <DayCard
                         day={day}
@@ -2180,20 +2147,20 @@ export default function CleaningPage() {
         )}
 
         {weeks.length > 0 && (
-          <div className="mt-5 border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3.5 py-3 rounded-md">
-            <p className="text-[12.5px] leading-5 text-[var(--ink-2)] font-medium">
+          <div className="mt-4 rounded-md border-l-2 border-[var(--brass)] bg-[var(--brass-soft)] px-3 py-2">
+            <p className="text-[12px] leading-5 text-[var(--ink-2)]">
               Choose a day you can genuinely attend. You may switch while
               registration is open if another day still has space.
             </p>
           </div>
         )}
 
-        <section className={`${panel} mt-5 overflow-visible`}>
-          <div className="border-b border-[var(--line)] px-4 py-3.5 sm:px-5">
-            <h2 className="text-[15px] font-semibold text-[var(--ink)]">
+        <section className={`${panel} mt-4 overflow-hidden`}>
+          <div className="border-b border-[var(--line)] px-3.5 py-2.5">
+            <h2 className="text-[13px] font-semibold text-[var(--ink)]">
               Community cleaning, recorded
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-[var(--ink-3)]">
+            <p className="mt-0.5 text-[11.5px] text-[var(--ink-4)]">
               See what to expect during a community cleaning session.
             </p>
           </div>
