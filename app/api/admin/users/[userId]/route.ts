@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 import {
   invalidJsonBodyResponse,
+  isBoolean,
   isString,
   optional,
   parseJsonBody,
@@ -108,12 +109,29 @@ export async function PATCH(
       country: optional(isString),
       city: optional(isString),
       techCenterId: optional(isString),
+      hasVerifiedBadge: optional(isBoolean),
     });
     if (!body) return invalidJsonBodyResponse();
-    const { firstName, lastName, email, phoneNumber, country, city, techCenterId } = body;
+    const { firstName, lastName, email, phoneNumber, country, city, techCenterId, hasVerifiedBadge } = body;
 
-    // Cannot update self
+    // Cannot update self — except dev/super_admin toggling their own verified badge
     if (userId === session.user.id) {
+      const onlyBadge =
+        hasVerifiedBadge !== undefined &&
+        [firstName, lastName, email, phoneNumber, country, city, techCenterId].every(
+          (v) => v === undefined,
+        );
+      if (
+        (session.user.role === 'dev' || session.user.role === 'super_admin') &&
+        onlyBadge
+      ) {
+        const updated = await prisma.user.update({
+          where: { id: userId },
+          data: { hasVerifiedBadge },
+          select: { id: true, hasVerifiedBadge: true },
+        });
+        return NextResponse.json({ success: true, user: updated });
+      }
       return NextResponse.json(
         { error: 'Cannot update your own profile here' },
         { status: 400 },
@@ -193,6 +211,18 @@ export async function PATCH(
       // admin touching teacher/student → free within their tech center scope.
     }
 
+    // Only dev / super_admin may grant or revoke the verified badge
+    if (
+      hasVerifiedBadge !== undefined &&
+      session.user.role !== 'dev' &&
+      session.user.role !== 'super_admin'
+    ) {
+      return NextResponse.json(
+        { error: 'Only devs and super admins can change verification' },
+        { status: 403 },
+      );
+    }
+
     // Build update data
     const updateData: any = {};
     if (firstName !== undefined) updateData.firstName = firstName;
@@ -218,6 +248,7 @@ export async function PATCH(
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (country !== undefined) updateData.country = country;
     if (city !== undefined) updateData.city = city;
+    if (hasVerifiedBadge !== undefined) updateData.hasVerifiedBadge = hasVerifiedBadge;
     const nextTechCenterId =
       techCenterId === '' ? null : techCenterId;
     const techCenterChanged =

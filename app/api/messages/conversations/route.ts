@@ -8,6 +8,28 @@ import {
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
 
+// Resolve the effective tech center for display — super admins fall back
+// to their previous tech center when techCenterId was cleared on promotion.
+const prevCenterCache = new Map<string, { id: string; name: string } | null>();
+
+async function prevTechCenterFor(user: {
+  role?: { name?: string } | null;
+  techCenter?: { id: string; name: string } | null;
+  previousTechCenterId?: string | null;
+}): Promise<{ id: string; name: string } | null> {
+  if (user.techCenter || user.role?.name !== 'super_admin' || !user.previousTechCenterId) {
+    return user.techCenter ?? null;
+  }
+  if (prevCenterCache.has(user.previousTechCenterId)) {
+    return prevCenterCache.get(user.previousTechCenterId) ?? null;
+  }
+  const center = await prisma.techCenter.findUnique({
+    where: { id: user.previousTechCenterId },
+    select: { id: true, name: true },
+  });
+  prevCenterCache.set(user.previousTechCenterId, center);
+  return center;
+}
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -53,6 +75,8 @@ export async function GET() {
               lastName: true,
               profileImageUrl: true,
               hasVerifiedBadge: true,
+              previousTechCenterId: true,
+              role: { select: { name: true } },
               techCenter: {
                 select: {
                   id: true,
@@ -90,7 +114,7 @@ export async function GET() {
             fullName: `${otherUser.firstName} ${otherUser.lastName}`,
             image: otherUser.profileImageUrl,
             hasVerifiedBadge: otherUser.hasVerifiedBadge,
-            techCenter: otherUser.techCenter,
+            techCenter: await prevTechCenterFor(otherUser),
           } : null,
           unreadCount,
           createdAt: conv.createdAt,
@@ -154,6 +178,8 @@ export async function POST(request: NextRequest) {
         firstName: true,
         lastName: true,
         profileImageUrl: true,
+        previousTechCenterId: true,
+        role: { select: { name: true } },
         techCenter: {
           select: {
             id: true,

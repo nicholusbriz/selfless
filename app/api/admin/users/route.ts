@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
           city: true,
           techCenterId: true,
           isActive: true,
+          hasVerifiedBadge: true,
           profileImageUrl: true,
           role: {
             select: {

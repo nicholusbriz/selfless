@@ -38,6 +38,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
+import VerifiedBadge from '@/components/VerifiedBadge';
+
 import {
   useStudentCleaningData,
   useStudentCleaningStatus,
@@ -948,8 +950,13 @@ function DayCard({
                       size={28}
                     />
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                      <span className="truncate text-[12px] font-medium text-[var(--ink)]">
-                        {reg.user.firstName} {reg.user.lastName}
+                      <span className="flex min-w-0 items-center gap-1">
+                        <span className="truncate text-[12px] font-medium text-[var(--ink)]">
+                          {reg.user.firstName} {reg.user.lastName}
+                        </span>
+                        {reg.user.hasVerifiedBadge && (
+                          <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
+                        )}
                       </span>
                       <span className="shrink-0 rounded bg-[var(--brass-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--brass)]">
                         {totalRegistrations}/2

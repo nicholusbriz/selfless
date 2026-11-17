@@ -20,6 +20,7 @@ export async function GET() {
         lastName: true,
         email: true,
         profileImageUrl: true,
+        hasVerifiedBadge: true,
         role: true,
         techCenter: true
       }
@@ -74,6 +75,7 @@ export async function GET() {
                     lastName: true,
                     email: true,
                     profileImageUrl: true,
+        hasVerifiedBadge: true,
                   }
                 }
               }
@@ -87,6 +89,7 @@ export async function GET() {
                     lastName: true,
                     email: true,
                     profileImageUrl: true,
+        hasVerifiedBadge: true,
                   }
                 }
               }

@@ -117,6 +117,13 @@ export async function GET(request: Request) {
 
     eligiblePrivilegedUsers.forEach((u) => activeIds.add(u.id));
 
+    // Verified users always qualify for trending, even with no activity
+    const verifiedUsers = await prisma.user.findMany({
+      where: { hasVerifiedBadge: true, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    verifiedUsers.forEach((u) => activeIds.add(u.id));
+
     let trendingStudents: TrendingStudent[] = [];
     if (activeIds.size > 0) {
       const users = await prisma.user.findMany({
@@ -167,29 +174,20 @@ export async function GET(request: Request) {
           };
         })
         .filter((u) =>
-          (Boolean(u.profileImageUrl?.trim()) ||
-            (u.role?.name === 'super_admin' &&
-              Boolean(u.previousTechCenterId))) &&
-          (u.followersCount > 0 ||
-            u.likesReceivedCount > 0 ||
-            (u.role?.name === 'super_admin' || u.role?.name === 'admin' || u.role?.name === 'teacher'))
+          u.followersCount > 0 ||
+          u.likesReceivedCount > 0 ||
+          (u.role?.name === 'super_admin' || u.role?.name === 'admin' || u.role?.name === 'teacher')
         )
         .sort((a, b) => {
-          // Priority 1: Role hierarchy (super_admin > admin > tutor > student)
-          const rolePriority: Record<string, number> = {
-            super_admin: 4,
-            admin: 3,
-            teacher: 2,
-            student: 1,
-          };
-          const aPriority = rolePriority[a.role?.name || ''] || 0;
-          const bPriority = rolePriority[b.role?.name || ''] || 0;
-          if (aPriority !== bPriority) return bPriority - aPriority;
+          // Tier 0: verified WITH a real profile image — always first
+          // Tier 1: anyone else with a profile image
+          // Tier 2: no profile image — always at the back
+          const aHasImg = Boolean(a.profileImageUrl?.trim());
+          const bHasImg = Boolean(b.profileImageUrl?.trim());
+          const aTier = a.hasVerifiedBadge && aHasImg ? 0 : aHasImg ? 1 : 2;
+          const bTier = b.hasVerifiedBadge && bHasImg ? 0 : bHasImg ? 1 : 2;
+          if (aTier !== bTier) return aTier - bTier;
 
-          // Priority 2: Has profile image (within the same role, users with images come first)
-          const aHasImage = Boolean(a.profileImageUrl?.trim());
-          const bHasImage = Boolean(b.profileImageUrl?.trim());
-          if (aHasImage !== bHasImage) return bHasImage ? 1 : -1;
 
           // Priority 3: Followers count (highest to lowest)
           if (b.followersCount !== a.followersCount)
@@ -205,26 +203,15 @@ export async function GET(request: Request) {
           );
         });
 
-      // Separate into privileged (admins/tutors) and students
-      const privilegedUsers = ranked.filter(u => 
-        u.role?.name === 'super_admin' || 
-        u.role?.name === 'admin' || 
-        u.role?.name === 'teacher'
-      );
-      
-      const studentUsers = ranked.filter(u => u.role?.name === 'student');
-
-      // Take all privileged users, but only top 10 students
-      const filtered = [
-        ...privilegedUsers,
-        ...studentUsers.slice(0, 10)
-      ];
-
+      // Order is already decided by the sort above:
+      // verified+image first, then followers/likes — no role favors.
+      const filtered = ranked;
       trendingStudents = filtered.map((u) => ({
         id: u.id,
         firstName: u.firstName,
         lastName: u.lastName,
         profileImageUrl: u.profileImageUrl,
+        hasVerifiedBadge: u.hasVerifiedBadge,
         status: u.status,
         role: u.role?.name ?? null,
         techCenter: u.techCenter,

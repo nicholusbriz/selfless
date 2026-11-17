@@ -42,6 +42,7 @@ export async function GET(
         phoneNumber: true,
         profileImageUrl: true,
         profileImageUrls: true,
+        hasVerifiedBadge: true,
         role: {
           select: {
             name: true,
@@ -152,6 +153,7 @@ export async function GET(
         phoneNumber: student.phoneNumber,
         profileImage: student.profileImageUrl,
         profileImageUrls: student.profileImageUrls,
+        hasVerifiedBadge: student.hasVerifiedBadge,
         profileGallery,
         role: student.role?.name || 'student',
         studentId: student.id,

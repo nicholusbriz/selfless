@@ -131,6 +131,7 @@ interface MediaItem {
     firstName: string;
     lastName: string;
     profileImageUrl: string | null;
+    hasVerifiedBadge?: boolean | null;
   } | null;
 }
 
@@ -411,6 +412,7 @@ interface DashboardAnnouncement {
   author?: {
     firstName?: string | null;
     lastName?: string | null;
+    hasVerifiedBadge?: boolean | null;
   } | null;
 }
 
@@ -476,9 +478,14 @@ function RecentAnnouncementsPanel() {
                 {announcement.title}
               </Link>
               <span className="block truncate text-[9.5px] text-white/40">
-                {[announcement.author?.firstName, announcement.author?.lastName]
-                  .filter(Boolean)
-                  .join(' ') || 'Selfless'}{' '}
+                <span className="inline-flex items-center gap-1">
+                  {[announcement.author?.firstName, announcement.author?.lastName]
+                    .filter(Boolean)
+                    .join(' ') || 'Selfless'}
+                  {announcement.author?.hasVerifiedBadge && (
+                    <VerifiedBadge className="h-3 w-3 shrink-0" />
+                  )}
+                </span>
                 ·{' '}
                 <time dateTime={announcement.createdAt}>
                   {new Date(announcement.createdAt).toLocaleDateString('en-US', {
@@ -658,8 +665,13 @@ function RecentPostsSection() {
                               {post.user.lastName[0]}
                             </span>
                           )}
-                          <span className="truncate text-[10.5px] font-semibold drop-shadow">
-                            {post.user.firstName} {post.user.lastName}
+                          <span className="flex min-w-0 items-center gap-1">
+                            <span className="truncate text-[10.5px] font-semibold drop-shadow">
+                              {post.user.firstName} {post.user.lastName}
+                            </span>
+                            {post.user.hasVerifiedBadge && (
+                              <VerifiedBadge className="h-3 w-3 shrink-0" />
+                            )}
                           </span>
                         </Link>
                       ) : (
@@ -797,8 +809,13 @@ function RecentPostsSection() {
                               {post.user.lastName[0]}
                             </span>
                           )}
-                          <p className="truncate text-[11px] font-semibold text-[#1A2B4C]">
-                            {post.user.firstName} {post.user.lastName}
+                          <p className="flex min-w-0 items-center gap-1 text-[11px] font-semibold text-[#1A2B4C]">
+                            <span className="truncate">
+                              {post.user.firstName} {post.user.lastName}
+                            </span>
+                            {post.user.hasVerifiedBadge && (
+                              <VerifiedBadge className="h-3 w-3 shrink-0" />
+                            )}
                           </p>
                         </div>
                       )}
@@ -1274,9 +1291,8 @@ function SuggestedStudents({
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
 
-  const sortedTrending = useMemo(() => {
-    return [...trending].sort(compareSuperadminWithImageFirst).slice(0, 50);
-  }, [trending]);
+  // Order comes from the API — do not re-sort here
+  const sortedTrending = useMemo(() => trending.slice(0, 50), [trending]);
 
   if (isLoading) {
     return (
@@ -1851,7 +1867,7 @@ export default function DashboardPage() {
     useQuery<DiscoverStudent[]>({
       queryKey: ['dashboard-discover-students'],
       queryFn: async () => {
-        const response = await fetch('/api/dashboard/discover-students');
+        const response = await fetch('/api/dashboard/discover-students?limit=1000');
         if (!response.ok) throw new Error('Failed to fetch discover students');
         return response.json();
       },
@@ -2054,9 +2070,14 @@ export default function DashboardPage() {
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#D4A84B]">
                         {greeting}
                       </p>
-                      <h1 className="mt-0.5 text-[22px] font-bold leading-tight tracking-tight text-white sm:text-[26px]">
-                        {firstName}
-                        <span className="text-[#E6C779]">.</span>
+                      <h1 className="mt-0.5 flex items-center gap-1.5 text-[22px] font-bold leading-tight tracking-tight text-white sm:text-[26px]">
+                        <span>
+                          {userName}
+                          <span className="text-[#E6C779]">.</span>
+                        </span>
+                        {user?.hasVerifiedBadge && (
+                          <VerifiedBadge className="h-5 w-5 shrink-0" />
+                        )}
                       </h1>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                         <span className="inline-flex items-center gap-1 text-[#D4A84B]">

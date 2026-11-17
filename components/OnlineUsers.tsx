@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface OnlineUser {
   userId: string;
   firstName: string;
   lastName: string;
   fullName?: string;
+  hasVerifiedBadge?: boolean | null;
   image?: string | null;
   techCenter?: {
     id: string;
@@ -34,6 +36,7 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
           lastName: '',
           fullName: 'You',
           image: null,
+          hasVerifiedBadge: false,
           techCenter: null,
           connectedAt: new Date().toISOString(),
         },
@@ -109,7 +112,7 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
                 className="text-[10px] font-extrabold leading-tight truncate text-[#B98A3E] sm:text-[11px]"
                 title={user.fullName || `${user.firstName} ${user.lastName}`}
               >
-                {user.fullName || `${user.firstName} ${user.lastName}`}
+                {user.fullName || `${user.firstName} ${user.lastName}`}{user.hasVerifiedBadge && (<VerifiedBadge className="ml-1 inline h-3 w-3 align-[-2px]" />)}
                 {user.userId === currentUserId && (
                   <span className="ml-1.5 text-[8px] font-mono uppercase text-[#2F6B45]">(You)</span>
                 )}

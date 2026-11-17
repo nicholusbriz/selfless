@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
             displayName: true,
           },
         },
+        previousTechCenterId: true,
         techCenter: {
           select: {
             id: true,
@@ -61,14 +62,38 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Super admins keep their previous tech center — resolve it for display
+    const prevIds = Array.from(
+      new Set(
+        users
+          .filter((u) => u.role?.name === 'super_admin' && !u.techCenter && u.previousTechCenterId)
+          .map((u) => u.previousTechCenterId as string),
+      ),
+    );
+    const prevCenters = prevIds.length
+      ? await prisma.techCenter.findMany({
+          where: { id: { in: prevIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const prevById = new Map(prevCenters.map((c) => [c.id, c]));
+
     // Map profileImageUrl to image for frontend compatibility
     const usersWithImage = users
-      .map((user) => ({
-        ...user,
-        image: user.profileImageUrl,
-        roleName: user.role?.name ?? '',
-        roleDisplayName: user.role?.displayName ?? '',
-      }))
+      .map((user) => {
+        const techCenter =
+          user.techCenter ??
+          (user.role?.name === 'super_admin' && user.previousTechCenterId
+            ? prevById.get(user.previousTechCenterId) ?? null
+            : null);
+        return {
+          ...user,
+          techCenter,
+          image: user.profileImageUrl,
+          roleName: user.role?.name ?? '',
+          roleDisplayName: user.role?.displayName ?? '',
+        };
+      })
       .sort((a, b) => {
         const aIsSupport = a.roleName === 'dev';
         const bIsSupport = b.roleName === 'dev';

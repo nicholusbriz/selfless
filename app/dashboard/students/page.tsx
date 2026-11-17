@@ -34,9 +34,7 @@ import { useRouter } from 'next/navigation';
 
 import { SocialActions } from '@/components/social/SocialActions';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import {
-  compareProfileImageFirst,
-} from '@/lib/social/ranking';
+import { compareProfileImageFirst } from '@/lib/social/ranking';
 import {
   patchStudentsShape,
   findInStudentsShape,
@@ -217,10 +215,6 @@ function findStudentInDirectoryCache(
   return findInStudentsShape(old, targetId) as Student | undefined;
 }
 
-// ============================================================
-// PAGE CACHE ADAPTER
-// ============================================================
-
 const STUDENT_DIRECTORY_ADAPTERS: PageCacheAdapter[] = [
   {
     queryKey: ['studentDirectory'],
@@ -256,23 +250,7 @@ const getStudentInitial = (student: Student): string =>
 
 const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
   if (sortBy === 'trending') {
-    return [...students].sort((a, b) =>
-      compareProfileImageFirst({
-        id: a.id,
-        followersCount: a.followersCount,
-        likesReceivedCount: a.likesReceivedCount,
-        firstName: a.firstName,
-        lastName: a.lastName,
-        profileImageUrl: a.profileImageUrl,
-      }, {
-        id: b.id,
-        followersCount: b.followersCount,
-        likesReceivedCount: b.likesReceivedCount,
-        firstName: b.firstName,
-        lastName: b.lastName,
-        profileImageUrl: b.profileImageUrl,
-      }),
-    );
+    return students;
   }
 
   const copy = [...students];
@@ -335,7 +313,7 @@ const sortStudents = (students: Student[], sortBy: SortOption): Student[] => {
 };
 
 // ============================================================
-// STUDENT CARD (ENHANCED DESIGN — KEEPS ORIGINAL INFO)
+// STUDENT CARD
 // ============================================================
 
 const StudentCard = ({
@@ -363,28 +341,24 @@ const StudentCard = ({
           ? 'Director'
           : student.role?.name || 'Student';
 
-  const totalCredits = student.studentCourses?.reduce((sum, course) => sum + (course.credits || 0), 0) || 0;
-
-  // Keep card size consistent
-  const cardWidth = 'w-[280px]';
-  const cardWidthSm = 'sm:w-[290px]';
+  const totalCredits =
+    student.studentCourses?.reduce((sum, course) => sum + (course.credits || 0), 0) || 0;
 
   return (
-    <article className={`group ${cardWidth} shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#E5E7EB] bg-white shadow-sm transition-shadow hover:shadow-md ${cardWidthSm}`}>
-      {/* Image fills the entire card */}
+    <article className="group w-[260px] shrink-0 snap-start overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-sm transition-colors hover:border-[#C59B4C]/50 sm:w-[280px]">
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#1A2B4C]">
-        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2 text-white">
+        <div className="absolute inset-x-2.5 top-2.5 z-10 flex items-center justify-between gap-2 text-white">
           {!isSuperAdmin && (
-            <span className="inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold">
+            <span className="inline-flex shrink-0 items-center rounded border border-white/30 bg-black/40 px-2 py-0.5 text-[9.5px] font-semibold">
               {totalCredits >= 6 ? 'Full time' : 'Part time'}
             </span>
           )}
           <Link
             href={`/dashboard/students/${student.id}`}
-            className="ml-auto inline-flex shrink-0 items-center rounded-md border border-white/30 bg-black/40 px-2.5 py-1 text-[10px] font-semibold transition-colors hover:border-white/50 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+            className="ml-auto inline-flex shrink-0 items-center rounded border border-white/30 bg-black/40 px-2 py-0.5 text-[9.5px] font-semibold transition-colors hover:border-white/50 hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
             aria-label={`View ${fullName}'s profile`}
           >
-            View profile
+            View
           </Link>
         </div>
         {student.profileImageUrl ? (
@@ -393,122 +367,126 @@ const StudentCard = ({
             alt={fullName}
             fill
             className="h-full w-full object-cover object-center"
-            sizes="290px"
+            sizes="280px"
             quality={95}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <span className="font-mono text-2xl font-black text-white/90">
+            <span className="text-2xl font-bold text-white/90">
               {initials}
             </span>
           </div>
         )}
 
-        {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 
         <Link
           href={`/dashboard/students/${student.id}`}
-          className="absolute inset-0 z-[1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D4A84B]"
+          className="absolute inset-0 z-[1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59B4C]"
           aria-label={`View ${fullName}'s profile`}
         />
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-3">
-          {/* Row 1 — Name + Role */}
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[16px] font-bold leading-tight text-white">
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-end p-2.5">
+          {/* Name + Role */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="line-clamp-1 text-[13px] font-bold leading-tight text-white">
               <Link
                 href={`/dashboard/students/${student.id}`}
-                className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
                 aria-label={`View ${fullName}'s profile`}
               >
                 {fullName}
               </Link>
               {student.hasVerifiedBadge && (
-                <VerifiedBadge className="ml-1 inline h-3.5 w-3.5 align-middle" />
+                <VerifiedBadge className="ml-1 inline h-3 w-3 align-middle" />
               )}
             </h3>
             {roleLabel && (
-              <span className="text-[11px] font-medium text-white/90 shrink-0">
+              <span className="shrink-0 rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/95">
                 {roleLabel}
               </span>
             )}
           </div>
 
-          {/* Row 2 — Course */}
+          {/* Course */}
           {student.role?.name !== 'super_admin' && (
-            <p className="text-[13px] font-medium text-white">
+            <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-white/95">
               {student.generalCourse || 'Student'}
             </p>
           )}
 
-          {/* Row 3 — Tech Center with MapPin icon */}
+          {/* Tech Center */}
           {student.techCenter?.name && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
-              <span className="text-[12px] font-medium text-white/90">
+            <div className="mt-0.5 flex items-center gap-1">
+              <MapPin className="h-2.5 w-2.5 shrink-0 text-[#D4A84B]" />
+              <span className="line-clamp-1 text-[10.5px] font-medium text-white/90">
                 {student.techCenter.name}
               </span>
             </div>
           )}
 
-          {/* Row 4 — Stats & Credits (compact) */}
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90">
-            <span className="font-semibold text-white">{student.followersCount}</span>
+          {/* Stats */}
+          <div className="mt-1 flex items-center gap-1.5 text-[9.5px] text-white/90">
+            <span className="font-semibold text-white tabular-nums">{student.followersCount}</span>
             <span>followers</span>
-            <span className="text-white/70">•</span>
-            <span className="font-semibold text-white">{Math.max(0, student.likesReceivedCount)}</span>
+            <span className="text-white/50">·</span>
+            <span className="font-semibold text-white tabular-nums">{Math.max(0, student.likesReceivedCount)}</span>
             <span>likes</span>
-            <span className="text-white/70">•</span>
-            <span className="font-semibold text-white">{student.profileViewsCount}</span>
+            <span className="text-white/50">·</span>
+            <span className="font-semibold text-white tabular-nums">{student.profileViewsCount}</span>
             <span>views</span>
           </div>
 
-          {/* Row 5 — Enrolled Units summary */}
+          {/* Enrolled Courses */}
           {student.studentCourses?.length > 0 ? (
             <div className="mt-1">
-              <div className="flex items-center justify-between gap-1 mb-0.5">
+              <div className="mb-0.5 flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1">
-                  <BookOpen className="shrink-0 text-[#D4A84B] h-3 w-3" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-white/90">
-                    Enrolled Courses
+                  <BookOpen className="h-2.5 w-2.5 shrink-0 text-[#D4A84B]" />
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/90">
+                    Courses
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold text-[#D4A84B]">
-                  {totalCredits} credits
+                <span className="text-[9px] font-semibold text-[#D4A84B] tabular-nums">
+                  {totalCredits} cr
                 </span>
               </div>
               <div className="space-y-0.5">
-                {student.studentCourses.map((course) => (
+                {student.studentCourses.slice(0, 3).map((course) => (
                   <div key={course.id} className="flex items-start justify-between gap-2">
-                    <span className="text-white text-[11px] font-medium">
+                    <span className="line-clamp-1 text-white/95 text-[10px] font-medium">
                       {course.courseUnit}
                     </span>
-                    <span className="shrink-0 text-[10px] font-semibold text-white">
+                    <span className="shrink-0 text-[9px] font-semibold text-white tabular-nums">
                       {course.credits}cr
                     </span>
                   </div>
                 ))}
+                {student.studentCourses.length > 3 && (
+                  <p className="text-[9px] font-medium text-white/70">
+                    +{student.studentCourses.length - 3} more
+                  </p>
+                )}
               </div>
             </div>
           ) : !isSuperAdmin ? (
-            <p className="mt-1 text-[11px] font-medium text-white/90">
-              Please submit your courses
+            <p className="mt-1 text-[10px] font-medium text-white/85">
+              No courses submitted
             </p>
           ) : null}
 
-          {/* Row 6 — Actions */}
-          <div className="pointer-events-auto relative z-10 mt-2 flex items-center justify-end gap-1.5 overflow-hidden">
+          {/* Actions */}
+          <div className="pointer-events-auto relative z-10 mt-1.5 flex items-center justify-end gap-1.5 overflow-hidden">
             {!isCurrentUser && (
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => router.push(`/dashboard/messages?userId=${student.id}`)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  className="inline-flex shrink-0 items-center gap-1 rounded border border-white/30 bg-black/25 px-2 py-0.5 text-[9.5px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
                   aria-label={`Message ${fullName}`}
                   title={`Message ${fullName}`}
                 >
-                  <MessageSquare className="h-3 w-3" />
+                  <MessageSquare className="h-2.5 w-2.5" />
                   Message
                 </button>
                 <SocialActions
@@ -632,12 +610,15 @@ function HorizontalRail({
   }, [onStudentsChange, railId, students]);
 
   const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const availableLetters = new Set(students.map(getStudentInitial));
+  const uniqueStudents = Array.from(
+    new Map(students.map((s) => [s.id, s])).values(),
+  );
+  const availableLetters = new Set(uniqueStudents.map(getStudentInitial));
   const visibleStudents = selectedLetter
-    ? students
+    ? uniqueStudents
         .filter((student) => getStudentInitial(student) === selectedLetter)
         .sort(compareStudentNames)
-    : students;
+    : uniqueStudents;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -712,26 +693,26 @@ function HorizontalRail({
 
   if (error && students.length === 0) {
     return (
-      <section ref={sectionRef} className="mb-5 sm:mb-6">
-        <div className="mb-2.5 flex items-baseline gap-3 border-t border-[#1A2B4C] pt-2">
+      <section ref={sectionRef} className="mb-5">
+        <div className="mb-2 flex items-end gap-2 border-b border-[#E5E7EB] pb-1.5">
           {hue && (
             <span
-              className="h-3 w-1 shrink-0"
+              className="h-2.5 w-1 shrink-0 rounded-sm"
               style={{ backgroundColor: hue }}
             />
           )}
-          <h2 className="text-[14px] font-bold uppercase tracking-wide text-[#1A2B4C] sm:text-[15px]">
+          <h2 className="text-[13px] font-semibold tracking-tight text-[#1A2B4C] sm:text-[14px]">
             {label}
           </h2>
         </div>
-        <div className="border border-[#D1D5DB] bg-white px-4 py-5 text-center" role="alert">
-          <p className="text-[12px] text-[#4B5646]">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-center" role="alert">
+          <p className="text-[12px] text-red-700">
             {error instanceof Error ? error.message : 'Unable to load students.'}
           </p>
           <button
             type="button"
             onClick={() => void refetch()}
-            className="mt-2 text-xs font-semibold text-[#1A2B4C] underline"
+            className="mt-2 text-[11.5px] font-semibold text-[#1A2B4C] underline"
           >
             Try again
           </button>
@@ -743,26 +724,56 @@ function HorizontalRail({
   return (
     <section
       ref={sectionRef}
-      className="mb-5 sm:mb-6"
+      className="mb-5"
       aria-busy={isLoading || isFetchingNextPage}
     >
-      <div className="mb-2.5 flex items-baseline border-t border-[#1A2B4C] pt-2">
-        <div className="flex items-center gap-2">
+      <div className="mb-2 flex items-end justify-between gap-2 border-b border-[#E5E7EB] pb-1.5">
+        <div className="flex min-w-0 items-center gap-2">
           {hue && (
             <span
-              className="h-3 w-1 shrink-0"
+              className="h-2.5 w-1 shrink-0 rounded-sm"
               style={{ backgroundColor: hue }}
             />
           )}
-          <h2 className="text-[14px] font-bold uppercase tracking-wide text-[#1A2B4C] sm:text-[15px]">
+          <h2 className="truncate text-[13px] font-semibold tracking-tight text-[#1A2B4C] sm:text-[14px]">
             {label}
           </h2>
         </div>
+
+        {students.length > 0 && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={scrollLeft}
+              aria-label="Scroll left"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#6B7280] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPlaying((playing) => !playing)}
+              aria-label={isPlaying ? `Pause ${label} animation` : `Play ${label} animation`}
+              aria-pressed={isPlaying}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#6B7280] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+            >
+              {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            </button>
+            <button
+              type="button"
+              onClick={scrollRight}
+              aria-label="Scroll right"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#6B7280] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+        )}
       </div>
 
       {data && students.length === 0 ? (
-        <div className="border border-dashed border-[#D1D5DB] bg-white px-4 py-5 text-center">
-          <p className="text-[12px] text-[#4B5646]">
+        <div className="rounded-lg border border-dashed border-[#E5E7EB] bg-[#F8F9FA] px-4 py-5 text-center">
+          <p className="text-[12px] text-[#6B7280]">
             {showEmptyMessage
               ? 'No matching student records found. Try another name or search term.'
               : 'No student records available'}
@@ -771,13 +782,16 @@ function HorizontalRail({
       ) : !data ? (
         <div className="flex gap-3 overflow-hidden" aria-hidden="true">
           {[0, 1, 2].map((item) => (
-            <div key={item} className="h-72 w-60 shrink-0 animate-pulse bg-[#E5E7EB]" />
+            <div
+              key={item}
+              className="aspect-[3/4] w-[260px] shrink-0 animate-pulse rounded-lg bg-[#F3F4F6] sm:w-[280px]"
+            />
           ))}
         </div>
       ) : (
         <div
           ref={railRef}
-          className="flex gap-3 overflow-x-auto pb-2 px-1"
+          className="flex gap-3 overflow-x-auto pb-1"
           style={{ scrollbarWidth: 'thin' }}
         >
           {visibleStudents.map((student) => (
@@ -793,24 +807,24 @@ function HorizontalRail({
               type="button"
               onClick={loadMoreStudents}
               disabled={isFetchingNextPage}
-              className="flex aspect-[3/4] w-[280px] shrink-0 flex-col items-center justify-center gap-3 rounded-[22px] border border-dashed border-[#1A2B4C]/30 bg-white px-6 text-center text-[#1A2B4C] transition-colors hover:border-[#1A2B4C] hover:bg-[#F7F6F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-wait disabled:opacity-70 sm:w-[290px]"
+              className="flex aspect-[3/4] w-[260px] shrink-0 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#E5E7EB] bg-white px-4 text-center text-[#1A2B4C] transition-colors hover:border-[#C59B4C] hover:bg-[#F8F9FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] disabled:cursor-wait disabled:opacity-70 sm:w-[280px]"
             >
               {isFetchingNextPage ? (
                 <span
                   aria-hidden="true"
-                  className="h-5 w-5 animate-spin rounded-full border-2 border-[#D1D5DB] border-t-[#1A2B4C]"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]"
                 />
               ) : (
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-5 w-5 text-[#C59B4C]" />
               )}
-              <span className="text-sm font-bold">
+              <span className="text-[12px] font-semibold">
                 {isFetchingNextPage
                   ? 'Loading students…'
                   : isFetchNextPageError
                     ? 'Try loading more students'
                     : 'Load more students'}
               </span>
-              <span className="text-xs text-[#6B7280]">
+              <span className="text-[10.5px] text-[#6B7280]">
                 {isFetchingNextPage
                   ? 'Please wait'
                   : 'Show the next 20 profiles'}
@@ -821,80 +835,50 @@ function HorizontalRail({
         </div>
       )}
 
-      {students.length > 0 && <div className="mt-1 flex items-center gap-2">
-        <div className="flex shrink-0 items-center gap-1">
+      {students.length > 0 && enableAlphabetNav && (
+        <nav
+          aria-label={`Browse ${label} by first name`}
+          className="mt-2 flex flex-wrap items-center gap-0.5"
+        >
           <button
             type="button"
-            onClick={scrollLeft}
-            aria-label="Scroll left"
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
+            onClick={() => setSelectedLetter(null)}
+            aria-pressed={selectedLetter === null}
+            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] ${
+              selectedLetter === null
+                ? 'bg-[#1A2B4C] text-white'
+                : 'bg-white text-[#4B5646] hover:bg-[#F8F9FA] hover:text-[#1A2B4C]'
+            }`}
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            All
           </button>
-          <button
-            type="button"
-            onClick={() => setIsPlaying((playing) => !playing)}
-            aria-label={isPlaying ? `Pause ${label} animation` : `Play ${label} animation`}
-            aria-pressed={isPlaying}
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] sm:h-6 sm:w-6"
-          >
-            {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={scrollRight}
-            aria-label="Scroll right"
-            className="inline-flex h-7 w-7 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] sm:h-6 sm:w-6"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {enableAlphabetNav && (
-          <nav
-            aria-label={`Browse ${label} by first name`}
-            className="flex min-w-0 items-center gap-1 flex-wrap"
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedLetter(null)}
-              aria-pressed={selectedLetter === null}
-              className={`rounded border px-2 py-0.5 font-mono text-[10px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] ${
-                selectedLetter === null
-                  ? 'border-[#D4A84B] bg-[#D4A84B] text-white'
-                  : 'border-[#D1D5DB] bg-white text-[#1A2B4C] hover:border-[#D4A84B] hover:text-[#D4A84B]'
-              }`}
-            >
-              All
-            </button>
-            {letters.map((letter) => {
-              const isAvailable = availableLetters.has(letter);
-              return (
-                <button
-                  key={letter}
-                  type="button"
-                  disabled={!isAvailable}
-                  onClick={() => setSelectedLetter(letter)}
-                  aria-label={`Show ${label} names beginning with ${letter}`}
-                  aria-pressed={selectedLetter === letter}
-                  className={`rounded border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] ${
-                    selectedLetter === letter
-                      ? 'border-[#D4A84B] bg-[#D4A84B] text-white'
-                      : isAvailable
-                        ? 'border-[#D1D5DB] bg-white text-[#1A2B4C] hover:border-[#D4A84B] hover:text-[#D4A84B]'
-                        : 'cursor-not-allowed border-[#E5E7EB] bg-gray-50 text-[#C4C8CE]'
-                  }`}
-                >
-                  {letter}
-                </button>
-              );
-            })}
-          </nav>
-        )}
-      </div>}
+          {letters.map((letter) => {
+            const isAvailable = availableLetters.has(letter);
+            return (
+              <button
+                key={letter}
+                type="button"
+                disabled={!isAvailable}
+                onClick={() => setSelectedLetter(letter)}
+                aria-label={`Show ${label} names beginning with ${letter}`}
+                aria-pressed={selectedLetter === letter}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] ${
+                  selectedLetter === letter
+                    ? 'bg-[#1A2B4C] text-white'
+                    : isAvailable
+                      ? 'bg-white text-[#4B5646] hover:bg-[#F8F9FA] hover:text-[#1A2B4C]'
+                      : 'cursor-not-allowed bg-[#F3F4F6] text-[#D1D5DB]'
+                }`}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {isFetchNextPageError && (
-        <p role="alert" className="mt-2 text-center text-xs text-[#A4462F]">
+        <p role="alert" className="mt-2 text-center text-[11px] text-[#A4462F]">
           Could not load more students. Try again.
         </p>
       )}
@@ -903,29 +887,25 @@ function HorizontalRail({
 }
 
 // ============================================================
-// SKELETON
+// SKELETONS
 // ============================================================
 
 function StudentDirectorySkeleton() {
   return (
     <div className="space-y-5" aria-label="Loading student directory" aria-busy="true">
       {[0, 1, 2].map((rail) => (
-        <section key={rail} className="mb-6">
-          <div className="mb-2.5 flex items-center gap-2 border-t border-[#1A2B4C] pt-2">
-            <span className="h-3 w-1 shrink-0 bg-[#D1D5DB]" />
-            <span className="h-4 w-36 animate-pulse bg-[#E5E7EB]" />
+        <section key={rail} className="mb-5">
+          <div className="mb-2 flex items-center gap-2 border-b border-[#E5E7EB] pb-1.5">
+            <span className="h-2.5 w-1 shrink-0 rounded-sm bg-[#E5E7EB]" />
+            <span className="h-3.5 w-36 animate-pulse rounded bg-[#F3F4F6]" />
           </div>
           <div className="flex gap-3 overflow-hidden pb-2">
             {[0, 1, 2, 3, 4].map((card) => (
               <div
                 key={card}
                 aria-hidden="true"
-                className="h-[360px] w-[280px] shrink-0 rounded-[22px] border border-[#E5E7EB] bg-white sm:w-[290px]"
-              >
-                <div className="flex h-full w-full items-center justify-center">
-                  <div className="h-full w-full animate-pulse rounded-[22px] bg-[#E5E7EB]" />
-                </div>
-              </div>
+                className="aspect-[3/4] w-[260px] shrink-0 animate-pulse rounded-lg bg-[#F3F4F6] sm:w-[280px]"
+              />
             ))}
           </div>
         </section>
@@ -936,22 +916,18 @@ function StudentDirectorySkeleton() {
 
 function TrendingSkeleton() {
   return (
-    <section className="mb-6">
-      <div className="mb-2.5 flex items-center gap-2 border-t border-[#1A2B4C] pt-2">
-        <span className="h-3 w-1 shrink-0 bg-[#D4A84B]" />
-        <span className="h-4 w-48 animate-pulse bg-[#E5E7EB]" />
+    <section className="mb-5">
+      <div className="mb-2 flex items-center gap-2 border-b border-[#E5E7EB] pb-1.5">
+        <span className="h-2.5 w-1 shrink-0 rounded-sm bg-[#C59B4C]" />
+        <span className="h-3.5 w-48 animate-pulse rounded bg-[#F3F4F6]" />
       </div>
       <div className="flex gap-3 overflow-hidden pb-2">
         {[0, 1, 2, 3, 4].map((card) => (
           <div
             key={card}
             aria-hidden="true"
-            className="aspect-[3/4] w-[280px] shrink-0 rounded-[22px] border border-[#E5E7EB] bg-white sm:w-[290px]"
-          >
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="h-full w-full animate-pulse rounded-[22px] bg-[#E5E7EB]" />
-            </div>
-          </div>
+            className="aspect-[3/4] w-[260px] shrink-0 animate-pulse rounded-lg bg-[#F3F4F6] sm:w-[280px]"
+          />
         ))}
       </div>
     </section>
@@ -990,15 +966,19 @@ function SearchFilterBar({
   const useDropdown = locations.length > 8;
 
   const chipBase =
-    'inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-bold border transition-colors';
+    'inline-flex items-center gap-1 h-6.5 px-2 text-[11px] font-semibold rounded-md border transition-colors';
   const chipOn = 'bg-[#1A2B4C] border-[#1A2B4C] text-white';
-  const chipOff = 'bg-white border-[#D1D5DB] text-[#4B5646] hover:border-[#1A2B4C]';
+  const chipOff =
+    'bg-white border-[#E5E7EB] text-[#4B5646] hover:border-[#C59B4C] hover:text-[#1A2B4C]';
 
   return (
-    <section className="border border-[#1A2B4C] bg-white">
-      <div className="bg-[#F7F6F2] px-3 py-2 sm:px-4">
+    <section className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
+      <div className="border-b border-[#F3F4F6] bg-[#F8F9FA] px-3 py-2 sm:px-4">
         <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
+              Filter &amp; sort
+            </p>
             <div className="flex items-center gap-1.5">
               <ArrowDownUp className="h-3 w-3 text-[#6B7280]" />
               <label htmlFor="sort-select" className="sr-only">
@@ -1008,7 +988,7 @@ function SearchFilterBar({
                 id="sort-select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="h-7 border border-[#D1D5DB] bg-white px-2 pr-6 text-[11px] font-normal text-[#1A2B4C] focus:border-[#1A2B4C] focus:outline-none"
+                className="h-7 rounded-md border border-[#E5E7EB] bg-white px-2 pr-6 text-[11.5px] font-medium text-[#1A2B4C] outline-none transition-colors focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15"
               >
                 <option value="trending">Trending</option>
                 <option value="popularity">Most popular</option>
@@ -1025,7 +1005,7 @@ function SearchFilterBar({
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="h-7 w-full border border-[#D1D5DB] bg-white px-2 text-[11px] font-normal text-[#1A2B4C] focus:border-[#1A2B4C] focus:outline-none"
+              className="h-7 w-full rounded-md border border-[#E5E7EB] bg-white px-2 text-[11.5px] font-medium text-[#1A2B4C] outline-none transition-colors focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15"
             >
               <option value="all">All Tech Centers</option>
               {locations.map((loc) => (
@@ -1056,7 +1036,7 @@ function SearchFilterBar({
                     className={`${chipBase} ${isSelected ? chipOn : chipOff}`}
                   >
                     <span
-                      className="h-1.5 w-1.5 shrink-0 border border-[#D1D5DB]"
+                      className="h-1.5 w-1.5 shrink-0 rounded-sm"
                       style={{ backgroundColor: hue }}
                     />
                     <span>{location.name}</span>
@@ -1067,24 +1047,24 @@ function SearchFilterBar({
           )}
 
           {selectedLocation !== 'all' && (
-            <div className="flex items-center gap-2 text-[11px] text-[#4B5646]">
+            <div className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
               <span>Active center:</span>
-              <span className="font-bold text-[#1A2B4C]">
+              <span className="font-semibold text-[#1A2B4C]">
                 {locations.find((l) => l.id === selectedLocation)?.name}
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedLocation('all')}
-                className="text-[#A4462F] underline hover:text-[#1A2B4C]"
+                className="text-[11px] font-semibold text-[#A4462F] underline-offset-2 hover:underline"
               >
-                Clear filter
+                Clear
               </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="border-t border-[#D1D5DB] px-3 py-2 sm:px-4">
+      <div className="px-3 py-2 sm:px-4">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -1093,24 +1073,22 @@ function SearchFilterBar({
           className="flex items-center gap-2"
         >
           <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6B7280]"
-            />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
             <input
               type="text"
               inputMode="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search student records by name or course unit..."
+              placeholder="Search by name or course unit..."
               aria-label="Search students"
-              className="h-8 w-full border border-[#D1D5DB] bg-white pl-8 pr-7 text-[12px] font-normal text-[#1A2B4C] placeholder:text-[#9CA3AF] focus:border-[#1A2B4C] focus:outline-none"
+              className="h-8 w-full rounded-md border border-[#E5E7EB] bg-white pl-8 pr-7 text-[12px] text-[#1A2B4C] outline-none transition-colors placeholder:text-[#9CA3AF] focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={onClearSearch}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1A2B4C]"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-[#9CA3AF] transition-colors hover:bg-[#F8F9FA] hover:text-[#1A2B4C]"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -1118,7 +1096,7 @@ function SearchFilterBar({
           </div>
           <button
             type="submit"
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 bg-[#1A2B4C] px-3 text-[11px] font-bold text-white transition-colors hover:bg-[#23385d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[#1A2B4C] px-3 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] focus-visible:ring-offset-2"
           >
             <Search className="h-3 w-3" />
             Search
@@ -1128,13 +1106,13 @@ function SearchFilterBar({
           <p
             role="status"
             aria-live="polite"
-            className="mt-2 flex items-center gap-2 text-[11px] text-[#6B7280]"
+            className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#6B7280]"
           >
             <span
               aria-hidden="true"
-              className="h-3 w-3 animate-spin rounded-full border-2 border-[#D1D5DB] border-t-[#1A2B4C]"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]"
             />
-            Searching students for &ldquo;{submittedSearchQuery}&rdquo;...
+            Searching for &ldquo;{submittedSearchQuery}&rdquo;...
           </p>
         )}
       </div>
@@ -1155,50 +1133,56 @@ function CommunityTicker({ students }: { students: Student[] }) {
       student.profileImageUrl.trim().length > 0,
   );
   const profileCount = profileStudents.length;
+
   return (
-    <div className="border border-[#D1D5DB] bg-white">
+    <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
       {selectedStudent && (
-        <div className="border-b border-[#D1D5DB] bg-[#F7F6F2] px-3 py-3 sm:px-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden border border-[#D1D5DB] bg-white">
+        <div className="border-b border-[#E5E7EB] bg-[#F8F9FA] px-3 py-2.5">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#E5E7EB] bg-white">
                 {selectedStudent.profileImageUrl ? (
                   <Image
                     src={selectedStudent.profileImageUrl}
                     alt={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
                     fill
-                    sizes="48px"
+                    sizes="40px"
                     className="object-cover object-top"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#1A2B4C]">
-                    <span className="font-mono text-[14px] font-bold tracking-wider text-[#D4A84B]">
+                    <span className="text-[12px] font-bold text-[#D4A84B]">
                       {`${selectedStudent.firstName.charAt(0)}${selectedStudent.lastName.charAt(0)}`.toUpperCase()}
                     </span>
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-[13px] font-bold text-[#1A2B4C] line-clamp-1">
+                <h3 className="line-clamp-1 text-[12.5px] font-semibold text-[#1A2B4C]">
                   {selectedStudent.firstName} {selectedStudent.lastName}
                 </h3>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#4B5646]">
+                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#6B7280]">
                   <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full border border-[#D1D5DB]"
-                    style={{ backgroundColor: getTechCenterHue(selectedStudent.techCenter?.name) || '#D4A84B' }}
+                    className="h-1.5 w-1.5 shrink-0 rounded-sm"
+                    style={{
+                      backgroundColor:
+                        getTechCenterHue(selectedStudent.techCenter?.name) || '#D4A84B',
+                    }}
                   />
-                  <span className="truncate font-medium" title={selectedStudent.techCenter?.name || 'Campus Member'}>
+                  <span className="truncate font-medium">
                     {selectedStudent.techCenter?.name || 'Campus Member'}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0 sm:shrink">
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                onClick={() => router.push(`/dashboard/students/${selectedStudent.id}`)}
+                onClick={() =>
+                  router.push(`/dashboard/students/${selectedStudent.id}`)
+                }
                 aria-label={`View ${selectedStudent.firstName} ${selectedStudent.lastName}'s profile`}
-                className="inline-flex items-center gap-1.5 h-8 px-3 border border-[#1A2B4C] bg-[#1A2B4C] text-[11px] font-bold text-white hover:bg-[#23385d] active:bg-[#2a4473] transition-colors whitespace-nowrap"
+                className="inline-flex h-7 items-center gap-1 rounded-md bg-[#1A2B4C] px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#263D66]"
               >
                 View profile
                 <ChevronRight className="h-3 w-3" />
@@ -1207,9 +1191,9 @@ function CommunityTicker({ students }: { students: Student[] }) {
                 type="button"
                 onClick={() => setSelectedStudent(null)}
                 aria-label="Close student info"
-                className="inline-flex h-8 w-8 items-center justify-center border border-[#D1D5DB] bg-white text-[#4B5646] hover:border-[#1A2B4C] hover:text-[#1A2B4C] active:bg-[#E5E7EB] shrink-0"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#6B7280] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
@@ -1217,14 +1201,14 @@ function CommunityTicker({ students }: { students: Student[] }) {
       )}
 
       {!selectedStudent && profileStudents.length > 0 && (
-        <div className="bg-[#F7F6F2] px-4 py-2 border-b border-[#D1D5DB]">
-          <p className="text-[10px] text-[#6B7280]">
-            💡 <span className="font-medium text-[#4B5646]">Tip:</span> Click on any student image to view their name and tech center
+        <div className="border-b border-[#F3F4F6] bg-[#F8F9FA] px-3 py-1.5">
+          <p className="text-[10.5px] text-[#6B7280]">
+            <span className="font-semibold text-[#4B5646]">Tip:</span> Tap a photo to see the student&apos;s name and tech center
           </p>
         </div>
       )}
 
-      <div className="flex h-24 items-center overflow-hidden px-2 sm:px-3">
+      <div className="flex h-20 items-center overflow-hidden px-2 sm:px-3">
         <div className="min-w-0 flex-1 overflow-hidden">
           {profileStudents.length > 0 ? (
             <div
@@ -1236,7 +1220,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
                   key={`${student.id}-${index}`}
                   type="button"
                   onClick={() => setSelectedStudent(student)}
-                  className="relative mr-2 h-20 w-20 shrink-0 overflow-hidden bg-white border-2 border-transparent hover:border-[#D4A84B] active:border-[#D4A84B] active:scale-95 transition-all focus:border-[#D4A84B] focus:outline-none touch-manipulation sm:h-20 sm:w-20"
+                  className="relative mr-2 h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-transparent bg-white transition-all hover:border-[#C59B4C] focus:border-[#C59B4C] focus:outline-none active:scale-95 touch-manipulation"
                   title={`${student.firstName} ${student.lastName}`}
                   aria-label={`View ${student.firstName} ${student.lastName}'s info`}
                 >
@@ -1244,7 +1228,7 @@ function CommunityTicker({ students }: { students: Student[] }) {
                     src={student.profileImageUrl!}
                     alt={`${student.firstName} ${student.lastName}`}
                     fill
-                    sizes="80px"
+                    sizes="56px"
                     className="object-cover object-top"
                   />
                 </button>
@@ -1257,7 +1241,6 @@ function CommunityTicker({ students }: { students: Student[] }) {
           )}
         </div>
       </div>
-
     </div>
   );
 }
@@ -1365,18 +1348,15 @@ export default function StudentsPage() {
     !searchResultsQuery.isPlaceholderData;
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
+    <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
       <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-5">
-
-        {/* Community Ticker */}
         {!isSearching && !isLoading && (
-          <div className="mb-4 sm:mb-5">
+          <div className="mb-4">
             <CommunityTicker students={allStudents} />
           </div>
         )}
 
-        {/* Search & Filter Section */}
-        <div className="mb-5 sm:mb-6">
+        <div className="mb-4">
           <SearchFilterBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -1395,22 +1375,21 @@ export default function StudentsPage() {
           />
         </div>
 
-        {/* Dynamic Rails / Content */}
         {isLoading ? (
           <>
             <TrendingSkeleton />
             <StudentDirectorySkeleton />
           </>
         ) : error ? (
-          <div className="border border-[#A4462F] bg-white p-6 text-center">
-            <AlertCircle className="mx-auto h-6 w-6 text-[#A4462F]" />
-            <p className="mt-2 text-[12px] font-bold text-[#1A2B4C]">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-center">
+            <AlertCircle className="mx-auto h-5 w-5 text-red-600" />
+            <p className="mt-1.5 text-[13px] font-semibold text-[#1A2B4C]">
               Unable to load roster records.
             </p>
             <button
               type="button"
               onClick={() => void refetchStudents()}
-              className="mt-3 border border-[#1A2B4C] bg-[#1A2B4C] px-3 py-1 text-[11px] font-bold text-white hover:bg-[#23385d]"
+              className="mt-3 rounded-md bg-[#1A2B4C] px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66]"
             >
               Retry
             </button>
@@ -1445,7 +1424,7 @@ export default function StudentsPage() {
                       railId="trending"
                       onStudentsChange={handleStudentsChange}
                       label="Trending Profiles"
-                      hue="#D4A84B"
+                      hue="#C59B4C"
                       category="trending"
                       sortBy={sortBy}
                       router={router}
@@ -1489,13 +1468,12 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* Back to Top */}
         {showBackToTop && (
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             aria-label="Back to top"
-            className="fixed bottom-5 right-5 z-50 inline-flex h-8 w-8 items-center justify-center border border-[#1A2B4C] bg-[#1A2B4C] text-white hover:bg-[#23385d]"
+            className="fixed bottom-5 right-5 z-50 inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#1A2B4C] text-white shadow-md transition-colors hover:bg-[#263D66]"
           >
             <ArrowUp className="h-4 w-4" />
           </button>

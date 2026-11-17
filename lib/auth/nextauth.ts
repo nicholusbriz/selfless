@@ -91,6 +91,7 @@ export const authOptions: AuthOptions = {
             roleUpdatedAt: true,
             tokenVersion: true,
             profileImageUrls: true,
+            hasVerifiedBadge: true,
           }
         });
 
@@ -145,6 +146,7 @@ export const authOptions: AuthOptions = {
           teacherId: user.teacherId || null,
           roleUpdatedAt: user.roleUpdatedAt,
           tokenVersion: user.tokenVersion,
+          hasVerifiedBadge: user.hasVerifiedBadge,
         };
       }
     })
@@ -188,6 +190,7 @@ export const authOptions: AuthOptions = {
         session.user.teacherId = token.teacherId as string | null;
         // Add tokenVersion for session invalidation tracking
         session.user.tokenVersion = token.tokenVersion as number;
+        session.user.hasVerifiedBadge = token.hasVerifiedBadge as boolean;
         // Add profileImageUrls array
         session.user.profileImageUrls = token.profileImageUrls as string[] | null;
       }
@@ -234,6 +237,7 @@ export const authOptions: AuthOptions = {
 
         // Store tokenVersion for session invalidation
         token.tokenVersion = user.tokenVersion;
+        token.hasVerifiedBadge = user.hasVerifiedBadge;
         // Store profileImageUrls array
         token.profileImageUrls = user.profileImageUrls || null;
       }
@@ -286,6 +290,7 @@ export const authOptions: AuthOptions = {
             ? freshUser.roleUpdatedAt.toISOString()
             : freshUser.roleUpdatedAt || undefined;
           token.tokenVersion = freshUser.tokenVersion;
+          token.hasVerifiedBadge = freshUser.hasVerifiedBadge;
         }
       }
 
@@ -435,7 +440,7 @@ export const authOptions: AuthOptions = {
 
   session: {
     strategy: 'jwt',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 24 * 60 * 60, // 24 hours
   },
 
   // ============================================
