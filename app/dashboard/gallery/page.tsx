@@ -34,6 +34,10 @@ import AzureMediaUpload from '@/components/AzureMediaUpload';
 import MediaPostInteractions from './components/MediaPostInteractions';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Types + guards
+   ───────────────────────────────────────────────────────────────────────────── */
+
 interface MediaItem {
   id: string;
   publicUrl: string;
@@ -52,10 +56,7 @@ interface MediaItem {
     lastName: string;
     profileImageUrl: string | null;
     hasVerifiedBadge?: boolean;
-    techCenter?: {
-      id: string;
-      name: string;
-    } | null;
+    techCenter?: { id: string; name: string } | null;
   } | null;
 }
 
@@ -66,22 +67,18 @@ interface VideoControlsState {
   isPlaying: boolean;
 }
 
-function formatVideoTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
 interface MediaPage {
   items: MediaItem[];
   hasMore: boolean;
   totalCount: number;
-  statusCounts?: {
-    APPROVED: number;
-    PENDING: number;
-    REJECTED: number;
-  };
+  statusCounts?: { APPROVED: number; PENDING: number; REJECTED: number };
+}
+
+function formatVideoTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 function isMediaItem(value: unknown): value is MediaItem {
@@ -116,27 +113,42 @@ function isMediaItem(value: unknown): value is MediaItem {
   );
 }
 
-function GallerySkeleton() {
+/* ─────────────────────────────────────────────────────────────────────────────
+   Skeletons
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function FeaturedPlayerSkeleton() {
   return (
-    <div className="animate-pulse overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white">
-      <div className="aspect-square w-full bg-[#EEF0F4]" />
-      <div className="space-y-2 border-t border-[#F0F2F5] p-3">
-        <div className="h-3 w-3/4 rounded bg-[#EEF0F4]" />
-        <div className="h-2.5 w-1/2 rounded bg-[#EEF0F4]" />
+    <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white">
+      <div className="aspect-video w-full animate-pulse bg-[#f1f5f9]" />
+      <div className="space-y-2 border-t border-[#e2e8f0] p-3">
+        <div className="h-3 w-3/4 animate-pulse rounded bg-[#f1f5f9]" />
+        <div className="h-2.5 w-1/3 animate-pulse rounded bg-[#f1f5f9]" />
       </div>
     </div>
   );
 }
 
-function StatSkeleton() {
+function PostCardSkeleton() {
   return (
-    <div className="h-[76px] animate-pulse rounded-2xl border border-[#E7EAF0] bg-[#EEF0F4]" />
+    <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white">
+      <div className="aspect-video w-full animate-pulse bg-[#f1f5f9]" />
+      <div className="space-y-2 p-3">
+        <div className="h-3 w-1/2 animate-pulse rounded bg-[#f1f5f9]" />
+        <div className="h-3 w-3/4 animate-pulse rounded bg-[#f1f5f9]" />
+      </div>
+    </div>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Page
+   ───────────────────────────────────────────────────────────────────────────── */
 
 export default function GalleryPage() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+
   const [activeFilter, setActiveFilter] = useState<
     'all' | 'photos' | 'videos' | 'mine' | 'saved'
   >('all');
@@ -156,14 +168,16 @@ export default function GalleryPage() {
   >({});
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   const [postUploadNotice, setPostUploadNotice] = useState<string | null>(null);
-  const [featuredVideoId, setFeaturedVideoId] = useState<string | null>(null);
-  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
-  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
-  const heroSoundEnabledRef = useRef(false);
+  const [featuredVideoSelection, setFeaturedVideoSelection] = useState<{
+    filter: 'all' | 'photos' | 'videos' | 'mine' | 'saved';
+    id: string;
+  } | null>(null);
 
+  const featuredVideoRef = useRef<HTMLVideoElement | null>(null);
+  const featuredSoundEnabledRef = useRef(false);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
 
-  // ── Queries ────────────────────────────────────────────────────────────────
+  /* ────────────── Queries ────────────── */
 
   const {
     data: items = [],
@@ -190,13 +204,13 @@ export default function GalleryPage() {
     queryKey: ['gallery-my-posts', currentUser?.id],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
-      const searchParams = new URLSearchParams({
+      const params = new URLSearchParams({
         category: 'gallery',
         mine: 'true',
         limit: '10',
         offset: String(pageParam),
       });
-      const response = await fetch(`/api/media/list?${searchParams.toString()}`);
+      const response = await fetch(`/api/media/list?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch your posts');
       const data: unknown = await response.json();
       if (
@@ -249,21 +263,23 @@ export default function GalleryPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  // ── Derived data ───────────────────────────────────────────────────────────
+  /* ────────────── Derived data ────────────── */
 
-  const myPosts = myPostsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const savedPosts = savedPostsQuery.data ?? [];
+  const myPosts = useMemo(
+    () => myPostsQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [myPostsQuery.data?.pages],
+  );
+  const savedPosts = useMemo(() => savedPostsQuery.data ?? [], [savedPostsQuery.data]);
 
   const photos = useMemo(
-    () => items.filter((item) => item.contentType.startsWith('image/')),
+    () => items.filter((i) => i.contentType.startsWith('image/')),
     [items],
   );
   const videos = useMemo(
-    () => items.filter((item) => item.contentType.startsWith('video/')),
+    () => items.filter((i) => i.contentType.startsWith('video/')),
     [items],
   );
 
-  // Filter-scoped source list so the hero reflects what the user is viewing
   const sourceItems =
     activeFilter === 'mine'
       ? myPosts
@@ -276,36 +292,42 @@ export default function GalleryPage() {
             : items;
 
   const sourceVideos = useMemo(
-    () => sourceItems.filter((item) => item.contentType.startsWith('video/')),
+    () => sourceItems.filter((i) => i.contentType.startsWith('video/')),
     [sourceItems],
   );
 
-  const recentVideos = useMemo(
+  const playlistVideos = useMemo(
     () =>
-      [...sourceVideos]
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-        .slice(0, 6),
+      [...sourceVideos].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
     [sourceVideos],
   );
 
   const featuredVideo =
-    recentVideos.find((video) => video.id === featuredVideoId) ??
-    recentVideos[0] ??
+    playlistVideos.find(
+      (v) =>
+        featuredVideoSelection?.filter === activeFilter &&
+        v.id === featuredVideoSelection.id,
+    ) ??
+    playlistVideos[0] ??
     null;
 
-  const visibleItems =
-    activeFilter === 'mine'
-      ? myPosts
-      : activeFilter === 'saved'
-        ? savedPosts
-        : activeFilter === 'photos'
-          ? photos
-          : activeFilter === 'videos'
-            ? videos
-            : items;
+  const visibleItems = useMemo(() => {
+    const base =
+      activeFilter === 'mine'
+        ? myPosts
+        : activeFilter === 'saved'
+          ? savedPosts
+          : activeFilter === 'photos'
+            ? photos
+            : activeFilter === 'videos'
+              ? videos
+              : items;
+    if (!featuredVideo) return base;
+    return base.filter((i) => i.id !== featuredVideo.id);
+  }, [activeFilter, myPosts, savedPosts, photos, videos, items, featuredVideo]);
 
   const visibleCount =
     activeFilter === 'mine'
@@ -321,137 +343,46 @@ export default function GalleryPage() {
   const myPostStats =
     myPostsQuery.data?.pages[0]?.statusCounts ??
     myPosts.reduce(
-      (stats, item) => {
-        stats[item.approvalStatus] += 1;
-        return stats;
+      (s, i) => {
+        s[i.approvalStatus] += 1;
+        return s;
       },
       { APPROVED: 0, PENDING: 0, REJECTED: 0 },
     );
 
-  const heroCopy = useMemo(() => {
-    if (activeFilter === 'mine') {
-      return {
-        eyebrow: `${currentUser?.techCenter?.name ?? 'Your'} · My gallery`,
-        title: 'Your work,',
-        highlight: 'front and center.',
-        subtitle:
-          'Every photo and video you\u2019ve shared, with its live review status.',
-      };
-    }
-    if (activeFilter === 'saved') {
-      return {
-        eyebrow: 'Saved collection',
-        title: 'Your bookmarks,',
-        highlight: 'ready when you are.',
-        subtitle: 'Revisit the posts you saved from across the community.',
-      };
-    }
-    if (activeFilter === 'videos') {
-      return {
-        eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Videos`,
-        title: 'Watch the community',
-        highlight: 'come alive.',
-        subtitle: 'Recent videos from research, events, and campus life.',
-      };
-    }
-    if (activeFilter === 'photos') {
-      return {
-        eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Photos`,
-        title: 'Moments that',
-        highlight: 'tell our story.',
-        subtitle: 'A snapshot of the people, projects, and places that shape us.',
-      };
-    }
-    return {
-      eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Community Gallery`,
-      title: 'Where our community',
-      highlight: 'shines.',
-      subtitle:
-        'Share research, events, projects, and campus moments. Approved posts appear in the university-wide feed.',
-    };
-  }, [activeFilter, currentUser?.techCenter?.name]);
+  /* ────────────── Effects ────────────── */
 
-  const communityGrowth = useMemo(() => {
-    const today = new Date();
-    const startOfToday = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(startOfToday);
-      date.setDate(startOfToday.getDate() - (6 - index));
-      return {
-        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
-        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        count: 0,
-      };
-    });
-
-    for (const item of items) {
-      const createdAt = new Date(item.createdAt);
-      if (!Number.isFinite(createdAt.getTime())) continue;
-      const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}-${createdAt.getDate()}`;
-      const day = days.find((entry) => entry.key === key);
-      if (day) day.count += 1;
-    }
-
-    let total = 0;
-    const points = days.map((day) => {
-      total += day.count;
-      return { ...day, cumulative: total };
-    });
-
-    return {
-      points,
-      maximumDaily: Math.max(1, ...points.map((point) => point.count)),
-      maximumCumulative: Math.max(1, total),
-    };
-  }, [items]);
-
-  // ── Effects ────────────────────────────────────────────────────────────────
-
-  // Reset selected featured video when switching filters
-  useEffect(() => {
-    setFeaturedVideoId(null);
-  }, [activeFilter]);
-
-  // Outside-click + Escape close for post menu
   useEffect(() => {
     if (!openPostMenuId) return;
-    const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as Element | null;
-      if (target && !target.closest('[data-post-menu]')) {
-        setOpenPostMenuId(null);
-      }
+    const onMouseDown = (e: MouseEvent) => {
+      const t = e.target as Element | null;
+      if (t && !t.closest('[data-post-menu]')) setOpenPostMenuId(null);
     };
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenPostMenuId(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenPostMenuId(null);
     };
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
     };
   }, [openPostMenuId]);
 
-  // Fullscreen escape + scroll lock
   useEffect(() => {
     if (!fullscreenMedia) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setFullscreenMedia(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFullscreenMedia(null);
     };
-    window.addEventListener('keydown', handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
     };
   }, [fullscreenMedia]);
 
-  // Cleanup video refs on unmount
   useEffect(() => {
     return () => {
       videoRefs.current = {};
@@ -459,17 +390,16 @@ export default function GalleryPage() {
   }, []);
 
   useEffect(() => {
-    setHeroVideoPlaying(false);
-    const video = heroVideoRef.current;
+    const video = featuredVideoRef.current;
     if (!video) return;
-    video.muted = !heroSoundEnabledRef.current;
+    video.muted = !featuredSoundEnabledRef.current;
     void video.play().catch(() => {
       video.muted = true;
       void video.play().catch(() => {});
     });
   }, [featuredVideo?.id]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  /* ────────────── Handlers ────────────── */
 
   const handleDeletePost = async (mediaId: string) => {
     setDeletingPostId(mediaId);
@@ -484,42 +414,36 @@ export default function GalleryPage() {
       if (!response.ok || result.success !== true) {
         throw new Error(getApiErrorMessage(result, 'Could not delete post'));
       }
-
-      const removePost = (previous: MediaItem[] | undefined) =>
-        previous?.filter((item) => item.id !== mediaId);
+      const removePost = (prev: MediaItem[] | undefined) =>
+        prev?.filter((i) => i.id !== mediaId);
       queryClient.setQueryData<MediaItem[]>(['gallery-media'], removePost);
       queryClient.setQueryData<InfiniteData<MediaPage>>(
         ['gallery-my-posts', currentUser?.id],
-        (previous) =>
-          previous
+        (prev) =>
+          prev
             ? {
-                ...previous,
-                pages: previous.pages.map((page) => ({
-                  ...page,
-                  items: page.items.filter((item) => item.id !== mediaId),
-                  totalCount: Math.max(0, page.totalCount - 1),
+                ...prev,
+                pages: prev.pages.map((p) => ({
+                  ...p,
+                  items: p.items.filter((i) => i.id !== mediaId),
+                  totalCount: Math.max(0, p.totalCount - 1),
                 })),
               }
-            : previous,
+            : prev,
       );
       queryClient.setQueryData<MediaItem[]>(
         ['gallery-saved-posts', currentUser?.id],
         removePost,
       );
-      setFullscreenMedia((previous) =>
-        previous?.id === mediaId ? null : previous,
-      );
+      setFullscreenMedia((prev) => (prev?.id === mediaId ? null : prev));
       void queryClient.invalidateQueries({ queryKey: ['gallery-post-count'] });
       void queryClient.invalidateQueries({
         queryKey: ['gallery-my-posts', currentUser?.id],
       });
-    } catch (deleteError) {
+    } catch (err) {
       setDeletePostError({
         id: mediaId,
-        message:
-          deleteError instanceof Error
-            ? deleteError.message
-            : 'Could not delete post',
+        message: err instanceof Error ? err.message : 'Could not delete post',
       });
     } finally {
       setDeletingPostId(null);
@@ -528,7 +452,6 @@ export default function GalleryPage() {
 
   const handleUploadsComplete = (count: number) => {
     if (count === 0) return;
-
     setIsCreatePostModalOpen(false);
     setActiveFilter('mine');
     setPostUploadNotice(
@@ -542,10 +465,10 @@ export default function GalleryPage() {
 
   const updateVideoControls = useCallback(
     (videoId: string, patch: Partial<VideoControlsState>) => {
-      setVideoControls((current) => ({
-        ...current,
+      setVideoControls((curr) => ({
+        ...curr,
         [videoId]: {
-          ...(current[videoId] ?? {
+          ...(curr[videoId] ?? {
             currentTime: 0,
             duration: 0,
             isMuted: false,
@@ -569,32 +492,36 @@ export default function GalleryPage() {
   );
 
   const openFullscreenMedia = useCallback((item: MediaItem) => {
-    Object.values(videoRefs.current).forEach((video) => video?.pause());
+    Object.values(videoRefs.current).forEach((v) => v?.pause());
     setFullscreenMedia(item);
   }, []);
 
   const handleVideoPlay = (videoId: string) => {
-    Object.entries(videoRefs.current).forEach(([id, video]) => {
-      if (id !== videoId && video) {
-        video.pause();
-      }
+    Object.entries(videoRefs.current).forEach(([id, v]) => {
+      if (id !== videoId && v) v.pause();
     });
   };
 
   const toggleVideoPlayback = (videoId: string) => {
-    const video = videoRefs.current[videoId];
-    if (!video) return;
-    if (video.paused) {
+    const v = videoRefs.current[videoId];
+    if (!v) return;
+    if (v.paused) {
       handleVideoPlay(videoId);
-      void video.play().catch(() => {
-        updateVideoControls(videoId, { isPlaying: false });
-      });
+      void v.play().catch(() => updateVideoControls(videoId, { isPlaying: false }));
     } else {
-      video.pause();
+      v.pause();
     }
   };
 
-  // ── Loading / error / refresh flags ────────────────────────────────────────
+  const selectFeaturedVideo = useCallback(
+    (video: MediaItem) => {
+      featuredSoundEnabledRef.current = true;
+      setFeaturedVideoSelection({ filter: activeFilter, id: video.id });
+    },
+    [activeFilter],
+  );
+
+  /* ────────────── Flags ────────────── */
 
   const isRefreshing =
     activeFilter === 'mine'
@@ -640,8 +567,8 @@ export default function GalleryPage() {
       label: 'Total posts',
       value: visibleCount,
       icon: ImageIcon,
-      tone: 'bg-white text-[#172033] border-[#E7EAF0]',
-      accent: 'text-[#172033]',
+      tone: 'bg-white text-[#0f172a] border-[#e2e8f0]',
+      accent: 'text-[#0f172a]',
     },
     {
       label: 'Live in feed',
@@ -666,437 +593,252 @@ export default function GalleryPage() {
     },
   ];
 
+  /* ────────────── Render ────────────── */
+
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f8f9fb_0%,#f2f4f7_100%)]">
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-8">
-        {/* ── Hero ─────────────────────────────────────────────────────── */}
-        {featuredVideo ? (
-          <div className="overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg">
-            <div className="grid gap-6 px-6 py-6 sm:px-9 sm:py-8 lg:grid-cols-[1.05fr_1fr] lg:items-center">
-              <div className="max-w-2xl">
-                <p className="max-w-lg text-sm leading-5 text-white/80">
-                  {heroCopy.subtitle}
-                </p>
-
-                {!isInitialLoading && sourceItems.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-5 text-sm">
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {visibleCount}
-                      </span>{' '}
-                      <span className="text-white/70">
-                        {activeFilter === 'mine' ? 'your posts' : 'posts'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {sourceItems.filter((i) =>
-                          i.contentType.startsWith('image/'),
-                        ).length}
-                      </span>{' '}
-                      <span className="text-white/70">photos</span>
-                    </div>
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {sourceVideos.length}
-                      </span>{' '}
-                      <span className="text-white/70">videos</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreatePostModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E6C779] px-4 py-2.5 text-sm font-bold text-[#172033] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#F0D88F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create a post
-                  </button>
-                  {activeFilter === 'mine' && videos.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveFilter('videos')}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      View all my videos
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E6C779]">
-                    {activeFilter === 'mine' ? 'Your recent videos' : 'Recent videos'}
-                  </p>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/80">
-                    {recentVideos.length} shown
-                  </span>
-                </div>
-
-                <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl">
-                  <video
-                    key={featuredVideo.id}
-                    ref={heroVideoRef}
-                    src={featuredVideo.publicUrl}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
-                    preload="auto"
-                    poster={featuredVideo.publicUrl}
-                    onPlay={() => setHeroVideoPlaying(true)}
-                    onPause={() => setHeroVideoPlaying(false)}
-                    onEnded={() => setHeroVideoPlaying(false)}
-                    className="h-full w-full object-contain"
-                  />
-                  {/* pointer-events-none wrapper so only the button is clickable —
-                      native player controls stay reachable (no collision) */}
-                  {!heroVideoPlaying && (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          heroSoundEnabledRef.current = true;
-                          const video = heroVideoRef.current;
-                          if (!video) return;
-                          video.muted = false;
-                          void video.play().catch(() => {});
-                        }}
-                        aria-label={`Play ${featuredVideo.title || 'video'}`}
-                        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/60"
-                      >
-                        <Play className="ml-1 h-6 w-6 fill-current" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 to-transparent p-3 opacity-100 transition group-hover:opacity-0">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {featuredVideo.title || 'Untitled video'}
-                    </p>
-                    {featuredVideo.user && (
-                      <p className="text-[11px] text-white/70">
-                        {featuredVideo.user.firstName}{' '}
-                        {featuredVideo.user.lastName}
-                        {featuredVideo.user.techCenter?.name &&
-                          ` · ${featuredVideo.user.techCenter.name}`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  role="list"
-                  aria-label="Recent videos"
-                >
-                  {recentVideos.map((video) => {
-                    const isActive = video.id === featuredVideo.id;
-                    return (
-                      <button
-                        key={video.id}
-                        type="button"
-                        role="listitem"
-                        onClick={() => {
-                          heroSoundEnabledRef.current = true;
-                          setFeaturedVideoId(video.id);
-                        }}
-                        aria-label={`Show ${video.title || 'video'} in player`}
-                        aria-pressed={isActive}
-                        className="group w-24 shrink-0 text-left focus-visible:outline-none"
-                      >
-                        <span
-                          className={`relative block aspect-video w-24 overflow-hidden rounded-lg bg-black/60 transition ${
-                            isActive
-                              ? 'ring-2 ring-[#E6C779]'
-                              : 'ring-1 ring-white/20 group-hover:ring-white/50'
-                          }`}
-                        >
-                          <video
-                            src={video.publicUrl}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="h-full w-full object-cover"
-                          />
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
-                            <Play className="h-4 w-4 fill-white text-white" />
-                          </span>
-                          {isActive && (
-                            <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <Play className="h-4 w-4 fill-white text-white" />
-                            </span>
-                          )}
-                        </span>
-                        <span className="mt-1 block truncate text-[10px] font-medium text-white/70 group-hover:text-white">
-                          {video.title || 'Video'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+    <main className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
+      <div className="mx-auto w-full max-w-[1500px] px-3 pt-12 pb-3 sm:px-4 lg:px-6">
+        {/* Title */}
+        <div className="mb-5 flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1a365d] text-white">
+              <ImageIcon className="h-4 w-4" />
             </div>
+            <h1 className="text-2xl font-bold tracking-tight">Posts</h1>
           </div>
-        ) : (
-          <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[280px]">
-            <Image
-              src="/camera.jpg"
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 1280px) 100vw, 1152px"
-              className="object-cover object-[center_44%]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#101827]/95 via-[#101827]/75 to-[#101827]/15" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#101827]/70 via-transparent to-[#101827]/10" />
-            <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border border-white/10 sm:inset-4" />
-            <div className="relative flex min-h-[230px] flex-col justify-end gap-5 px-6 py-6 sm:min-h-[280px] sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-8">
-              <div className="max-w-2xl">
-                <p className="max-w-lg text-sm leading-5 text-white/80">
-                  {heroCopy.subtitle}
-                </p>
-                {!isInitialLoading && sourceItems.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-5 text-sm">
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {visibleCount}
-                      </span>{' '}
-                      <span className="text-white/70">
-                        {activeFilter === 'mine' ? 'your posts' : 'posts'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {photos.length}
-                      </span>{' '}
-                      <span className="text-white/70">photos</span>
-                    </div>
-                    <div>
-                      <span className="text-2xl font-bold tabular-nums text-white">
-                        {videos.length}
-                      </span>{' '}
-                      <span className="text-white/70">videos</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+          <p className="text-sm text-[#64748b]">
+            Photos, videos, and updates from your community.
+          </p>
+        </div>
+
+        {/* Header row */}
+        <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            role="group"
+            aria-label="Filter posts"
+            className="flex gap-1 overflow-x-auto rounded-lg border border-[#e2e8f0] bg-white p-1"
+          >
+            {(
+              [
+                ['all', 'All'],
+                ['photos', 'Photos'],
+                ['videos', 'Videos'],
+                ['mine', 'My posts'],
+                ['saved', 'Saved'],
+              ] as const
+            ).map(([f, label]) => (
               <button
+                key={f}
                 type="button"
-                onClick={() => setIsCreatePostModalOpen(true)}
-                className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#E6C779] px-4 py-2.5 text-sm font-bold text-[#172033] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#F0D88F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:self-auto"
+                aria-pressed={activeFilter === f}
+                onClick={() => setActiveFilter(f)}
+                className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  activeFilter === f
+                    ? 'bg-[#1a365d] text-white'
+                    : 'text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]'
+                }`}
               >
-                <Plus className="h-4 w-4" />
-                Create a post
+                {label}
               </button>
-            </div>
+            ))}
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              aria-busy={isRefreshing}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[#334155] transition hover:bg-[#f8fafc] disabled:opacity-60"
+              aria-label="Refresh posts"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCreatePostModalOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create post
+            </button>
+          </div>
+        </header>
 
         {postUploadNotice && (
           <div
             role="status"
-            className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+            className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-900"
           >
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
             <p className="flex-1">{postUploadNotice}</p>
             <button
               type="button"
               onClick={() => setPostUploadNotice(null)}
-              aria-label="Dismiss post upload message"
-              className="rounded p-1 text-emerald-800 hover:bg-emerald-100"
+              aria-label="Dismiss message"
+              className="rounded p-0.5 text-emerald-800 hover:bg-emerald-100"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         )}
 
-        <div className="mt-7 min-w-0">
-          <div>
-            <div className="mb-4 flex items-center justify-between gap-4">
+        {activeFilter === 'mine' && (
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {myPostsQuery.isLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-[68px] animate-pulse rounded-xl border border-[#e2e8f0] bg-[#f1f5f9]"
+                  />
+                ))
+              : statCards.map(({ label, value, icon: Icon, tone, accent }) => (
+                  <div
+                    key={label}
+                    className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 ${tone}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0 opacity-70" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium opacity-70">{label}</p>
+                      <p className={`text-lg font-bold tabular-nums leading-tight ${accent}`}>
+                        {value}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+          </div>
+        )}
+
+        {/* Main layout */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px]">
+          {/* Keep the player, playlist, and feed in one responsive grid. */}
+          <div className="contents lg:block">
+            <div className="order-1 min-w-0 lg:order-none">
+            {isInitialLoading ? (
+              <FeaturedPlayerSkeleton />
+            ) : featuredVideo ? (
+              <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white shadow-sm">
+                <div className="relative aspect-video w-full bg-black">
+                  <video
+                    key={featuredVideo.id}
+                    ref={featuredVideoRef}
+                    src={featuredVideo.publicUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    poster={featuredVideo.publicUrl}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="border-t border-[#e2e8f0] px-3 py-2.5">
+                  <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-[#1a365d]">
+                    <Play className="h-3 w-3" />
+                    {activeFilter === 'mine' ? 'Your video' : 'Featured video'}
+                  </div>
+                  <h2 className="line-clamp-1 text-sm font-semibold leading-5">
+                    {featuredVideo.title || 'Untitled video'}
+                  </h2>
+                  {featuredVideo.user && (
+                    <p className="mt-0.5 truncate text-[11px] text-[#64748b]">
+                      {featuredVideo.user.firstName} {featuredVideo.user.lastName}
+                      {featuredVideo.user.techCenter?.name &&
+                        ` · ${featuredVideo.user.techCenter.name}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+            </div>
+
+            <div className="order-3 min-w-0 lg:order-none">
+            {/* Feed header */}
+            <div className="mt-4 mb-3 flex items-end justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#92713A]">
-                  Selfless community
-                </p>
-                <h2 className="mt-1 text-xl font-bold tracking-tight text-[#172033]">
+                <h2 className="text-base font-semibold text-[#0f172a]">
                   {activeFilter === 'mine'
                     ? 'My posts'
                     : activeFilter === 'saved'
                       ? 'Saved posts'
-                      : 'Community feed'}
+                      : activeFilter === 'photos'
+                        ? 'Photos'
+                        : activeFilter === 'videos'
+                          ? 'Videos'
+                          : 'Community feed'}
                 </h2>
-                <p className="mt-1 text-xs text-[#687386]">
-                  {activeFilter === 'mine'
-                    ? `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} shared by you`
-                    : `${visibleCount} ${visibleCount === 1 ? 'post' : 'posts'} from across the community`}
+                <p className="mt-0.5 text-xs text-[#64748b]">
+                  {visibleCount} {visibleCount === 1 ? 'post' : 'posts'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                aria-busy={isRefreshing}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E1E5EB] bg-white text-[#526078] shadow-sm transition hover:border-[#C8D0DB] hover:bg-[#F3F5F8] hover:text-[#172033] disabled:cursor-wait disabled:opacity-60"
-                aria-label="Refresh posts"
-                title="Refresh posts"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                />
-              </button>
             </div>
 
-            {/* Filter pills */}
-            <div
-              aria-label="Filter posts"
-              className="mb-5 flex w-full gap-1 overflow-x-auto rounded-2xl border border-[#E5E8ED] bg-white p-1 shadow-sm sm:rounded-full"
-              role="group"
-            >
-              {(
-                [
-                  ['all', 'All'],
-                  ['photos', 'Photos'],
-                  ['videos', 'Videos'],
-                  ['mine', 'My posts'],
-                  ['saved', 'Saved'],
-                ] as const
-              ).map(([filter, label]) => (
-                <button
-                  key={filter}
-                  type="button"
-                  aria-pressed={activeFilter === filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`shrink-0 rounded-xl px-4 py-2 text-xs font-semibold transition sm:flex-1 sm:rounded-full ${
-                    activeFilter === filter
-                      ? 'bg-[#1A2B4C] text-white shadow-sm'
-                      : 'text-[#687386] hover:bg-[#F3F5F8] hover:text-[#172033]'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Dashboard stat strip — My posts only */}
-            {activeFilter === 'mine' && (
-              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {myPostsQuery.isLoading
-                  ? Array.from({ length: 4 }).map((_, i) => (
-                      <StatSkeleton key={i} />
-                    ))
-                  : statCards.map(({ label, value, icon: Icon, tone, accent }) => (
-                      <div
-                        key={label}
-                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm ${tone}`}
-                      >
-                        <Icon className="h-4 w-4 shrink-0 opacity-70" />
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-medium opacity-70">
-                            {label}
-                          </p>
-                          <p
-                            className={`text-xl font-bold tabular-nums leading-tight ${accent}`}
-                          >
-                            {value}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-              </div>
-            )}
-
-            {/* Content */}
+            {/* Feed */}
             {isInitialLoading ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <GallerySkeleton key={index} />
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <PostCardSkeleton key={i} />
                 ))}
               </div>
             ) : activeError ? (
-              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-[#F1D5D5] bg-white px-6 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF1F1] text-[#C53030]">
+              <div className="flex min-h-[240px] flex-col items-center justify-center rounded-xl border border-red-100 bg-white px-4 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600">
                   <AlertCircle className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 font-semibold text-[#172033]">
-                  We couldn&apos;t load the feed
-                </h3>
-                <p className="mt-1 text-sm text-[#687386]">
-                  Please try again in a moment.
-                </p>
+                <h3 className="mt-3 text-sm font-semibold">Could not load posts</h3>
+                <p className="mt-1 text-xs text-[#64748b]">Please try again.</p>
                 <button
                   type="button"
                   onClick={handleTryAgain}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#1A2B4C] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#263D66]"
+                  className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white hover:bg-[#14294a]"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <RefreshCw className="h-3.5 w-3.5" />
                   Try again
                 </button>
               </div>
             ) : visibleItems.length === 0 ? (
-              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D8DEE8] bg-white px-6 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F4F7] text-[#526078]">
-                  <ImageIcon className="h-6 w-6" />
+              <div className="flex min-h-[240px] flex-col items-center justify-center rounded-xl border border-dashed border-[#cbd5e1] bg-white px-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1f5f9] text-[#334155]">
+                  <ImageIcon className="h-5 w-5" />
                 </div>
-                <h3 className="mt-5 text-lg font-semibold text-[#172033]">
+                <h3 className="mt-3 text-sm font-semibold">
                   {activeFilter === 'mine'
                     ? 'Your gallery is empty'
                     : activeFilter === 'saved'
-                      ? 'No saved posts yet'
+                      ? 'No saved posts'
                       : activeFilter === 'all'
                         ? 'Your feed starts here'
                         : `No ${activeFilter} to show`}
                 </h3>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#687386]">
+                <p className="mt-1 max-w-sm text-xs leading-5 text-[#64748b]">
                   {activeFilter === 'mine'
-                    ? 'Share your first photo or video. It will appear here with its review status, and in the community feed once approved.'
+                    ? 'Share your first photo or video.'
                     : activeFilter === 'saved'
-                      ? 'Posts you save will be collected here for easy access.'
+                      ? 'Posts you save appear here.'
                       : activeFilter === 'all'
-                        ? 'Share a photo or video to bring the latest moments from your community to life.'
-                        : 'Try another feed filter to see more posts.'}
+                        ? 'Share a photo or video to bring your community feed to life.'
+                        : 'Try another filter.'}
                 </p>
                 {activeFilter === 'mine' ? (
-                  <div className="mt-5 flex flex-wrap justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsCreatePostModalOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#1A2B4C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#263D66]"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Create your first post
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveFilter('all')}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#D9E0EA] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2B4C] transition hover:bg-[#F7F9FC]"
-                    >
-                      Browse community feed
-                    </button>
-                  </div>
-                ) : activeFilter === 'all' ? (
                   <button
                     type="button"
                     onClick={() => setIsCreatePostModalOpen(true)}
-                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#1A2B4C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#263D66]"
+                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white hover:bg-[#14294a]"
                   >
-                    <Plus className="h-4 w-4" />
-                    Create a post
+                    <Plus className="h-3.5 w-3.5" />
+                    Create your first post
                   </button>
-                ) : (
+                ) : activeFilter !== 'all' ? (
                   <button
                     type="button"
                     onClick={() => setActiveFilter('all')}
-                    className="mt-4 text-sm font-semibold text-[#1A2B4C] hover:underline"
+                    className="mt-3 text-xs font-semibold text-[#1a365d] hover:underline"
                   >
                     Show all posts
                   </button>
-                )}
+                ) : null}
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-4">
                   {visibleItems.map((item) => {
                     const isVideo = item.contentType.startsWith('video/');
                     const authorId = item.user?.id;
@@ -1108,17 +850,19 @@ export default function GalleryPage() {
                       item.approvedAt
                         ? item.approvedAt
                         : item.createdAt;
+                    const state = videoControls[item.id] ?? {
+                      currentTime: 0,
+                      duration: 0,
+                      isMuted: false,
+                      isPlaying: false,
+                    };
 
                     return (
                       <article
                         key={item.id}
-                        className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)] transition hover:shadow-[0_8px_24px_rgba(16,24,40,0.08)]"
+                        className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white"
                       >
-                        <div
-                          className={`relative w-full overflow-hidden bg-[#101827] ${
-                            isVideo ? 'aspect-video' : 'aspect-square'
-                          }`}
-                        >
+                        <div className="relative aspect-video w-full overflow-hidden bg-[#0f172a]">
                           {isVideo ? (
                             <div className="relative h-full w-full">
                               <video
@@ -1127,39 +871,34 @@ export default function GalleryPage() {
                                 }}
                                 src={item.publicUrl}
                                 playsInline
-                                preload="auto"
+                                preload="metadata"
                                 onClick={() => toggleVideoPlayback(item.id)}
-                                className="h-full w-full cursor-pointer object-cover"
-                                onLoadedMetadata={(event) =>
+                                className="h-full w-full cursor-pointer object-contain"
+                                onLoadedMetadata={(e) =>
                                   updateVideoControls(item.id, {
-                                    duration: event.currentTarget.duration,
-                                    isMuted: event.currentTarget.muted,
+                                    duration: e.currentTarget.duration,
+                                    isMuted: e.currentTarget.muted,
                                   })
                                 }
-                                onTimeUpdate={(event) =>
+                                onTimeUpdate={(e) =>
                                   updateVideoControls(item.id, {
-                                    currentTime:
-                                      event.currentTarget.currentTime,
+                                    currentTime: e.currentTarget.currentTime,
                                   })
                                 }
-                                onVolumeChange={(event) =>
+                                onVolumeChange={(e) =>
                                   updateVideoControls(item.id, {
-                                    isMuted: event.currentTarget.muted,
+                                    isMuted: e.currentTarget.muted,
                                   })
                                 }
                                 onPlay={() => {
                                   handleVideoPlay(item.id);
-                                  updateVideoControls(item.id, {
-                                    isPlaying: true,
-                                  });
+                                  updateVideoControls(item.id, { isPlaying: true });
                                 }}
                                 onPause={() =>
-                                  updateVideoControls(item.id, {
-                                    isPlaying: false,
-                                  })
+                                  updateVideoControls(item.id, { isPlaying: false })
                                 }
                               />
-                              {!(videoControls[item.id]?.isPlaying ?? false) && (
+                              {!state.isPlaying && (
                                 <button
                                   type="button"
                                   onClick={() => toggleVideoPlayback(item.id)}
@@ -1171,95 +910,46 @@ export default function GalleryPage() {
                                   </span>
                                 </button>
                               )}
-                              <span className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur">
-                                <Play className="h-2.5 w-2.5 fill-current" />{' '}
-                                Video
-                              </span>
-                              {item.description && (
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pt-16">
-                                  <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
-                                    {item.description}
-                                  </p>
-                                </div>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => openFullscreenMedia(item)}
-                                aria-label={`View ${item.title || 'video'} fullscreen`}
-                                title="View fullscreen"
-                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                aria-label="View fullscreen"
+                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
                               >
                                 <Maximize2 className="h-3.5 w-3.5" />
                               </button>
-                              {(() => {
-                                const state = videoControls[item.id] ?? {
-                                  currentTime: 0,
-                                  duration: 0,
-                                  isMuted: false,
-                                  isPlaying: false,
-                                };
-                                return (
-                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-2 pt-8">
-                                    <div className="flex items-center gap-2 text-white">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const video =
-                                            videoRefs.current[item.id];
-                                          if (!video) return;
-                                          if (video.paused) {
-                                            void video.play().catch(() => {
-                                              updateVideoControls(item.id, {
-                                                isPlaying: false,
-                                              });
-                                            });
-                                          } else {
-                                            video.pause();
-                                          }
-                                        }}
-                                        aria-label={
-                                          state.isPlaying
-                                            ? 'Pause video'
-                                            : 'Play video'
-                                        }
-                                        title={
-                                          state.isPlaying ? 'Pause' : 'Play'
-                                        }
-                                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                                      >
-                                        {state.isPlaying ? (
-                                          <Pause className="h-3 w-3" />
-                                        ) : (
-                                          <Play className="h-3 w-3 fill-current" />
-                                        )}
-                                      </button>
-                                      <span className="min-w-0 flex-1 whitespace-nowrap text-[10px] font-medium tabular-nums text-white/90">
-                                        {formatVideoTime(state.currentTime)} /{' '}
-                                        {formatVideoTime(state.duration)}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleVideoMute(item.id)}
-                                        aria-label={
-                                          state.isMuted
-                                            ? 'Unmute video'
-                                            : 'Mute video'
-                                        }
-                                        title={
-                                          state.isMuted ? 'Unmute' : 'Mute'
-                                        }
-                                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                                      >
-                                        {state.isMuted ? (
-                                          <VolumeX className="h-3 w-3" />
-                                        ) : (
-                                          <Volume2 className="h-3 w-3" />
-                                        )}
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
+                              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-2 pt-8">
+                                <div className="flex items-center gap-2 text-white">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleVideoPlayback(item.id)}
+                                    aria-label={state.isPlaying ? 'Pause' : 'Play'}
+                                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+                                  >
+                                    {state.isPlaying ? (
+                                      <Pause className="h-3 w-3" />
+                                    ) : (
+                                      <Play className="h-3 w-3 fill-current" />
+                                    )}
+                                  </button>
+                                  <span className="min-w-0 flex-1 whitespace-nowrap text-[10px] font-medium tabular-nums text-white/90">
+                                    {formatVideoTime(state.currentTime)} /{' '}
+                                    {formatVideoTime(state.duration)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleVideoMute(item.id)}
+                                    aria-label={state.isMuted ? 'Unmute' : 'Mute'}
+                                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 hover:bg-white/25"
+                                  >
+                                    {state.isMuted ? (
+                                      <VolumeX className="h-3 w-3" />
+                                    ) : (
+                                      <Volume2 className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           ) : (
                             <div className="relative h-full w-full">
@@ -1267,22 +957,14 @@ export default function GalleryPage() {
                                 src={item.publicUrl}
                                 alt={item.title}
                                 fill
-                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                sizes="(max-width: 1024px) 100vw, 60vw"
                                 className="object-cover"
                               />
-                              {item.description && (
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-10">
-                                  <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
-                                    {item.description}
-                                  </p>
-                                </div>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => openFullscreenMedia(item)}
-                                aria-label={`View ${item.title || 'photo'} fullscreen`}
-                                title="View fullscreen"
-                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:scale-105 hover:bg-black/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                                aria-label="View fullscreen"
+                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
                               >
                                 <Maximize2 className="h-3.5 w-3.5" />
                               </button>
@@ -1290,67 +972,60 @@ export default function GalleryPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 border-t border-[#F0F2F5] px-2.5 py-2">
+                        <div className="flex items-center gap-2 px-3 py-2.5">
                           {item.user?.id ? (
-                            <div className="shrink-0">
-                              {item.user.profileImageUrl ? (
-                                <Image
-                                  src={item.user.profileImageUrl}
-                                  alt={`${item.user.firstName} ${item.user.lastName}`}
-                                  width={28}
-                                  height={28}
-                                  className="h-7 w-7 rounded-full object-cover ring-1 ring-[#F1F3F6]"
-                                />
-                              ) : (
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
-                                  {item.user.firstName[0]}
-                                  {item.user.lastName[0]}
-                                </div>
-                              )}
-                            </div>
+                            item.user.profileImageUrl ? (
+                              <Image
+                                src={item.user.profileImageUrl}
+                                alt={`${item.user.firstName} ${item.user.lastName}`}
+                                width={32}
+                                height={32}
+                                className="h-8 w-8 rounded-full object-cover ring-1 ring-[#e2e8f0]"
+                              />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2f8] text-xs font-bold text-[#1a365d] ring-1 ring-[#e2e8f0]">
+                                {item.user.firstName[0]}
+                                {item.user.lastName[0]}
+                              </div>
+                            )
                           ) : (
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2f8] text-xs font-bold text-[#1a365d]">
                               U
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <h3 className="flex items-center gap-1 truncate text-xs font-semibold text-[#172033]">
+                            <h3 className="flex items-center gap-1 truncate text-sm font-semibold">
                               {item.user?.id ? (
                                 <Link
                                   href={`/dashboard/students/${item.user.id}`}
-                                  className="truncate rounded-sm transition hover:text-[#1A2B4C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                                  className="truncate hover:underline"
                                 >
                                   {item.user.firstName} {item.user.lastName}
                                 </Link>
                               ) : (
-                                <span className="truncate">Selfless community</span>
+                                <span className="truncate">Community</span>
                               )}
                               {item.user?.hasVerifiedBadge && (
                                 <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
                               )}
                             </h3>
-                            <p className="truncate text-[10px] text-[#7A8495]">
+                            <p className="truncate text-[11px] text-[#64748b]">
                               {item.user?.techCenter?.name} ·{' '}
-                              {new Date(displayDate).toLocaleDateString(
-                                'en-US',
-                                {
-                                  month: 'short',
-                                  day: 'numeric',
-                                },
-                              )}
+                              {new Date(displayDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
                             </p>
                           </div>
                           {isOwnPost && item.approvalStatus !== 'APPROVED' && (
                             <span
-                              className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                                 item.approvalStatus === 'REJECTED'
                                   ? 'bg-red-50 text-red-700'
                                   : 'bg-amber-50 text-amber-700'
                               }`}
                             >
-                              {item.approvalStatus === 'REJECTED'
-                                ? 'Rejected'
-                                : 'Pending'}
+                              {item.approvalStatus === 'REJECTED' ? 'Rejected' : 'Pending'}
                             </span>
                           )}
                           {activeFilter === 'mine' && isOwnPost && (
@@ -1358,22 +1033,21 @@ export default function GalleryPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  setOpenPostMenuId((openId) =>
-                                    openId === item.id ? null : item.id,
+                                  setOpenPostMenuId((o) =>
+                                    o === item.id ? null : item.id,
                                   )
                                 }
                                 aria-label="Post options"
                                 aria-haspopup="menu"
                                 aria-expanded={openPostMenuId === item.id}
-                                title="Post options"
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#687386] transition hover:bg-[#F1F3F6] hover:text-[#172033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a]"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                               {openPostMenuId === item.id && (
                                 <div
                                   role="menu"
-                                  className="absolute right-0 top-full z-20 mt-1 min-w-32 rounded-xl border border-[#E1E5EB] bg-white p-1 shadow-lg"
+                                  className="absolute right-0 top-full z-20 mt-1 min-w-32 rounded-lg border border-[#e2e8f0] bg-white p-1 shadow-lg"
                                 >
                                   <button
                                     type="button"
@@ -1386,7 +1060,7 @@ export default function GalleryPage() {
                                       });
                                     }}
                                     disabled={deletingPostId === item.id}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
                                   >
                                     {deletingPostId === item.id ? (
                                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1402,19 +1076,24 @@ export default function GalleryPage() {
                         </div>
 
                         {deletePostError?.id === item.id && (
-                          <p
-                            role="alert"
-                            className="px-3 pb-2 text-[10px] text-red-600"
-                          >
+                          <p role="alert" className="px-3 pb-2 text-[11px] text-red-600">
                             {deletePostError.message}
                           </p>
                         )}
 
                         {item.title && (
-                          <div className="px-2.5 pb-1">
-                            <h4 className="line-clamp-2 text-sm font-bold leading-snug text-[#172033]">
+                          <div className="px-3 pb-1">
+                            <h4 className="line-clamp-2 text-sm font-semibold leading-snug">
                               {item.title}
                             </h4>
+                          </div>
+                        )}
+
+                        {item.description && (
+                          <div className="px-3 pb-2">
+                            <p className="line-clamp-3 text-xs leading-5 text-[#64748b]">
+                              {item.description}
+                            </p>
                           </div>
                         )}
 
@@ -1435,241 +1114,137 @@ export default function GalleryPage() {
                 </div>
 
                 {activeFilter === 'mine' && myPostsQuery.hasNextPage && (
-                  <div className="mt-6 flex flex-col items-center gap-2">
-                    <p className="text-xs text-[#8A93A2]">
-                      Showing {myPosts.length} of {visibleCount} posts
-                    </p>
+                  <div className="mt-4 flex flex-col items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => void myPostsQuery.fetchNextPage()}
                       disabled={myPostsQuery.isFetchingNextPage}
-                      className="inline-flex min-w-40 items-center justify-center gap-2 rounded-xl border border-[#D9E0EA] bg-white px-5 py-2.5 text-sm font-semibold text-[#1A2B4C] shadow-sm transition hover:border-[#B9C5D5] hover:bg-[#F7F9FC] disabled:cursor-wait disabled:opacity-60"
+                      className="inline-flex h-9 min-w-36 items-center justify-center gap-1.5 rounded-lg border border-[#e2e8f0] bg-white px-4 text-xs font-semibold text-[#1a365d] transition hover:bg-[#f8fafc] disabled:opacity-60"
                     >
                       {myPostsQuery.isFetchingNextPage ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading posts...
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading...
                         </>
                       ) : (
-                        'Load 10 more posts'
+                        'Load more'
                       )}
                     </button>
                     {myPostsQuery.isFetchNextPageError && (
-                      <p role="alert" className="text-xs text-red-600">
-                        Could not load more posts. Try again.
+                      <p role="alert" className="text-[11px] text-red-600">
+                        Could not load more. Try again.
                       </p>
                     )}
                   </div>
                 )}
               </>
             )}
+            </div>
           </div>
 
-          <aside className="mt-8 lg:hidden">
-            <div className="overflow-hidden rounded-2xl border border-[#E7EAF0] bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold tracking-tight text-[#172033]">
-                Community growth
-              </h2>
+          {/* Playlist follows the featured video on mobile and sits beside it on desktop. */}
+          <aside className="order-2 min-w-0 lg:order-none">
+            <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white lg:sticky lg:top-16">
+              <div className="flex items-center justify-between border-b border-[#e2e8f0] px-3 py-2.5">
+                <h2 className="text-sm font-semibold">
+                  {activeFilter === 'mine' ? 'Your videos' : 'Up next'}
+                </h2>
+                <span className="text-[11px] text-[#64748b]">
+                  {playlistVideos.length} videos
+                </span>
+              </div>
 
               <div
-                className="mt-4"
-                role="img"
-                aria-label={`Community post growth over the last seven days. ${communityGrowth.points
-                  .map((point) => `${point.label}: ${point.count} posts`)
-                  .join(', ')}`}
+                className="max-h-72 space-y-1 overflow-y-auto p-2 lg:max-h-[calc(100vh-120px)]"
               >
-                <svg
-                  viewBox="0 0 280 128"
-                  className="h-32 w-full overflow-visible"
-                  aria-hidden="true"
-                >
-                  <defs>
-                    <linearGradient
-                      id="community-growth-fill"
-                      x1="0"
-                      x2="0"
-                      y1="0"
-                      y2="1"
+                {isInitialLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex gap-2.5 rounded-lg p-1.5"
                     >
-                      <stop
-                        offset="0%"
-                        stopColor="#C59B4C"
-                        stopOpacity="0.22"
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor="#C59B4C"
-                        stopOpacity="0.01"
-                      />
-                    </linearGradient>
-                  </defs>
-                  {[0, 1, 2].map((line) => (
-                    <line
-                      key={line}
-                      x1="10"
-                      x2="270"
-                      y1={14 + line * 38}
-                      y2={14 + line * 38}
-                      stroke="#E9EDF2"
-                      strokeDasharray="3 5"
-                    />
-                  ))}
-                  {communityGrowth.points.map((point, index) => {
-                    const x = 14 + index * (252 / 6);
-                    const barHeight =
-                      (point.count / communityGrowth.maximumDaily) * 62;
+                      <div className="aspect-video w-28 shrink-0 animate-pulse rounded-md bg-[#f1f5f9]" />
+                      <div className="min-w-0 flex-1 space-y-1.5 py-1">
+                        <div className="h-3 w-full animate-pulse rounded bg-[#f1f5f9]" />
+                        <div className="h-3 w-2/3 animate-pulse rounded bg-[#f1f5f9]" />
+                      </div>
+                    </div>
+                  ))
+                ) : playlistVideos.length > 0 ? (
+                  playlistVideos.map((video) => {
+                    const isSelected = featuredVideo?.id === video.id;
                     return (
-                      <rect
-                        key={point.key}
-                        x={x - 7}
-                        y={90 - barHeight}
-                        width="14"
-                        height={barHeight}
-                        rx="5"
-                        fill="#DCE3ED"
-                      />
+                      <button
+                        key={video.id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => selectFeaturedVideo(video)}
+                        className={`group flex w-full gap-2.5 rounded-lg p-1.5 text-left transition ${
+                          isSelected
+                            ? 'bg-[#eef2f8] ring-1 ring-[#1a365d]/20'
+                            : 'hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-black">
+                          <video
+                            src={video.publicUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <Play className="h-4 w-4 fill-white text-white" />
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1 py-0.5">
+                          <h3 className="line-clamp-2 text-[12px] font-medium leading-[1.35] lg:text-[13px]">
+                            {video.title || 'Untitled video'}
+                          </h3>
+                          {video.user && (
+                            <p className="mt-1 truncate text-[10px] text-[#64748b] lg:text-[11px]">
+                              {video.user.firstName} {video.user.lastName}
+                            </p>
+                          )}
+                        </div>
+                      </button>
                     );
-                  })}
-                  <polygon
-                    points={[
-                      '14,90',
-                      ...communityGrowth.points.map((point, index) => {
-                        const x = 14 + index * (252 / 6);
-                        const y =
-                          12 +
-                          62 *
-                            (1 -
-                              point.cumulative /
-                                communityGrowth.maximumCumulative);
-                        return `${x},${y}`;
-                      }),
-                      '266,90',
-                    ].join(' ')}
-                    fill="url(#community-growth-fill)"
-                  />
-                  <polyline
-                    points={communityGrowth.points
-                      .map((point, index) => {
-                        const x = 14 + index * (252 / 6);
-                        const y =
-                          12 +
-                          62 *
-                            (1 -
-                              point.cumulative /
-                                communityGrowth.maximumCumulative);
-                        return `${x},${y}`;
-                      })
-                      .join(' ')}
-                    fill="none"
-                    stroke="#B98A3E"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                  />
-                  {communityGrowth.points.map((point, index) => {
-                    const x = 14 + index * (252 / 6);
-                    const y =
-                      12 +
-                      62 *
-                        (1 -
-                          point.cumulative /
-                            communityGrowth.maximumCumulative);
-                    return (
-                      <circle
-                        key={point.key}
-                        cx={x}
-                        cy={y}
-                        r="3"
-                        fill="white"
-                        stroke="#B98A3E"
-                        strokeWidth="2"
-                      />
-                    );
-                  })}
-                  {communityGrowth.points.map((point, index) => (
-                    <text
-                      key={point.key}
-                      x={14 + index * (252 / 6)}
-                      y="115"
-                      textAnchor="middle"
-                      className="fill-[#8791A1] text-[9px] font-medium"
-                    >
-                      {point.label}
-                    </text>
-                  ))}
-                </svg>
-              </div>
-
-              <div className="mt-3 flex items-center gap-4 text-[10px] font-medium text-[#687386]">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-sm bg-[#DCE3ED]" />
-                  Daily posts
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-0.5 w-3 rounded bg-[#B98A3E]" />
-                  Growth
-                </span>
-              </div>
-
-              <div className="mt-5 grid grid-cols-3 gap-2 border-t border-[#EEF0F4] pt-4">
-                <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">
-                    Posts
-                  </p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
-                    {items.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">
-                    Photos
-                  </p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
-                    {photos.length}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">
-                    Videos
-                  </p>
-                  <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
-                    {videos.length}
-                  </p>
-                </div>
+                  })
+                ) : (
+                  <div className="w-full px-3 py-8 text-center text-xs text-[#64748b]">
+                    No videos yet.
+                  </div>
+                )}
               </div>
             </div>
           </aside>
         </div>
-      </section>
+      </div>
 
-      {/* Confirmation dialog */}
+      {/* Delete confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-delete-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600">
               <Trash2 className="h-5 w-5" />
             </div>
-            <h3
-              id="confirm-delete-title"
-              className="mt-4 text-lg font-semibold text-[#172033]"
-            >
+            <h3 id="confirm-delete-title" className="mt-3 text-base font-semibold">
               Delete this post?
             </h3>
-            <p className="mt-1 text-sm leading-6 text-[#687386]">
-              &ldquo;{confirmDelete.title || 'Untitled post'}&rdquo; and all of
-              its comments and replies will be permanently deleted. This cannot
-              be undone.
+            <p className="mt-1 text-xs leading-5 text-[#64748b]">
+              &ldquo;{confirmDelete.title || 'Untitled post'}&rdquo; and all its
+              comments will be permanently deleted. This cannot be undone.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 rounded-xl border border-[#D9E0EA] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2B4C] transition hover:bg-[#F7F9FC]"
+                className="flex-1 rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-semibold text-[#1a365d] hover:bg-[#f8fafc]"
               >
                 Cancel
               </button>
@@ -1680,7 +1255,7 @@ export default function GalleryPage() {
                   setConfirmDelete(null);
                   void handleDeletePost(id);
                 }}
-                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
               >
                 Delete
               </button>
@@ -1689,26 +1264,25 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {/* Fullscreen media viewer */}
+      {/* Fullscreen */}
       {fullscreenMedia && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={fullscreenMedia.title || 'Fullscreen community media'}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setFullscreenMedia(null);
+          aria-label={fullscreenMedia.title || 'Fullscreen media'}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFullscreenMedia(null);
           }}
         >
           <button
             type="button"
             onClick={() => setFullscreenMedia(null)}
-            className="absolute right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            aria-label="Close fullscreen media"
+            className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/65 text-white hover:bg-white/20"
+            aria-label="Close"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
-
           {fullscreenMedia.contentType.startsWith('video/') ? (
             <video
               key={fullscreenMedia.id}
@@ -1717,14 +1291,13 @@ export default function GalleryPage() {
               controls
               playsInline
               preload="auto"
-              aria-label={fullscreenMedia.title || 'Community video'}
               className="h-full w-full object-contain"
             />
           ) : (
             <div className="relative h-full w-full">
               <Image
                 src={fullscreenMedia.publicUrl}
-                alt={fullscreenMedia.title || 'Community photo'}
+                alt={fullscreenMedia.title || 'Photo'}
                 fill
                 sizes="100vw"
                 className="object-contain"
@@ -1735,33 +1308,30 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {/* Create Post Modal */}
+      {/* Create post modal */}
       {isCreatePostModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-post-title"
-            className="w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl"
+            className="w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl"
             style={{ maxHeight: '90vh' }}
           >
-            <div className="flex items-center justify-between border-b border-[#E4E6EB] p-4">
-              <h3
-                id="create-post-title"
-                className="text-lg font-semibold text-[#1C1E21]"
-              >
-                Create Post
+            <div className="flex items-center justify-between border-b border-[#e2e8f0] p-3">
+              <h3 id="create-post-title" className="text-base font-semibold">
+                Create post
               </h3>
               <button
                 type="button"
                 onClick={() => setIsCreatePostModalOpen(false)}
-                aria-label="Close create post dialog"
-                className="rounded p-1 text-[#65676B] transition hover:bg-[#F1F3F6] hover:text-[#1C1E21]"
+                aria-label="Close"
+                className="rounded p-1 text-[#64748b] hover:bg-[#f1f5f9]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-3">
               <AzureMediaUpload
                 label="Drop files here, or click to browse"
                 accept="image/*,video/*"

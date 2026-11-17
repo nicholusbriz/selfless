@@ -5,6 +5,11 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  Bell,
+  Trophy,
+  Sparkles,
+  Info,
+  CheckCheck,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,9 +20,9 @@ import {
 import { motion } from 'framer-motion';
 import { isRecord } from '../response-guards';
 
-/* ============================================================
-   TYPES
-============================================================ */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Types + guards
+   ───────────────────────────────────────────────────────────────────────────── */
 
 interface Notification {
   id: string;
@@ -56,17 +61,75 @@ function isNotificationsPageData(
   );
 }
 
-/* ============================================================
-   HELPERS
-============================================================ */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+   ───────────────────────────────────────────────────────────────────────────── */
 
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
-/* ============================================================
-   NOTIFICATION PAGE
-============================================================ */
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diff = Date.now() - then;
+  const seconds = Math.floor(diff / 1000);
+
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function dayBucket(iso: string): 'Today' | 'Yesterday' | 'Earlier' {
+  const then = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.floor(
+    (now.setHours(0, 0, 0, 0) - new Date(then).setHours(0, 0, 0, 0)) /
+      86400000,
+  );
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return 'Earlier';
+}
+
+/** Colour + icon per notification type */
+function typeMeta(type: string) {
+  const t = type.toLowerCase();
+  if (t.includes('football') || t.includes('sport') || t.includes('match')) {
+    return {
+      Icon: Trophy,
+      ring: 'bg-amber-50 text-amber-600 ring-amber-100',
+    };
+  }
+  if (t.includes('course') || t.includes('lesson') || t.includes('learn')) {
+    return {
+      Icon: Sparkles,
+      ring: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+    };
+  }
+  if (t.includes('system') || t.includes('admin') || t.includes('alert')) {
+    return {
+      Icon: Info,
+      ring: 'bg-blue-50 text-blue-600 ring-blue-100',
+    };
+  }
+  return {
+    Icon: Bell,
+    ring: 'bg-slate-100 text-slate-600 ring-slate-200',
+  };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Page
+   ───────────────────────────────────────────────────────────────────────────── */
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -80,395 +143,237 @@ export default function NotificationsPage() {
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsReadMutation = useMarkAllAsRead();
 
-  /* ============================================================
-     ACTIONS
-  ============================================================ */
-
-  const handleMarkAsRead = async (notificationId: string) => {
-    await markAsRead.mutateAsync(notificationId);
+  const handleMarkAsRead = async (id: string) => {
+    await markAsRead.mutateAsync(id);
   };
 
   const handleMarkAllAsRead = async () => {
     await markAllAsReadMutation.mutateAsync();
   };
 
-  const handleNotificationClick = async (
-    notification: Notification,
-  ) => {
-    if (!notification.isRead) {
-      await handleMarkAsRead(notification.id);
-    }
+  const handleNotificationClick = async (n: Notification) => {
+    if (!n.isRead) await handleMarkAsRead(n.id);
   };
 
-  /* ============================================================
-     PAGE
-  ============================================================ */
+  /* Group notifications by day */
+  const grouped = (() => {
+    const groups: Record<string, Notification[]> = {
+      Today: [],
+      Yesterday: [],
+      Earlier: [],
+    };
+    for (const n of data?.notifications ?? []) {
+      groups[dayBucket(n.createdAt)].push(n);
+    }
+    return groups;
+  })();
+
+  const unreadCount = data?.unreadCount ?? 0;
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB]">
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f8fafc]">
+      <div className="mx-auto w-full max-w-3xl px-4 pt-12 pb-8 sm:px-6 lg:px-8">
+        {/* ── Header ── */}
+        <header className="mb-4 flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[#64748b] transition hover:bg-[#f8fafc] hover:text-[#0f172a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
 
-        {/* ======================================================
-            HEADER
-        ====================================================== */}
-
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="
-            overflow-hidden rounded-2xl
-            border border-[#D9E2EC]
-            bg-white shadow-sm
-          "
-        >
-          <div className="border-t-4 border-[#1A365D]">
-            <div className="p-5 sm:p-6">
-
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-                {/* LEFT SIDE */}
-
-                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-
-                  {/* Back */}
-
-                  <button
-                    onClick={() => router.back()}
-                    className="
-                      flex h-10 w-10 shrink-0 items-center
-                      justify-center rounded-lg
-                      border border-[#D9E2EC]
-                      bg-white text-[#64788A]
-                      transition-all duration-200
-                      hover:border-[#1A365D]
-                      hover:bg-[#F4F7FA]
-                      hover:text-[#1A365D]
-                    "
-                    aria-label="Go back"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </button>
-
-                  <div className="hidden h-8 w-px bg-[#E7EDF3] sm:block" />
-
-                  {/* TITLE */}
-
-                  <div className="min-w-0">
-                      <h1 className="truncate text-xl font-bold tracking-tight text-[#0F2440] sm:text-2xl">
-                        Notifications
-                      </h1>
-
-                      {data?.unreadCount &&
-                      data.unreadCount > 0 ? (
-                        <p className="mt-0.5 text-sm text-[#64788A]">
-                          {data.unreadCount}{' '}
-                          {data.unreadCount === 1
-                            ? 'unread notification'
-                            : 'unread notifications'}
-                        </p>
-                      ) : (
-                        <p className="mt-0.5 text-sm text-[#64788A]">
-                          Stay up to date with your dashboard
-                        </p>
-                      )}
-                  </div>
-                </div>
-
-                {/* MARK ALL */}
-
-                {data?.unreadCount &&
-                data.unreadCount > 0 ? (
-                  <button
-                    onClick={handleMarkAllAsRead}
-                    disabled={
-                      markAllAsReadMutation.isPending
-                    }
-                    className="
-                      inline-flex shrink-0
-                      items-center justify-center
-                      gap-2 rounded-lg
-                      bg-[#1A365D] px-4 py-2.5
-                      text-sm font-semibold text-white
-                      shadow-sm transition-all duration-200
-                      hover:bg-[#153475] hover:shadow
-                      focus:outline-none focus-visible:ring-2
-                      focus-visible:ring-[#3182CE] focus-visible:ring-offset-2
-                      disabled:cursor-not-allowed disabled:opacity-60
-                    "
-                  >
-                    {markAllAsReadMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" />
-                    )}
-
-                    {markAllAsReadMutation.isPending
-                      ? 'Marking as read...'
-                      : 'Mark all as read'}
-                  </button>
-                ) : null}
-              </div>
-            </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="flex items-center gap-2 text-lg font-bold tracking-tight text-[#0f172a]">
+              Notifications
+              {unreadCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1a365d] px-1.5 text-[10px] font-bold tabular-nums text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </h1>
+            <p className="text-[11px] text-[#64748b]">
+              {unreadCount > 0
+                ? `${unreadCount} unread`
+                : 'You\u2019re all caught up'}
+            </p>
           </div>
-        </motion.section>
 
-        {/* ======================================================
-            NOTIFICATIONS
-        ====================================================== */}
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
+              aria-busy={markAllAsReadMutation.isPending}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#e2e8f0] bg-white px-3 text-xs font-semibold text-[#1a365d] transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
+            >
+              {markAllAsReadMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCheck className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {markAllAsReadMutation.isPending ? 'Marking…' : 'Mark all read'}
+              </span>
+              <span className="sm:hidden">
+                {markAllAsReadMutation.isPending ? '…' : 'All'}
+              </span>
+            </button>
+          )}
+        </header>
 
-        <section className="mt-6">
-
-          {/* LOADING */}
-
+        {/* ── Content ── */}
+        <section>
           {isLoading ? (
-            <div className="space-y-3">
-
-              {[1, 2, 3, 4].map((item) => (
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
                 <div
-                  key={item}
-                  className="
-                    rounded-lg
-                    border border-[#D9E2EC]
-                    bg-white p-4
-                    shadow-sm
-                  "
+                  key={i}
+                  className="flex items-start gap-3 rounded-xl border border-[#e2e8f0] bg-white p-3"
                 >
-                  <div className="min-w-0">
-
-                      <div className="
-                        h-4 w-48
-                        animate-pulse rounded
-                        bg-[#EEF2F6]
-                      " />
-
-                      <div className="
-                        mt-3 h-3 w-full
-                        animate-pulse rounded
-                        bg-[#F0F3F6]
-                      " />
-
-                      <div className="
-                        mt-2 h-3 w-3/4
-                        animate-pulse rounded
-                        bg-[#F0F3F6]
-                      " />
-
-                      <div className="
-                        mt-4 h-3 w-24
-                        animate-pulse rounded
-                        bg-[#F0F3F6]
-                      " />
+                  <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[#f1f5f9]" />
+                  <div className="flex-1 space-y-2 pt-0.5">
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-[#f1f5f9]" />
+                    <div className="h-3 w-full animate-pulse rounded bg-[#f1f5f9]" />
+                    <div className="h-2.5 w-16 animate-pulse rounded bg-[#f1f5f9]" />
                   </div>
                 </div>
               ))}
             </div>
-
           ) : error ? (
-
-            /* ==================================================
-               ERROR
-            ================================================== */
-
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="
-                rounded-2xl
-                border border-[#F2C5C5]
-                bg-white p-10
-                text-center shadow-sm
-              "
+              className="rounded-xl border border-red-100 bg-white p-8 text-center"
             >
-              <div className="
-                mx-auto flex h-12 w-12
-                items-center justify-center
-                rounded-xl bg-[#FFF1F1]
-              ">
-                <AlertCircle className="h-6 w-6 text-[#C53030]" />
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <AlertCircle className="h-5 w-5" />
               </div>
-
-              <h2 className="mt-4 text-base font-bold text-[#0F2440]">
+              <h2 className="mt-3 text-sm font-semibold text-[#0f172a]">
                 Unable to load notifications
               </h2>
-
-              <p className="mt-1 text-sm text-[#64788A]">
-                Something went wrong while loading your
-                notifications. Please try again.
+              <p className="mt-1 text-xs leading-5 text-[#64748b]">
+                Something went wrong. Please try again.
               </p>
             </motion.div>
-
-          ) : !data?.notifications ||
-            data.notifications.length === 0 ? (
-
-            /* ==================================================
-               EMPTY STATE
-            ================================================== */
-
+          ) : !data?.notifications.length ? (
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="
-                rounded-2xl
-                border border-[#D9E2EC]
-                bg-white p-12
-                text-center shadow-sm
-              "
+              className="rounded-xl border border-dashed border-[#cbd5e1] bg-white p-12 text-center"
             >
-              <h2 className="text-lg font-bold text-[#0F2440]">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f1f5f9] text-[#94a3b8]">
+                <Bell className="h-5 w-5" />
+              </div>
+              <h2 className="mt-3 text-sm font-semibold text-[#0f172a]">
                 No notifications yet
               </h2>
-
-              <p className="mt-1 text-sm text-[#64788A]">
-                You&apos;re all caught up!
-              </p>
-
-              <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-[#94A8BD]">
-                Notifications about football, cleaning,
-                courses and other dashboard activities will
+              <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-[#64748b]">
+                Updates about matches, courses and dashboard activity will
                 appear here.
               </p>
-
             </motion.div>
-
           ) : (
+            <div className="space-y-6">
+              {(['Today', 'Yesterday', 'Earlier'] as const).map((bucket) => {
+                const list = grouped[bucket];
+                if (list.length === 0) return null;
 
-            /* ==================================================
-               NOTIFICATION LIST
-            ================================================== */
+                return (
+                  <div key={bucket}>
+                    <h2 className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#94a3b8]">
+                      {bucket}
+                    </h2>
 
-            <div className="space-y-2.5">
+                    <div className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white">
+                      {list.map((n, i) => {
+                        const { Icon, ring } = typeMeta(n.type);
+                        const isUnread = !n.isRead;
 
-              {data.notifications.map(
-                (
-                  notification: Notification,
-                  index: number,
-                ) => (
-                  <motion.div
-                    key={notification.id}
-                    initial={{
-                      opacity: 0,
-                      y: 10,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    transition={{
-                      duration: 0.25,
-                      delay: index * 0.04,
-                    }}
-                    onClick={() =>
-                      handleNotificationClick(
-                        notification,
-                      )
-                    }
-                    className={cn(
-                      `
-                        group cursor-pointer
-                        overflow-hidden rounded-lg
-                        border bg-white
-                        p-4 shadow-sm
-                        transition-all duration-200
-                      `,
-                      !notification.isRead
-                        ? `
-                          border-[#BFD3E6]
-                          bg-[#FBFDFF]
-                          shadow-[0_2px_8px_rgba(26,54,93,0.06)]
-                          hover:border-[#3182CE]
-                          hover:shadow-md
-                        `
-                        : `
-                          border-[#D9E2EC]
-                          hover:border-[#C3D1DE]
-                          hover:shadow-md
-                        `,
-                    )}
-                  >
-                    <div className="min-w-0">
+                        return (
+                          <motion.div
+                            key={n.id}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: i * 0.02 }}
+                            className={cn(
+                              'group relative flex items-start gap-3 px-3 py-3 transition sm:px-4 sm:py-3.5',
+                              i !== list.length - 1 && 'border-b border-[#f1f5f9]',
+                              isUnread ? 'bg-[#f8fbff]' : 'bg-white',
+                              'hover:bg-[#f8fafc]',
+                            )}
+                          >
+                            {/* Unread indicator bar */}
+                            {isUnread && (
+                              <span className="absolute left-0 top-0 h-full w-[2px] bg-[#1a365d]" />
+                            )}
 
-                        {/* TITLE ROW */}
-
-                        <div className="flex items-start justify-between gap-4">
-
-                          <div className="min-w-0">
-                            <h3
+                            {/* Type icon */}
+                            <div
                               className={cn(
-                                'text-sm leading-5',
-                                !notification.isRead
-                                  ? 'font-bold text-[#0F2440]'
-                                  : 'font-semibold text-[#34495E]',
+                                'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1',
+                                ring,
                               )}
                             >
-                              {notification.title}
-                            </h3>
-                          </div>
+                              <Icon className="h-4 w-4" />
+                            </div>
 
-                          {/* UNREAD DOT */}
-
-                          {!notification.isRead && (
-                            <span
-                              className="
-                                mt-1.5 h-2.5 w-2.5
-                                shrink-0 rounded-full
-                                bg-[#3182CE]
-                                ring-4 ring-[#EAF3FA]
-                              "
-                              aria-label="Unread"
-                            />
-                          )}
-                        </div>
-
-                        {/* MESSAGE */}
-
-                        <p
-                          className={cn(
-                            'mt-2 text-sm leading-relaxed',
-                            !notification.isRead
-                              ? 'text-[#526678]'
-                              : 'text-[#718396]',
-                          )}
-                        >
-                          {notification.message}
-                        </p>
-
-                        {/* FOOTER */}
-
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-
-                          <p
-                            className="
-                              text-xs font-medium
-                              text-[#94A8BD]
-                            "
-                          >
-                            {new Date(
-                              notification.createdAt,
-                            ).toLocaleString()}
-                          </p>
-
-                          {!notification.isRead && (
-                            <span
-                              className="
-                                rounded-md
-                                border border-[#D5E5F2]
-                                bg-[#EEF5FB]
-                                px-2 py-1
-                                text-[10px]
-                                font-bold uppercase
-                                tracking-wide
-                                text-[#1A365D]
-                              "
+                            {/* Body */}
+                            <button
+                              type="button"
+                              onClick={() => handleNotificationClick(n)}
+                              className="min-w-0 flex-1 text-left focus-visible:outline-none"
                             >
-                              New
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                  </motion.div>
-                ),
-              )}
+                              <div className="flex items-start justify-between gap-3">
+                                <h3
+                                  className={cn(
+                                    'text-sm leading-snug',
+                                    isUnread
+                                      ? 'font-semibold text-[#0f172a]'
+                                      : 'font-medium text-[#334155]',
+                                  )}
+                                >
+                                  {n.title}
+                                </h3>
+                                <span className="shrink-0 text-[10px] font-medium tabular-nums text-[#94a3b8]">
+                                  {relativeTime(n.createdAt)}
+                                </span>
+                              </div>
+
+                              <p
+                                className={cn(
+                                  'mt-0.5 line-clamp-2 text-xs leading-5',
+                                  isUnread ? 'text-[#475569]' : 'text-[#64748b]',
+                                )}
+                              >
+                                {n.message}
+                              </p>
+
+                              {isUnread && (
+                                <span className="mt-1.5 inline-flex items-center rounded bg-[#1a365d]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#1a365d]">
+                                  New
+                                </span>
+                              )}
+                            </button>
+
+                            {/* Per-row mark as read */}
+                            {isUnread && (
+                              <button
+                                type="button"
+                                onClick={() => handleMarkAsRead(n.id)}
+                                aria-label="Mark as read"
+                                title="Mark as read"
+                                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[#94a3b8] opacity-0 transition hover:bg-white hover:text-[#1a365d] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30 group-hover:opacity-100"
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>

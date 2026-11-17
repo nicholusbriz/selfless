@@ -36,10 +36,54 @@ const commentInclude = {
       lastName: true,
       profileImageUrl: true,
       role: { select: { name: true, displayName: true } },
-      techCenter: { select: { name: true } },
+      techCenter: { select: { id: true, name: true } },
+      previousTechCenterId: true,
     },
   },
 } as const;
+
+async function addPreviousTechCenters<T extends {
+  author: {
+    role: { name: string; displayName: string } | null;
+    techCenter: { id: string; name: string } | null;
+    previousTechCenterId: string | null;
+  };
+}>(comments: T[]) {
+  const previousCenterIds = Array.from(
+    new Set(
+      comments
+        .filter(
+          ({ author }) =>
+            author.role?.name === 'super_admin' &&
+            !author.techCenter &&
+            author.previousTechCenterId,
+        )
+        .map(({ author }) => author.previousTechCenterId!),
+    ),
+  );
+  const previousCenters = previousCenterIds.length
+    ? await prisma.techCenter.findMany({
+        where: { id: { in: previousCenterIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const previousCentersById = new Map(
+    previousCenters.map((techCenter) => [techCenter.id, techCenter]),
+  );
+
+  return comments.map((comment) => ({
+    ...comment,
+    author: {
+      ...comment.author,
+      techCenter:
+        comment.author.techCenter ??
+        (comment.author.role?.name === 'super_admin' &&
+        comment.author.previousTechCenterId
+          ? previousCentersById.get(comment.author.previousTechCenterId) ?? null
+          : null),
+    },
+  }));
+}
 
 export async function GET(
   _request: NextRequest,
@@ -58,7 +102,7 @@ export async function GET(
     orderBy: { createdAt: 'asc' },
   });
 
-  return NextResponse.json({ comments });
+  return NextResponse.json({ comments: await addPreviousTechCenters(comments) });
 }
 
 export async function POST(
@@ -96,5 +140,7 @@ export async function POST(
     include: commentInclude,
   });
 
-  return NextResponse.json({ comment }, { status: 201 });
+  const [commentWithPreviousTechCenter] = await addPreviousTechCenters([comment]);
+
+  return NextResponse.json({ comment: commentWithPreviousTechCenter }, { status: 201 });
 }

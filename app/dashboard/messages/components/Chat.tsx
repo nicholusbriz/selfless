@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MoreVertical, Send, Trash2, AlertCircle } from 'lucide-react';
+import {
+  MoreVertical,
+  Send,
+  Trash2,
+  AlertCircle,
+  Check,
+  CheckCheck,
+  MessageSquare,
+} from 'lucide-react';
 import Image from 'next/image';
 import { useMessages } from '@/hooks/useMessages';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,6 +23,10 @@ interface ChatProps {
   theme: ChatTheme;
   profileImageUrl: string | null;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Background layer
+   ───────────────────────────────────────────────────────────────────────────── */
 
 function ChatBackground({
   theme,
@@ -37,6 +49,38 @@ function ChatBackground({
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function formatTime(date: string) {
+  return new Date(date).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDate(date: string) {
+  const msgDate = new Date(date);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (msgDate.toDateString() === today.toDateString()) return 'Today';
+  if (msgDate.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+  return msgDate.toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
+    year:
+      msgDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Main component
+   ───────────────────────────────────────────────────────────────────────────── */
+
 export function Chat({
   conversationId,
   currentUserId,
@@ -44,13 +88,18 @@ export function Chat({
   profileImageUrl,
 }: ChatProps) {
   const [newMessage, setNewMessage] = useState('');
-  const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(null);
-  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(
+    null,
+  );
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(
+    null,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const themeStyles = getChatTheme(theme);
 
+  /* Close message menu on outside click / escape */
   useEffect(() => {
     if (!openMessageMenuId) return;
 
@@ -75,51 +124,47 @@ export function Chat({
     };
   }, [openMessageMenuId]);
 
-  // Track if we've already marked as read for this conversation
   const markedReadConversationRef = useRef<string | null>(null);
 
-  const { messages, isLoading, error, sendMessage, markMessagesAsRead, isSending } = useMessages({
-    conversationId,
-    currentUserId,
-  });
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    markMessagesAsRead,
+    isSending,
+  } = useMessages({ conversationId, currentUserId });
 
-  // ============================================================
-  // FIXED: Mark messages as read WITHOUT blocking the UI
-  // ============================================================
+  /* ── Mark messages as read optimistically ── */
   useEffect(() => {
-    // Skip if already marked or missing required data
     if (
       !conversationId ||
       !currentUserId ||
       markedReadConversationRef.current === conversationId
-    ) return;
+    )
+      return;
 
     markedReadConversationRef.current = conversationId;
 
-    // Optimistically update the unread count in the UI immediately
     queryClient.setQueryData<ConversationCacheItem[] | undefined>(
       ['conversations', currentUserId],
       (oldData) => {
         if (!oldData) return oldData;
         return oldData.map((conv) =>
-          conv.id === conversationId 
-            ? { ...conv, unreadCount: 0 }
-            : conv
+          conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv,
         );
-      }
+      },
     );
 
-    // Mark as read in the background - DON'T wait for this to complete
-    void markMessagesAsRead().catch((error) => {
+    void markMessagesAsRead().catch((err) => {
       markedReadConversationRef.current = null;
-      console.error('Failed to mark messages as read:', error);
+      console.error('Failed to mark messages as read:', err);
     });
   }, [conversationId, currentUserId, markMessagesAsRead, queryClient]);
 
-  // Keep the message list stable even if the API/realtime layer returns a duplicate.
+  /* ── Dedupe + scroll to bottom ── */
   const uniqueMessages = useMemo(() => {
     const seen = new Set<string>();
-
     return messages.filter((message: Message) => {
       if (seen.has(message.id)) return false;
       seen.add(message.id);
@@ -127,11 +172,11 @@ export function Chat({
     });
   }, [messages]);
 
-  // Keep the newest message visible.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [uniqueMessages]);
 
+  /* ── Handlers ── */
   const handleSend = async () => {
     const trimmed = newMessage.trim();
     if (!trimmed || isSending) return;
@@ -153,24 +198,28 @@ export function Chat({
 
     setDeletingMessageId(messageId);
     setOpenMessageMenuId(null);
+
     const previousMessages = queryClient.getQueryData<Message[]>([
       'messages',
       conversationId,
     ]);
     queryClient.setQueryData<Message[]>(
       ['messages', conversationId],
-      (oldMessages = []) => oldMessages.filter((message) => message.id !== messageId)
+      (oldMessages = []) =>
+        oldMessages.filter((message) => message.id !== messageId),
     );
 
     try {
       const response = await fetch(
         `/api/messages/${conversationId}/${messageId}`,
-        { method: 'DELETE' }
+        { method: 'DELETE' },
       );
 
       if (!response.ok) {
         const data: unknown = await response.json().catch(() => null);
-        throw new Error(getApiErrorMessage(data, 'Failed to delete message'));
+        throw new Error(
+          getApiErrorMessage(data, 'Failed to delete message'),
+        );
       }
 
       void queryClient.invalidateQueries({
@@ -182,34 +231,20 @@ export function Chat({
       void queryClient.invalidateQueries({
         queryKey: ['messages', 'unread-count', currentUserId],
       });
-    } catch (error) {
-      console.error('Failed to delete message:', error);
+    } catch (err) {
+      console.error('Failed to delete message:', err);
       if (previousMessages) {
-        queryClient.setQueryData(['messages', conversationId], previousMessages);
+        queryClient.setQueryData(
+          ['messages', conversationId],
+          previousMessages,
+        );
       }
     } finally {
       setDeletingMessageId(null);
     }
   };
 
-  const formatTime = (date: string) =>
-    new Date(date).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-  const formatDate = (date: string) => {
-    const msgDate = new Date(date);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (msgDate.toDateString() === today.toDateString()) return 'Today';
-    if (msgDate.toDateString() === yesterday.toDateString()) return 'Yesterday';
-
-    return msgDate.toLocaleDateString();
-  };
-
+  /* ── Error state ── */
   if (error) {
     return (
       <div
@@ -217,23 +252,28 @@ export function Chat({
         style={{ backgroundColor: themeStyles.canvasColor }}
       >
         <ChatBackground theme={theme} profileImageUrl={profileImageUrl} />
-        <div className="relative z-10 flex flex-col items-center">
-          <AlertCircle className="mb-3 h-12 w-12 text-[#E53E3E]" strokeWidth={1.5} />
-          <p className="text-sm font-semibold text-[#1A365D]">Unable to load messages</p>
-          <p className="mt-1 text-xs text-[#64748B]">
-            {error instanceof Error ? error.message : 'Something went wrong'}
+        <div className="relative z-10 max-w-xs rounded-xl border border-red-100 bg-white p-5 shadow-sm">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <AlertCircle className="h-5 w-5" strokeWidth={2} />
+          </div>
+          <p className="mt-3 text-sm font-semibold text-[#0f172a]">
+            Unable to load messages
+          </p>
+          <p className="mt-1 text-xs leading-5 text-[#64748b]">
+            {error instanceof Error ? error.message : 'Something went wrong.'}
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-[#1A365D] px-4 py-2 text-sm text-white transition-colors hover:bg-[#153475]"
+            className="mt-4 inline-flex h-9 w-full items-center justify-center rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
           >
-            Try Again
+            Try again
           </button>
         </div>
       </div>
     );
   }
 
+  /* ── Loading skeleton ── */
   if (isLoading) {
     return (
       <div
@@ -241,58 +281,71 @@ export function Chat({
         style={{ backgroundColor: themeStyles.canvasColor }}
       >
         <ChatBackground theme={theme} profileImageUrl={profileImageUrl} />
-        {/* Lightweight skeletons instead of a spinner. */}
-        <div className="relative z-10 flex-1 overflow-hidden px-4 py-5">
+
+        <div className="relative z-10 flex-1 overflow-hidden px-3 py-4 sm:px-4 sm:py-5">
+          {/* incoming */}
           <div className="flex justify-start">
-            <div className="w-[62%] space-y-2 rounded-2xl rounded-bl-md bg-[#F3F6F9] px-4 py-3">
-              <div className="h-3 w-full animate-pulse rounded bg-[#E2E8F0]" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-[#E2E8F0]" />
+            <div className="w-[62%] space-y-2 rounded-2xl rounded-bl-md bg-white/80 px-3.5 py-2.5 shadow-sm">
+              <div className="h-2.5 w-full animate-pulse rounded bg-[#e2e8f0]" />
+              <div className="h-2.5 w-2/3 animate-pulse rounded bg-[#e2e8f0]" />
             </div>
           </div>
 
-          <div className="mt-5 flex justify-end">
-            <div className="w-[58%] space-y-2 rounded-2xl rounded-br-md bg-[#1A365D]/10 px-4 py-3">
-              <div className="h-3 w-full animate-pulse rounded bg-[#D5DFEC]" />
-              <div className="h-3 w-1/2 animate-pulse rounded bg-[#D5DFEC]" />
+          {/* outgoing */}
+          <div className="mt-4 flex justify-end">
+            <div className="w-[58%] space-y-2 rounded-2xl rounded-br-md bg-[#1a365d]/10 px-3.5 py-2.5">
+              <div className="h-2.5 w-full animate-pulse rounded bg-[#d5dfec]" />
+              <div className="h-2.5 w-1/2 animate-pulse rounded bg-[#d5dfec]" />
             </div>
           </div>
 
-          <div className="mt-5 flex justify-start">
-            <div className="w-[48%] space-y-2 rounded-2xl rounded-bl-md bg-[#F3F6F9] px-4 py-3">
-              <div className="h-3 w-full animate-pulse rounded bg-[#E2E8F0]" />
+          {/* incoming */}
+          <div className="mt-4 flex justify-start">
+            <div className="w-[48%] space-y-2 rounded-2xl rounded-bl-md bg-white/80 px-3.5 py-2.5 shadow-sm">
+              <div className="h-2.5 w-full animate-pulse rounded bg-[#e2e8f0]" />
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 border-t border-[#E2E8F0] bg-white px-3 py-3">
-          <div className="h-12 w-full animate-pulse rounded-xl bg-[#F3F6F9]" />
+        <div className="relative z-10 border-t border-[#e2e8f0] bg-white px-3 py-3">
+          <div className="h-10 w-full animate-pulse rounded-xl bg-[#f1f5f9]" />
         </div>
       </div>
     );
   }
 
+  /* ── Main chat ── */
   return (
     <div
       className="relative flex h-full min-h-0 flex-col overflow-hidden"
       style={{ backgroundColor: themeStyles.canvasColor }}
     >
       <ChatBackground theme={theme} profileImageUrl={profileImageUrl} />
-      {/* Messages List */}
-      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5">
+
+      {/* Messages */}
+      <div
+        className="relative z-10 min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5"
+        aria-live="polite"
+        aria-label="Message thread"
+      >
         {uniqueMessages.length === 0 ? (
+          /* Empty thread */
           <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#E2E8F0] bg-white">
-              <Send className="h-5 w-5 text-[#3182CE]" strokeWidth={1.8} />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#e2e8f0] bg-white text-[#1a365d] shadow-sm">
+              <MessageSquare className="h-6 w-6" strokeWidth={1.8} />
             </div>
-            <p className="text-sm font-semibold text-[#1A365D]">No messages yet</p>
-            <p className="mt-1 text-xs text-[#64748B]">
-              Send a message to start the conversation.
+            <p className="mt-3 text-sm font-semibold text-[#0f172a]">
+              Start the conversation
+            </p>
+            <p className="mt-1 max-w-[220px] text-xs leading-5 text-[#64748b]">
+              Send a message below to say hi.
             </p>
           </div>
         ) : (
           <>
+            {/* First date divider */}
             <div className="mb-4 flex justify-center">
-              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-[#788397]">
+              <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748b] shadow-sm">
                 {formatDate(uniqueMessages[0].createdAt)}
               </span>
             </div>
@@ -305,77 +358,76 @@ export function Chat({
                 new Date(message.createdAt).toDateString() !==
                   new Date(uniqueMessages[index - 1].createdAt).toDateString();
 
+              const isMenuOpen = openMessageMenuId === message.id;
+
               return (
                 <div key={message.id}>
                   {showDate && (
-                    <div className="my-5 flex justify-center">
-                      <span className="rounded-full bg-white px-3 py-1 text-[11px] font-medium text-[#788397]">
+                    <div className="my-4 flex justify-center">
+                      <span className="rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748b] shadow-sm">
                         {formatDate(message.createdAt)}
                       </span>
                     </div>
                   )}
 
                   <div
-                    className={`mb-2.5 flex ${
+                    className={`mb-2 flex ${
                       isOwn ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     <div
-                      className={`relative max-w-[86%] border border-black/[0.04] px-4 py-3 shadow-[0_2px_8px_rgba(20,33,61,0.12)] sm:max-w-[72%] ${
+                      className={`relative max-w-[86%] border border-black/[0.04] px-3.5 py-2.5 shadow-[0_1px_3px_rgba(15,23,42,0.08)] sm:max-w-[72%] ${
                         isOwn
-                          ? 'rounded-2xl rounded-br-md pt-3 pr-9'
+                          ? 'rounded-2xl rounded-br-md pr-8'
                           : 'rounded-2xl rounded-bl-md'
                       }`}
                       style={{
                         backgroundColor: isOwn
                           ? themeStyles.outgoingBubbleColor
                           : themeStyles.incomingBubbleColor,
-                        color: isOwn ? '#FFFFFF' : themeStyles.incomingTextColor,
+                        color: isOwn
+                          ? '#FFFFFF'
+                          : themeStyles.incomingTextColor,
                       }}
                     >
+                      {/* Message menu trigger */}
                       {isOwn && (
                         <div
                           data-message-menu
-                          className="absolute right-1 top-1"
+                          className="absolute right-0.5 top-0.5"
                         >
                           <button
                             type="button"
-                            onClick={() => setOpenMessageMenuId((currentId) => (
-                              currentId === message.id ? null : message.id
-                            ))}
+                            onClick={() =>
+                              setOpenMessageMenuId((currentId) =>
+                                currentId === message.id ? null : message.id,
+                              )
+                            }
                             aria-label="Message actions"
-                            aria-expanded={openMessageMenuId === message.id}
-                            className="rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                            aria-haspopup="menu"
+                            aria-expanded={isMenuOpen}
+                            className="rounded-full p-1 text-white/60 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-3.5 w-3.5" />
                           </button>
 
-                          {openMessageMenuId === message.id && (
+                          {isMenuOpen && (
                             <div
                               role="menu"
                               aria-label="Message actions"
-                              className="absolute right-0 top-8 z-20 w-60 overflow-hidden rounded-xl border border-[#E7EAF0] bg-white p-1.5 text-[#1A365D] shadow-[0_12px_32px_rgba(15,23,42,0.18)]"
+                              className="absolute right-0 top-7 z-20 w-56 overflow-hidden rounded-lg border border-[#e2e8f0] bg-white p-1 text-[#0f172a] shadow-xl"
                             >
                               <button
                                 type="button"
                                 role="menuitem"
                                 onClick={() => handleDeleteMessage(message.id)}
                                 disabled={deletingMessageId === message.id}
-                                className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors hover:bg-[#FFF4F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C94C3B]/40 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs font-medium text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60"
                               >
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FFF0ED] text-[#B84032] transition-colors group-hover:bg-[#FDE2DD]">
-                                  <Trash2 className="h-4 w-4" />
-                                </span>
-                                <span className="min-w-0">
-                                  <span className="block text-[13px] font-semibold text-[#A93429]">
-                                    {deletingMessageId === message.id
-                                      ? 'Deleting…'
-                                      : 'Delete for everyone'}
-                                  </span>
-                                  <span className="mt-0.5 block text-[11px] leading-4 text-[#788397]">
-                                    Remove this message for everyone in the chat
-                                  </span>
-                                </span>
+                                <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                {deletingMessageId === message.id
+                                  ? 'Deleting…'
+                                  : 'Delete for everyone'}
                               </button>
                             </div>
                           )}
@@ -386,10 +438,11 @@ export function Chat({
                         {message.content}
                       </p>
 
-                      <div className="mt-1 flex items-center justify-end gap-1.5">
+                      {/* Timestamp + status */}
+                      <div className="mt-0.5 flex items-center justify-end gap-1">
                         <span
-                          className={`text-[10px] ${
-                            isOwn ? 'text-white/65' : 'text-[#94A3B8]'
+                          className={`text-[10px] tabular-nums ${
+                            isOwn ? 'text-white/60' : 'text-[#94a3b8]'
                           }`}
                         >
                           {formatTime(message.createdAt)}
@@ -397,12 +450,20 @@ export function Chat({
 
                         {isOwn && (
                           <span
-                            className={`text-[10px] font-medium ${
-                              message.isRead ? 'text-[#63B3ED]' : 'text-white/55'
+                            className={`flex items-center ${
+                              message.isRead
+                                ? 'text-[#7dd3fc]'
+                                : 'text-white/55'
                             }`}
-                            aria-label={message.isRead ? 'Read' : 'Sent'}
+                            aria-label={
+                              message.isRead ? 'Read' : 'Sent'
+                            }
                           >
-                            {message.isRead ? '✓✓' : '✓'}
+                            {message.isRead ? (
+                              <CheckCheck className="h-3 w-3" strokeWidth={2.5} />
+                            ) : (
+                              <Check className="h-3 w-3" strokeWidth={2.5} />
+                            )}
                           </span>
                         )}
                       </div>
@@ -417,8 +478,8 @@ export function Chat({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Message Input */}
-      <div className="relative z-10 shrink-0 border-t border-[#E8ECF2] bg-white px-3 py-3 sm:px-5">
+      {/* Composer */}
+      <div className="relative z-10 shrink-0 border-t border-[#e2e8f0] bg-white px-2.5 py-2.5 sm:px-3.5">
         <div className="flex w-full items-center gap-2">
           <input
             ref={inputRef}
@@ -427,17 +488,10 @@ export function Chat({
             value={isSending ? '' : newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder="Type a message…"
             disabled={isSending}
             aria-label="Message"
-            className="
-              min-w-0 flex-1 rounded-xl border border-[#E2E7EE] bg-[#F8F9FB]
-              px-3.5 py-3 text-sm text-[#1A365D]
-              placeholder:text-[#9AA3B1]
-              outline-none transition
-              focus:border-[#B98A3E] focus:bg-white focus:ring-2 focus:ring-[#B98A3E]/15
-              disabled:cursor-not-allowed disabled:bg-[#F8F9FB] disabled:opacity-60
-            "
+            className="min-w-0 flex-1 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#0f172a] placeholder:text-[#94a3b8] outline-none transition focus:border-[#1a365d] focus:bg-white focus:ring-2 focus:ring-[#1a365d]/10 disabled:cursor-not-allowed disabled:bg-[#f8fafc] disabled:opacity-60"
           />
 
           <button
@@ -446,17 +500,16 @@ export function Chat({
             disabled={!newMessage.trim() || isSending}
             aria-label="Send message"
             title="Send message"
-            className="
-              flex h-11 w-11 shrink-0 items-center justify-center rounded-xl
-              bg-[#1A2B4C] text-white
-              transition-colors hover:bg-[#263B60]
-              focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/40
-              disabled:cursor-not-allowed disabled:opacity-45
-            "
+            aria-busy={isSending}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a365d] text-white transition hover:bg-[#14294a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
+
+        <p className="mt-1.5 hidden select-none px-1 text-[10px] font-medium text-[#94a3b8] sm:block">
+          Press <kbd className="rounded border border-[#e2e8f0] bg-white px-1 py-0.5 font-mono text-[9px] text-[#64748b]">Enter</kbd> to send
+        </p>
       </div>
     </div>
   );

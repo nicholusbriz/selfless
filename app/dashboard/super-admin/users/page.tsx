@@ -34,6 +34,23 @@ import type { User } from '@/lib/api/admin-users';
 
 type ActionType = 'edit' | 'role' | 'status' | null;
 
+const roleDisplayName = (
+  roleName?: string | null,
+  fallbackName?: string | null,
+) => {
+  const normalizedRole = roleName?.toLowerCase();
+
+  if (!normalizedRole) return fallbackName || 'Student';
+  if (normalizedRole === 'teacher') return 'Tutor';
+  if (normalizedRole === 'admin') return 'Manager';
+  if (normalizedRole === 'superadmin' || normalizedRole === 'super_admin') {
+    return 'Director';
+  }
+  if (normalizedRole === 'dev') return 'Selfless Support';
+
+  return fallbackName || roleName;
+};
+
 const UserAvatar = ({ user }: { user: User }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const imageUrl = user.profileImageUrl?.trim();
@@ -431,7 +448,7 @@ export default function SuperAdminUsersPage() {
                   <option value="">All Roles</option>
                   {userFiltersData.filters.roles.map((role) => (
                     <option key={role.id} value={role.name}>
-                      {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
+                      {roleDisplayName(role.name, role.displayName)}
                     </option>
                   ))}
                 </select>
@@ -525,7 +542,7 @@ export default function SuperAdminUsersPage() {
                             <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
                           )}
                           <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                            {user.role?.name === 'teacher' ? 'Tutor' : user.role?.name === 'admin' ? 'Manager' : user.role?.name === 'superadmin' || user.role?.name === 'super_admin' ? 'Director' : user.role?.name || 'Student'}
+                            {roleDisplayName(user.role?.name)}
                           </span>
                         </div>
                         <div className="flex min-w-0 items-center gap-2 text-xs text-gray-500 sm:gap-2.5">
@@ -760,7 +777,7 @@ export default function SuperAdminUsersPage() {
                                         : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
                                     } disabled:cursor-not-allowed disabled:opacity-50`}
                                   >
-                                    {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
+                                    {roleDisplayName(role.name, role.displayName)}
                                   </button>
                                 ))}
                               </div>

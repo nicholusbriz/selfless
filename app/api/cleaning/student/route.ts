@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -21,14 +21,19 @@ export async function GET() {
         email: true,
         profileImageUrl: true,
         hasVerifiedBadge: true,
-        role: true,
-        techCenter: true
+        role: { select: { name: true } },
+        techCenter: { select: { id: true } },
+        previousTechCenterId: true,
       }
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const techCenterId =
+      user.techCenter?.id ??
+      (user.role?.name === 'super_admin' ? user.previousTechCenterId : null);
 
     // Get user's registrations (can be up to 2)
     const userRegistrations = await prisma.cleaningRegistration.findMany({
@@ -59,10 +64,9 @@ export async function GET() {
 
     // Get all weeks with days so users can see closed weeks and their locked days.
     // Registration and switching remain controlled by the week/day status checks.
-    const weeks = await prisma.week.findMany({
-      where: {
-        techCenterId: user.techCenter?.id || undefined,
-      },
+    const weeks = techCenterId
+      ? await prisma.week.findMany({
+      where: { techCenterId },
       include: {
         days: {
           include: {
@@ -103,12 +107,13 @@ export async function GET() {
       orderBy: {
         startDate: 'asc'
       }
-    });
+    })
+      : [];
 
-    const studentsInCenter = user.techCenter?.id
+    const studentsInCenter = techCenterId
       ? await prisma.user.findMany({
           where: {
-            techCenterId: user.techCenter.id,
+            techCenterId,
             status: 'ACTIVE',
             role: { name: 'student' },
           },
@@ -178,7 +183,7 @@ export async function GET() {
         email: user.email,
         profileImageUrl: user.profileImageUrl,
         role: user.role?.name || 'student',
-        techCenterId: user.techCenter?.id
+        techCenterId
       },
       registrations: userRegistrations,
       userAttendance,

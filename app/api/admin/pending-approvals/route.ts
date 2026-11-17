@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build where clause based on user role
-    let whereClause: any = {
+    const whereClause: any = {
       verificationStatus: 'PENDING',
       isVerified: false,
     };

@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Home,
   Plus,
   CalendarDays,
   Landmark,
@@ -16,6 +16,8 @@ import {
   Loader2,
   Users,
   Trash2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import {
   useQuery,
@@ -24,6 +26,10 @@ import {
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { CreateTripForm, TripFormData } from './components/CreateTripForm';
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Types
+   ───────────────────────────────────────────────────────────────────────────── */
 
 interface TempleTrip {
   id: string;
@@ -42,15 +48,9 @@ interface TempleTrip {
     firstName: string;
     lastName: string;
     profileImageUrl: string | null;
-    role: {
-      name: string;
-      displayName: string;
-    };
+    role: { name: string; displayName: string };
   };
-  techCenter: {
-    id: string;
-    name: string;
-  } | null;
+  techCenter: { id: string; name: string } | null;
   registrations: {
     id: string;
     user: {
@@ -58,9 +58,7 @@ interface TempleTrip {
       firstName: string;
       lastName: string;
       profileImageUrl: string | null;
-      techCenter: {
-        name: string;
-      } | null;
+      techCenter: { name: string } | null;
     };
   }[];
 }
@@ -74,6 +72,10 @@ interface TempleTripsQueryData {
   };
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Page
+   ───────────────────────────────────────────────────────────────────────────── */
+
 export default function TempleTripsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -81,23 +83,13 @@ export default function TempleTripsPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // ---------------------------------------------------------
-  // FETCH TEMPLE TRIPS
-  // ---------------------------------------------------------
+  /* ────────────── Queries ────────────── */
 
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery<TempleTripsQueryData>({
+  const { data, isLoading, error, refetch } = useQuery<TempleTripsQueryData>({
     queryKey: ['temple-trips'],
     queryFn: async () => {
       const response = await fetch('/api/temple-trips');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch temple trips');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch temple trips');
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -107,257 +99,149 @@ export default function TempleTripsPage() {
   const currentUser = data?.currentUser;
   const trips: TempleTrip[] = data?.trips || [];
 
-  // ---------------------------------------------------------
-  // CREATE TRIP MUTATION
-  // ---------------------------------------------------------
+  /* ────────────── Mutations ────────────── */
 
   const createMutation = useMutation({
     mutationFn: async (tripData: TripFormData) => {
       const response = await fetch('/api/temple-trips', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tripData),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create temple trip');
-      }
-
+      if (!response.ok) throw new Error('Failed to create temple trip');
       return response.json();
     },
-
     onMutate: async () => {
-      await queryClient.cancelQueries({
-        queryKey: ['temple-trips'],
-      });
-
-      const previousData = queryClient.getQueryData([
-        'temple-trips',
-      ]);
-
+      await queryClient.cancelQueries({ queryKey: ['temple-trips'] });
+      const previousData = queryClient.getQueryData(['temple-trips']);
       return { previousData };
     },
-
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(
-          ['temple-trips'],
-          context.previousData
-        );
+        queryClient.setQueryData(['temple-trips'], context.previousData);
       }
     },
-
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['temple-trips'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['temple-trips'] });
     },
   });
-
-  // ---------------------------------------------------------
-  // REGISTER MUTATION
-  // ---------------------------------------------------------
 
   const registerMutation = useMutation({
     mutationFn: async (tripId: string) => {
       const response = await fetch(`/api/temple-trips/${tripId}/register`, {
         method: 'POST',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to register for trip');
-      }
-
+      if (!response.ok) throw new Error('Failed to register for trip');
       return response.json();
     },
-
     onMutate: async (tripId) => {
-      await queryClient.cancelQueries({
-        queryKey: ['temple-trips'],
-      });
-
-      const previousData = queryClient.getQueryData<TempleTripsQueryData>([
-        'temple-trips',
-      ]);
-
-      queryClient.setQueryData<TempleTripsQueryData>(
-        ['temple-trips'],
-        (old) => {
-          if (!old) return old;
-
-          return {
-            ...old,
-            trips: old.trips.map((trip) =>
-              trip.id === tripId
-                ? {
-                    ...trip,
-                    registrations: [
-                      ...trip.registrations,
-                      {
-                        id: 'temp',
-                        user: {
-                          id: user?.id || '',
-                          firstName: user?.firstName || '',
-                          lastName: user?.lastName || '',
-                          profileImageUrl: user?.profileImageUrl || null,
-                          techCenter: null,
-                        },
+      await queryClient.cancelQueries({ queryKey: ['temple-trips'] });
+      const previousData = queryClient.getQueryData<TempleTripsQueryData>(['temple-trips']);
+      queryClient.setQueryData<TempleTripsQueryData>(['temple-trips'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          trips: old.trips.map((trip) =>
+            trip.id === tripId
+              ? {
+                  ...trip,
+                  registrations: [
+                    ...trip.registrations,
+                    {
+                      id: 'temp',
+                      user: {
+                        id: user?.id || '',
+                        firstName: user?.firstName || '',
+                        lastName: user?.lastName || '',
+                        profileImageUrl: user?.profileImageUrl || null,
+                        techCenter: null,
                       },
-                    ],
-                  }
-                : trip
-            ),
-          };
-        }
-      );
-
+                    },
+                  ],
+                }
+              : trip,
+          ),
+        };
+      });
       return { previousData };
     },
-
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(
-          ['temple-trips'],
-          context.previousData
-        );
+        queryClient.setQueryData(['temple-trips'], context.previousData);
       }
     },
-
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['temple-trips'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['temple-trips'] });
     },
   });
-
-  // ---------------------------------------------------------
-  // UNREGISTER MUTATION
-  // ---------------------------------------------------------
 
   const unregisterMutation = useMutation({
     mutationFn: async (tripId: string) => {
       const response = await fetch(`/api/temple-trips/${tripId}/register`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to unregister from trip');
-      }
-
+      if (!response.ok) throw new Error('Failed to unregister from trip');
       return response.json();
     },
-
     onMutate: async (tripId) => {
-      await queryClient.cancelQueries({
-        queryKey: ['temple-trips'],
+      await queryClient.cancelQueries({ queryKey: ['temple-trips'] });
+      const previousData = queryClient.getQueryData<TempleTripsQueryData>(['temple-trips']);
+      queryClient.setQueryData<TempleTripsQueryData>(['temple-trips'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          trips: old.trips.map((trip) =>
+            trip.id === tripId
+              ? {
+                  ...trip,
+                  registrations: trip.registrations.filter(
+                    (reg) => reg.user.id !== user?.id,
+                  ),
+                }
+              : trip,
+          ),
+        };
       });
-
-      const previousData = queryClient.getQueryData<TempleTripsQueryData>([
-        'temple-trips',
-      ]);
-
-      queryClient.setQueryData<TempleTripsQueryData>(
-        ['temple-trips'],
-        (old) => {
-          if (!old) return old;
-
-          return {
-            ...old,
-            trips: old.trips.map((trip) =>
-              trip.id === tripId
-                ? {
-                    ...trip,
-                    registrations: trip.registrations.filter(
-                      (reg) => reg.user.id !== user?.id
-                    ),
-                  }
-                : trip
-            ),
-          };
-        }
-      );
-
       return { previousData };
     },
-
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(
-          ['temple-trips'],
-          context.previousData
-        );
+        queryClient.setQueryData(['temple-trips'], context.previousData);
       }
     },
-
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['temple-trips'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['temple-trips'] });
     },
   });
-
-  // ---------------------------------------------------------
-  // DELETE TRIP MUTATION
-  // ---------------------------------------------------------
 
   const deleteTripMutation = useMutation({
     mutationFn: async (tripId: string) => {
       const response = await fetch(`/api/temple-trips/${tripId}`, {
         method: 'DELETE',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete trip');
-      }
-
+      if (!response.ok) throw new Error('Failed to delete trip');
       return response.json();
     },
-
     onMutate: async (tripId) => {
-      await queryClient.cancelQueries({
-        queryKey: ['temple-trips'],
+      await queryClient.cancelQueries({ queryKey: ['temple-trips'] });
+      const previousData = queryClient.getQueryData<TempleTripsQueryData>(['temple-trips']);
+      queryClient.setQueryData<TempleTripsQueryData>(['temple-trips'], (old) => {
+        if (!old) return old;
+        return { ...old, trips: old.trips.filter((trip) => trip.id !== tripId) };
       });
-
-      const previousData = queryClient.getQueryData<TempleTripsQueryData>([
-        'temple-trips',
-      ]);
-
-      queryClient.setQueryData<TempleTripsQueryData>(
-        ['temple-trips'],
-        (old) => {
-          if (!old) return old;
-
-          return {
-            ...old,
-            trips: old.trips.filter((trip) => trip.id !== tripId),
-          };
-        }
-      );
-
       return { previousData };
     },
-
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(
-          ['temple-trips'],
-          context.previousData
-        );
+        queryClient.setQueryData(['temple-trips'], context.previousData);
       }
     },
-
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['temple-trips'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['temple-trips'] });
     },
   });
 
-  // ---------------------------------------------------------
-  // HANDLERS
-  // ---------------------------------------------------------
+  /* ────────────── Handlers ────────────── */
 
   const handleCreateTrip = async (tripData: TripFormData) => {
     try {
@@ -390,7 +274,6 @@ export default function TempleTripsPage() {
     if (!confirm('Are you sure you want to delete this temple trip? This action cannot be undone.')) {
       return;
     }
-
     try {
       await deleteTripMutation.mutateAsync(tripId);
     } catch (error) {
@@ -400,36 +283,30 @@ export default function TempleTripsPage() {
   };
 
   const canDeleteTrip = (trip: TempleTrip) => {
-    // Super admins and dev can delete any trip
     if (currentUser?.isAdmin) {
       const userRole = user?.role;
-      if (userRole === 'super_admin' || userRole === 'dev') {
-        return true;
-      }
-      // Admins can only delete their own trips
+      if (userRole === 'super_admin' || userRole === 'dev') return true;
       return trip.createdBy.id === user?.id;
     }
     return false;
   };
 
-  const isRegistered = (trip: TempleTrip) => {
-    return trip.registrations.some((reg) => reg.user.id === user?.id);
-  };
+  const isRegistered = (trip: TempleTrip) =>
+    trip.registrations.some((reg) => reg.user.id === user?.id);
 
-  // ---------------------------------------------------------
-  // LOADING
-  // ---------------------------------------------------------
+  /* ────────────── Loading ────────────── */
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F7F8FA]">
-        <div className="mx-auto max-w-4xl px-5 py-10 md:px-8 md:py-14">
-          <div className="mb-8 h-8 w-48 animate-pulse rounded-lg bg-[#E2E8F0]" />
+      <div className="min-h-screen bg-[#f8fafc]">
+        <div className="mx-auto max-w-4xl px-4 pt-12 pb-10 sm:px-6 lg:px-8">
+          <div className="mb-6 h-9 w-48 animate-pulse rounded-lg bg-[#e2e8f0]" />
+          <div className="mb-5 h-16 animate-pulse rounded-xl border border-[#e2e8f0] bg-white" />
           <div className="space-y-4">
-            {[1, 2].map((item) => (
+            {[1, 2].map((i) => (
               <div
-                key={item}
-                className="h-64 animate-pulse rounded-2xl border border-[#E2E8F0] bg-white shadow-sm"
+                key={i}
+                className="h-64 animate-pulse rounded-xl border border-[#e2e8f0] bg-white"
               />
             ))}
           </div>
@@ -438,95 +315,80 @@ export default function TempleTripsPage() {
     );
   }
 
-  // ---------------------------------------------------------
-  // ERROR
-  // ---------------------------------------------------------
+  /* ────────────── Error ────────────── */
 
   if (error instanceof Error) {
     return (
-      <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center px-6">
-        <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-[#1E293B]">
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-4">
+        <div className="w-full max-w-md rounded-xl border border-[#e2e8f0] bg-white p-6 text-center">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+          <h2 className="mt-3 text-base font-semibold text-[#0f172a]">
             Unable to load temple trips
           </h2>
-          <p className="mt-2 text-sm text-[#64748B]">
-            Something went wrong while loading the temple trips.
+          <p className="mt-1 text-xs leading-5 text-[#64748b]">
+            Something went wrong while loading the temple trips. Please try again.
           </p>
           <button
-            onClick={() =>
-              queryClient.invalidateQueries({
-                queryKey: ['temple-trips'],
-              })
-            }
-            className="mt-5 rounded-xl bg-[#1A365D] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#153475]"
+            onClick={() => void refetch()}
+            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
           >
-            Try Again
+            <RefreshCw className="h-3.5 w-3.5" />
+            Try again
           </button>
         </div>
       </div>
     );
   }
 
-  // ---------------------------------------------------------
-  // MAIN PAGE
-  // ---------------------------------------------------------
+  /* ────────────── Main ────────────── */
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] text-[#12203B]">
-      {/* Header */}
-      <div className="mx-auto max-w-4xl px-5 py-10 md:px-8 md:py-14">
-        <div className="mb-8 flex items-center gap-3">
-          <button
-            onClick={() => router.back()}
-            aria-label="Go back"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#64748B] transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#1A365D]"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-
-          <button
-            onClick={() => router.push('/dashboard')}
-            aria-label="Go to dashboard"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#64748B] transition-all hover:border-[#CBD5E1] hover:bg-[#F8FAFC] hover:text-[#1A365D]"
-          >
-            <Home className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="mb-8">
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.08em] text-[#7A8495]">
+    <div className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
+      <div className="mx-auto max-w-4xl px-4 pt-12 pb-10 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#a67a34]">
             Student Activities
           </p>
-
-          <h1 className="text-2xl font-semibold tracking-tight text-[#12203B] md:text-3xl">
-            Temple Trips
-          </h1>
-
-          <p className="mt-3 text-base leading-7 text-[#667085]">
-            View upcoming temple trips and register for the trips you would
-            like to attend.
+          <div className="mt-1.5 flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              aria-label="Go back"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#e2e8f0] bg-white text-[#64748b] transition hover:bg-[#f8fafc] hover:text-[#1a365d]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Temple Trips
+            </h1>
+          </div>
+          <p className="mt-1.5 text-sm leading-6 text-[#64748b]">
+            View upcoming temple trips and register for the trips you would like to attend.
           </p>
         </div>
 
-        {/* Create Trip Button - Admins only */}
+        {/* Create button */}
         {currentUser?.isAdmin && (
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="mb-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1A365D] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#153475] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#3182CE]/30 focus:ring-offset-2"
+            className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#1a365d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14294a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a365d]/30"
           >
-            <Plus className="h-5 w-5" />
-            {showCreateForm ? 'Close Create Form' : 'Create Temple Trip'}
+            <Plus className="h-4 w-4" />
+            {showCreateForm ? 'Close form' : 'Create temple trip'}
           </button>
         )}
 
-        {/* Create Form */}
+        {/* Create form */}
         <AnimatePresence>
           {showCreateForm && (
             <motion.div
-              initial={{ opacity: 0, height: 0, y: -10 }}
+              initial={{ opacity: 0, height: 0, y: -8 }}
               animate={{ opacity: 1, height: 'auto', y: 0 }}
-              exit={{ opacity: 0, height: 0, y: -10 }}
-              className="mb-8 overflow-hidden"
+              exit={{ opacity: 0, height: 0, y: -8 }}
+              className="mb-5 overflow-hidden"
             >
               <CreateTripForm
                 onSubmit={handleCreateTrip}
@@ -537,19 +399,19 @@ export default function TempleTripsPage() {
           )}
         </AnimatePresence>
 
-        {/* Trips List */}
+        {/* List */}
         {trips.length === 0 ? (
-          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-12 text-center shadow-sm">
-            <Landmark className="mx-auto mb-4 h-12 w-12 text-[#94A3B8]" />
-            <h3 className="text-lg font-semibold text-[#1E293B]">
-              No temple trips available
-            </h3>
-            <p className="mt-2 text-sm text-[#64748B]">
+          <div className="rounded-xl border border-dashed border-[#cbd5e1] bg-white px-6 py-14 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1f5f9] text-[#334155]">
+              <Landmark className="h-5 w-5" />
+            </div>
+            <h3 className="mt-3 text-sm font-semibold">No temple trips available</h3>
+            <p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-[#64748b]">
               Check back later for upcoming temple trips.
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {trips.map((trip) => (
               <TripCard
                 key={trip.id}
@@ -571,9 +433,9 @@ export default function TempleTripsPage() {
   );
 }
 
-// ---------------------------------------------------------
-// TRIP CARD COMPONENT
-// ---------------------------------------------------------
+/* ─────────────────────────────────────────────────────────────────────────────
+   Trip Card
+   ───────────────────────────────────────────────────────────────────────────── */
 
 interface TripCardProps {
   trip: TempleTrip;
@@ -599,167 +461,197 @@ function TripCard({
   isDeleting,
 }: TripCardProps) {
   return (
-    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-      {/* Coordinator Info */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2F7]">
-          <User className="h-5 w-5 text-[#1A365D]" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[#25344D]">
-            {trip.coordinatorName}
-          </p>
-          <p className="text-xs text-[#7A8495]">Trip Coordinator</p>
-        </div>
-      </div>
+    <article className="overflow-hidden rounded-xl border border-[#e2e8f0] bg-white transition hover:shadow-sm">
+      {/* Gold accent bar for flagged trips */}
+      {trip.flag && <div className="h-1 w-full bg-[#a67a34]" />}
 
-      {/* Title Block */}
-      <div className="mb-6">
-        {trip.flag && (
-          <p className="text-sm font-semibold uppercase tracking-[0.1em] text-[#A67A34]">
-            {trip.flag} Upcoming Trip
-          </p>
-        )}
-        <h2 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-[#12203B]">
-          {trip.title}
-        </h2>
-        {trip.subtitle && (
-          <p className="mt-1 text-lg font-semibold text-[#A67A34]">
-            {trip.subtitle}
-          </p>
-        )}
-        {(trip.dateRange || trip.location) && (
-          <div className="mt-4 space-y-2 text-sm text-[#667085]">
-            {trip.dateRange && (
-              <div className="flex items-center gap-3">
-                <CalendarDays className="h-4 w-4 shrink-0 text-[#1A365D]" />
-                <span>{trip.dateRange}</span>
-              </div>
-            )}
-            {trip.location && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 shrink-0 text-[#1A365D]" />
-                <span>{trip.location}</span>
-              </div>
-            )}
+      <div className="p-5 sm:p-6">
+        {/* Coordinator header */}
+        <div className="mb-4 flex items-center gap-2.5">
+          {trip.createdBy.profileImageUrl ? (
+            <Image
+              src={trip.createdBy.profileImageUrl}
+              alt=""
+              width={36}
+              height={36}
+              unoptimized
+              className="h-9 w-9 rounded-full object-cover ring-1 ring-[#e2e8f0]"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2f8] ring-1 ring-[#e2e8f0]">
+              <User className="h-4 w-4 text-[#1a365d]" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#0f172a]">
+              {trip.coordinatorName}
+            </p>
+            <p className="truncate text-[11px] text-[#64748b]">
+              {trip.createdBy.role.displayName} · {trip.techCenter?.name ?? 'Community'}
+            </p>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Description */}
-      <div className="mb-6">
-        <p className="text-base leading-7 text-[#667085] whitespace-pre-wrap">
+        {/* Title block */}
+        <div className="mb-4">
+          {trip.flag && (
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a67a34]">
+              {trip.flag} Upcoming trip
+            </p>
+          )}
+          <h2 className="text-lg font-bold leading-snug tracking-tight text-[#0f172a] sm:text-xl">
+            {trip.title}
+          </h2>
+          {trip.subtitle && (
+            <p className="mt-0.5 text-sm font-semibold text-[#a67a34]">
+              {trip.subtitle}
+            </p>
+          )}
+
+          {(trip.dateRange || trip.location) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {trip.dateRange && (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[#f8fafc] px-2.5 py-1 text-[11px] font-medium text-[#334155]">
+                  <CalendarDays className="h-3 w-3 text-[#1a365d]" />
+                  {trip.dateRange}
+                </span>
+              )}
+              {trip.location && (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-[#f8fafc] px-2.5 py-1 text-[11px] font-medium text-[#334155]">
+                  <MapPin className="h-3 w-3 text-[#1a365d]" />
+                  {trip.location}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Description */}
+        <p className="whitespace-pre-wrap text-sm leading-6 text-[#64748b]">
           {trip.description}
         </p>
-      </div>
 
-      {/* Requirements */}
-      {trip.requirements && trip.requirements.length > 0 && (
-        <div className="mb-6">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.1em] text-[#7A8495]">
-            Requirements for Participation
-          </h3>
-          <div className="text-sm leading-6 text-[#667085] whitespace-pre-wrap">
-            {trip.requirements.join('\n')}
+        {/* Requirements */}
+        {trip.requirements && trip.requirements.length > 0 && (
+          <div className="mt-4 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3.5">
+            <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748b]">
+              Requirements for participation
+            </h3>
+            <ul className="space-y-1.5">
+              {trip.requirements.map((req, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs leading-5 text-[#334155]">
+                  <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#1a365d]" />
+                  <span>{req}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Closing Text */}
-      {trip.closingText && (
-        <div className="mb-6">
-          <p className="text-base leading-7 text-[#667085] whitespace-pre-wrap">
+        {/* Closing text */}
+        {trip.closingText && (
+          <p className="mt-4 whitespace-pre-wrap text-xs leading-5 text-[#64748b]">
             {trip.closingText}
           </p>
-        </div>
-      )}
+        )}
 
-      {/* Registered Users */}
-      {trip.registrations.length > 0 && (
-        <div className="mb-6 rounded-xl bg-[#F8FAFC] p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Users className="h-4 w-4 text-[#1A365D]" />
-            <h3 className="text-sm font-semibold text-[#1A365D]">
-              Registered Participants ({trip.registrations.length})
-            </h3>
-          </div>
-          <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
-            {trip.registrations.map((registration) => (
-              <div
-                key={registration.id}
-                className="flex items-center gap-3 rounded-lg bg-white p-2.5"
-              >
-                {registration.user.profileImageUrl ? (
-                  <img
-                    src={registration.user.profileImageUrl}
-                    alt={`${registration.user.firstName} ${registration.user.lastName}`}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EEF2F7]">
-                    <User className="h-4 w-4 text-[#1A365D]" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-[#1E293B]">
-                    {registration.user.firstName} {registration.user.lastName}
-                  </p>
-                  {registration.user.techCenter && (
-                    <p className="text-xs text-[#64748B]">
-                      {registration.user.techCenter.name}
-                    </p>
-                  )}
-                </div>
+        {/* Participants */}
+        {trip.registrations.length > 0 && (
+          <div className="mt-4 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-3.5">
+            <div className="mb-2.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-[#1a365d]" />
+                <h3 className="text-xs font-semibold text-[#0f172a]">
+                  Registered participants
+                </h3>
+                <span className="rounded-full bg-[#1a365d] px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
+                  {trip.registrations.length}
+                </span>
               </div>
-            ))}
+            </div>
+            <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+              {trip.registrations.map((reg) => (
+                <div
+                  key={reg.id}
+                  className="flex items-center gap-2.5 rounded-md bg-white px-2 py-1.5"
+                >
+                  {reg.user.profileImageUrl ? (
+                    <Image
+                      src={reg.user.profileImageUrl}
+                      alt=""
+                      width={28}
+                      height={28}
+                      unoptimized
+                      className="h-7 w-7 rounded-full object-cover ring-1 ring-[#e2e8f0]"
+                    />
+                  ) : (
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#eef2f8] text-[10px] font-bold text-[#1a365d]">
+                      {reg.user.firstName[0]}
+                      {reg.user.lastName[0]}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-[#0f172a]">
+                      {reg.user.firstName} {reg.user.lastName}
+                    </p>
+                    {reg.user.techCenter && (
+                      <p className="truncate text-[10px] text-[#64748b]">
+                        {reg.user.techCenter.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Register/Unregister Button */}
-      <div className="flex items-center justify-end gap-3">
-        {canDelete && (
-          <button
-            onClick={onDelete}
-            disabled={isDeleting}
-            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition-all hover:border-red-300 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete
-          </button>
-        )}
-        {isRegistered ? (
-          <button
-            onClick={onUnregister}
-            disabled={isUnregistering}
-            className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition-all hover:border-red-300 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUnregistering ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <X className="h-4 w-4" />
-            )}
-            Unregister
-          </button>
-        ) : (
-          <button
-            onClick={onRegister}
-            disabled={isRegistering}
-            className="flex items-center gap-2 rounded-lg bg-[#1A365D] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#153475] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isRegistering ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
-            Register for Trip
-          </button>
-        )}
+        {/* Actions */}
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-[#e2e8f0] pt-4">
+          {canDelete && (
+            <button
+              onClick={onDelete}
+              disabled={isDeleting}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              Delete
+            </button>
+          )}
+
+          {isRegistered ? (
+            <button
+              onClick={onUnregister}
+              disabled={isUnregistering}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isUnregistering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <X className="h-3.5 w-3.5" />
+              )}
+              Unregister
+            </button>
+          ) : (
+            <button
+              onClick={onRegister}
+              disabled={isRegistering}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a365d] px-4 text-xs font-semibold text-white transition hover:bg-[#14294a] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isRegistering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              Register for trip
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
