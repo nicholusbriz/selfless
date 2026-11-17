@@ -63,7 +63,7 @@ export default function MediaApprovalsPage() {
     queryKey: ['pending-media'],
     queryFn: async () => {
       const response = await fetch('/api/media/list?status=pending');
-      const data = await response.json();
+      const data = (await response.json()) as Record<string, unknown>;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, 'Failed to fetch pending media'));
       }

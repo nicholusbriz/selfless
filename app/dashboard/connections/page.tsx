@@ -20,15 +20,13 @@ import {
 import Image from 'next/image';
 
 import { SocialActions } from '@/components/social/SocialActions';
-import { UnfollowButton } from '@/components/social/UnfollowButton';
-import { UnlikeButton } from '@/components/social/UnlikeButton';
 import { useSocialActions } from '@/lib/hooks/useSocialActions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 // ============================================================
-// BRAND TOKENS (mirrors students page)
+// CONSTANTS
 // ============================================================
 
-const GOLD_DEEP = '#B98A3E';
 const CONNECTION_PAGE_SIZE = 20;
 
 // ============================================================
@@ -40,6 +38,7 @@ interface ConnectionUser {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  hasVerifiedBadge?: boolean;
   techCenter: { id: string; name: string } | null;
   role?: { name: string } | null;
   generalCourse?: string | null;
@@ -78,7 +77,7 @@ type TabKey = 'trending' | 'followers' | 'following' | 'likes';
 type LikesView = 'received' | 'sent';
 
 // ============================================================
-// FETCHERS (typed to satisfy strict TS)
+// FETCHERS
 // ============================================================
 
 async function fetchConnections(
@@ -208,15 +207,15 @@ function formatRole(role?: { name: string } | null) {
 
 const CardSkeleton = () => (
   <div
-    className="relative aspect-[3/4] w-full overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115]"
+    className="relative aspect-[3/4] w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#F3F4F6]"
     aria-hidden="true"
   >
-    <div className="h-full w-full animate-pulse bg-[#18212F]" />
+    <div className="h-full w-full animate-pulse bg-[#E5E7EB]" />
   </div>
 );
 
 const GridSkeleton = ({ cards = 6 }: { cards?: number }) => (
-  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
     {Array.from({ length: cards }).map((_, i) => (
       <CardSkeleton key={i} />
     ))}
@@ -224,15 +223,15 @@ const GridSkeleton = ({ cards = 6 }: { cards?: number }) => (
 );
 
 const StatsSkeleton = () => (
-  <div className="mt-4 flex flex-wrap items-center gap-2 animate-pulse">
+  <div className="mt-3 flex flex-wrap items-center gap-1.5 animate-pulse">
     {[0, 1, 2, 3].map((i) => (
-      <div key={i} className="h-7 w-28 rounded-full bg-[#E5E7EB]" />
+      <div key={i} className="h-6 w-24 rounded-md bg-[#E5E7EB]" />
     ))}
   </div>
 );
 
 // ============================================================
-// CONNECTION CARD (matches DiscoverStudents visual language)
+// CONNECTION CARD
 // ============================================================
 
 function ConnectionCard({
@@ -270,12 +269,12 @@ function ConnectionCard({
         ? 'bg-[#C0C0C0] text-[#1A2B4C]'
         : rank === 3
           ? 'bg-[#CD7F32] text-white'
-          : 'bg-white/15 text-white';
+          : 'bg-black/50 text-white';
 
   return (
     <article
-      className="group row-enter relative w-full overflow-hidden rounded-[22px] border border-[#C8A24A]/40 bg-[#0F1115] shadow-[0_24px_65px_rgba(0,0,0,0.52)] transition-all hover:border-[#C8A24A]/70 hover:shadow-[0_28px_75px_rgba(0,0,0,0.6)]"
-      style={{ animationDelay: `${Math.min(rank * 30, 300)}ms` }}
+      className="group row-enter relative w-full overflow-hidden rounded-lg border border-[#E5E7EB] bg-[#0F1115] shadow-sm transition-all hover:border-[#C59B4C]/50 hover:shadow-md"
+      style={{ animationDelay: `${Math.min(rank * 25, 250)}ms` }}
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-black">
         {user.profileImageUrl ? (
@@ -283,112 +282,113 @@ function ConnectionCard({
             src={user.profileImageUrl}
             alt={fullName}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="h-full w-full object-cover object-center"
-            quality={95}
+            quality={90}
             priority={rank === 1}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-4xl font-semibold text-white/70">
+          <div className="flex h-full w-full items-center justify-center bg-[#18212F] text-3xl font-semibold text-white/70">
             {initials}
           </div>
         )}
 
         {/* Top badges */}
-        <div className="absolute left-3 top-3 flex items-center gap-1.5">
+        <div className="absolute left-2 top-2 flex items-center gap-1.5">
           {isTrending && (
             <span
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-mono text-[11px] font-bold tabular-nums shadow-sm ${rankBadgeStyles}`}
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold tabular-nums shadow-sm ${rankBadgeStyles}`}
               aria-label={`Rank ${rank}`}
             >
               {rank}
             </span>
           )}
           {isSelf && (
-            <span className="inline-flex items-center rounded-full border border-white/40 bg-black/40 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
+            <span className="inline-flex items-center rounded-full border border-white/40 bg-black/50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white backdrop-blur">
               You
             </span>
           )}
         </div>
 
-        {/* Text overlay — identical structure to DiscoverStudents */}
-        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4">
-          <div className="flex flex-col gap-2">
-            {/* Row 1 — Name + Role */}
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[16px] font-bold leading-tight text-white">
-                {fullName}
-              </h3>
-              {roleLabel && (
-                <span className="shrink-0 text-[11px] font-medium text-white/90">
-                  {roleLabel}
-                </span>
-              )}
+        {/* Text overlay */}
+        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/40 to-transparent p-2.5">
+          <div className="flex flex-col gap-1">
+            {/* Name + Role */}
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="flex min-w-0 items-center gap-1">
+                <h3 className="line-clamp-2 text-[13px] font-bold leading-tight text-white">
+                  {fullName}
+                </h3>
+                {user.hasVerifiedBadge && (
+                  <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
+                )}
+              </div>
+              <span className="shrink-0 rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur">
+                {roleLabel}
+              </span>
             </div>
 
-            {/* Row 2 — Course */}
+            {/* Course */}
             {user.generalCourse && (
-              <p className="text-[13px] font-medium text-white">
+              <p className="line-clamp-1 text-[11px] font-medium text-white/85">
                 {user.generalCourse}
               </p>
             )}
 
-            {/* Row 3 — Tech Center */}
+            {/* Tech Center */}
             {user.techCenter?.name && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-[12px] w-[12px] shrink-0 text-[#D4A84B]" />
-                <span className="text-[12px] font-medium text-white/90">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-2.5 w-2.5 shrink-0 text-[#D4A84B]" />
+                <span className="line-clamp-1 text-[10.5px] font-medium text-white/85">
                   {user.techCenter.name}
                 </span>
               </div>
             )}
 
-            {/* Row 3.5 — Previous Tech Center (for directors) */}
+            {/* Previous Tech Center */}
             {user.previousTechCenter?.name && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-[12px] w-[12px] shrink-0 text-white/60" />
-                <span className="text-[11px] font-medium text-white/70">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-2.5 w-2.5 shrink-0 text-white/50" />
+                <span className="line-clamp-1 text-[10px] font-medium text-white/60">
                   {user.previousTechCenter.name}
                 </span>
               </div>
             )}
 
-            {/* Row 4 — Date label (non-trending tabs) */}
+            {/* Date label */}
             {!isTrending && dateLabel && (
-              <p className="text-[10.5px] font-medium text-white/70">
+              <p className="line-clamp-1 text-[9.5px] font-medium text-white/65">
                 {dateLabel}
               </p>
             )}
 
-            {/* Row 5 — Stats */}
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-white/90">
+            {/* Stats */}
+            <div className="flex items-center gap-1.5 text-[10px] text-white/85">
               <span className="font-semibold text-white tabular-nums">
                 {user.followersCount}
               </span>
               <span>followers</span>
-              <span className="text-white/60">•</span>
+              <span className="text-white/50">·</span>
               <span className="font-semibold text-white tabular-nums">
                 {Math.max(0, user.likesReceivedCount)}
               </span>
               <span>likes</span>
-              <span className="text-white/60">•</span>
+              <span className="text-white/50">·</span>
               <span className="font-semibold text-white tabular-nums">
                 {user.profileViewsCount}
               </span>
               <span>views</span>
             </div>
 
-            {/* Row 6 — Actions */}
+            {/* Actions */}
             {!isSelf && (
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <div className="mt-1.5 flex flex-wrap items-center gap-1">
                 <button
                   type="button"
-                  onClick={() =>
-                    router.push(`/dashboard/students/${user.id}`)
-                  }
-                  className="inline-flex items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:border-white/50 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  onClick={() => router.push(`/dashboard/students/${user.id}`)}
+                  className="inline-flex items-center gap-1 rounded border border-white/30 bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
                 >
-                  View Profile
+                  View
                 </button>
 
                 <button
@@ -396,11 +396,11 @@ function ConnectionCard({
                   onClick={() =>
                     router.push(`/dashboard/messages?userId=${user.id}`)
                   }
-                  className="inline-flex items-center gap-1 rounded-md border border-white/30 bg-black/25 px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-black/35 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
+                  className="inline-flex items-center gap-1 rounded border border-white/30 bg-black/30 px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B]"
                   aria-label={`Message ${fullName}`}
                   title={`Message ${fullName}`}
                 >
-                  <MessageSquare className="h-3 w-3" />
+                  <MessageSquare className="h-2.5 w-2.5" />
                   Message
                 </button>
 
@@ -419,8 +419,8 @@ function ConnectionCard({
                   <>
                     {activeTab === 'followers' &&
                       (user.isFollowing ? (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[10px] font-semibold text-white">
-                          <Check className="h-3 w-3" strokeWidth={2.5} />
+                        <span className="inline-flex items-center gap-1 rounded border border-[#55705B] bg-[#55705B] px-2 py-0.5 text-[10px] font-semibold text-white">
+                          <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
                           Following
                         </span>
                       ) : (
@@ -431,34 +431,34 @@ function ConnectionCard({
                             social.isFollowPending &&
                             social.followTarget === user.id
                           }
-                          className="inline-flex items-center gap-1 rounded-md bg-[#1A2B4C] px-2.5 py-1 text-[10px] font-semibold text-white transition-all hover:bg-[#2C3E5A] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 active:scale-95"
+                          className="inline-flex items-center gap-1 rounded bg-[#1A2B4C] px-2 py-0.5 text-[10px] font-semibold text-white transition-colors hover:bg-[#263D66] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {social.isFollowPending &&
-                            social.followTarget === user.id ? (
+                          social.followTarget === user.id ? (
                             <Loader2
-                              className="h-3 w-3 animate-spin"
+                              className="h-2.5 w-2.5 animate-spin"
                               strokeWidth={2}
                             />
                           ) : (
-                            <UserPlus className="h-3 w-3" strokeWidth={2} />
+                            <UserPlus className="h-2.5 w-2.5" strokeWidth={2} />
                           )}
                           {social.isFollowPending &&
-                            social.followTarget === user.id
+                          social.followTarget === user.id
                             ? 'Following…'
-                            : 'Follow Back'}
+                            : 'Follow'}
                         </button>
                       ))}
 
                     {activeTab === 'following' && (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-[#55705B] bg-[#55705B] px-2.5 py-1 text-[10px] font-semibold text-white">
-                        <Check className="h-3 w-3" strokeWidth={2.5} />
+                      <span className="inline-flex items-center gap-1 rounded border border-[#55705B] bg-[#55705B] px-2 py-0.5 text-[10px] font-semibold text-white">
+                        <Check className="h-2.5 w-2.5" strokeWidth={2.5} />
                         Following
                       </span>
                     )}
 
                     {activeTab === 'likes' && likesView === 'sent' && (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-[#A4462F]">
-                        <Heart className="h-3 w-3 fill-red-500 text-red-500" strokeWidth={2} />
+                      <span className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-[#A4462F]">
+                        <Heart className="h-2.5 w-2.5 fill-red-500 text-red-500" strokeWidth={2} />
                         Liked
                       </span>
                     )}
@@ -490,27 +490,23 @@ export default function ConnectionsPage() {
 
   const sharedQueryOptions = {
     enabled: !!currentUserId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchInterval: false, // Remove auto-polling
+    refetchInterval: false as const,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: false,
-  } as const;
+    refetchOnMount: false as const,
+  };
 
-  // ---------- prefetch ----------
   useEffect(() => {
     if (!currentUserId) return;
-
     queryClient.prefetchQuery({
       queryKey: ['social', 'me'],
       queryFn: fetchMe,
       staleTime: sharedQueryOptions.staleTime,
     });
   }, [currentUserId, queryClient, sharedQueryOptions.staleTime]);
-
-  // ---------- queries ----------
 
   const meQuery = useQuery({
     queryKey: ['social', 'me'],
@@ -557,13 +553,13 @@ export default function ConnectionsPage() {
     initialPageParam: 0,
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.nextOffset : undefined,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchInterval: false, // Remove auto-polling
+    refetchInterval: false as const,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: 'always',
+    refetchOnMount: 'always' as const,
     enabled: !!currentUserId && activeTab === 'trending',
   });
 
@@ -574,22 +570,18 @@ export default function ConnectionsPage() {
     return trendingQuery;
   }, [activeTab, followersQuery, followingQuery, likesQuery, trendingQuery]);
 
-  // ---------- rows for the active tab ----------
   const connections: ConnectionUser[] = useMemo(() => {
     if (activeTab === 'trending') {
       return trendingQuery.data?.pages.flatMap((page) => page.users) ?? [];
     }
-
     if (activeTab === 'likes') {
       return likesQuery.data?.pages.flatMap((page) => page.users) ?? [];
     }
-
     if (activeTab === 'following') {
       const base =
         followingQuery.data?.pages.flatMap((page) => page.users) ?? [];
       return base.filter((c) => c.isFollowing !== false);
     }
-
     return followersQuery.data?.pages.flatMap((page) => page.users) ?? [];
   }, [
     activeTab,
@@ -612,50 +604,44 @@ export default function ConnectionsPage() {
   const showSessionLoading = status === 'loading';
   const me = meQuery.data;
 
-  // Tab config for the header
   const tabs: Array<{
     key: TabKey;
     label: string;
     icon: React.ReactNode;
     count?: number;
-    accent: string;
   }> = [
-      {
-        key: 'trending',
-        label: 'Trending',
-        icon: <TrendingUp className="h-4 w-4" strokeWidth={2.2} />,
-        accent: GOLD_DEEP,
-      },
-      {
-        key: 'followers',
-        label: 'Followers',
-        icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
-        count: me?.followersCount,
-        accent: GOLD_DEEP,
-      },
-      {
-        key: 'following',
-        label: 'Following',
-        icon: <Users className="h-4 w-4" strokeWidth={2.2} />,
-        count: me?.followingCount,
-        accent: '#55705B',
-      },
-      {
-        key: 'likes',
-        label: 'Likes',
-        icon: <Heart className="h-4 w-4" strokeWidth={2.2} />,
-        count: me?.likesReceivedCount,
-        accent: '#DC2626',
-      },
-    ];
+    {
+      key: 'trending',
+      label: 'Trending',
+      icon: <TrendingUp className="h-3.5 w-3.5" strokeWidth={2.2} />,
+    },
+    {
+      key: 'followers',
+      label: 'Followers',
+      icon: <Users className="h-3.5 w-3.5" strokeWidth={2.2} />,
+      count: me?.followersCount,
+    },
+    {
+      key: 'following',
+      label: 'Following',
+      icon: <Users className="h-3.5 w-3.5" strokeWidth={2.2} />,
+      count: me?.followingCount,
+    },
+    {
+      key: 'likes',
+      label: 'Likes',
+      icon: <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />,
+      count: me?.likesReceivedCount,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#1A2B4C]">
+    <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
       <style jsx global>{`
         @keyframes rowEnter {
           from {
             opacity: 0;
-            transform: translateY(6px);
+            transform: translateY(4px);
           }
           to {
             opacity: 1;
@@ -663,7 +649,7 @@ export default function ConnectionsPage() {
           }
         }
         .row-enter {
-          animation: rowEnter 240ms ease-out both;
+          animation: rowEnter 200ms ease-out both;
         }
         @media (prefers-reduced-motion: reduce) {
           .row-enter {
@@ -672,103 +658,114 @@ export default function ConnectionsPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-5">
+      <div className="mx-auto max-w-6xl px-3 py-4 sm:px-5">
         {/* HEADER */}
-        <header className="mb-5 border-t border-[#1A2B4C] pt-3 sm:mb-6 sm:pt-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <header className="mb-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#1A2B4C] sm:text-[30px]">
+              <h1 className="text-[20px] font-bold leading-tight tracking-tight text-[#1A2B4C] sm:text-[22px]">
                 Connections
               </h1>
-              <p className="mt-1 text-[13px] font-medium leading-5 text-[#6B7280] sm:text-[14px]">
-                Trending peers, followers, following, and likes — all in one
-                place.
+              <p className="mt-0.5 text-[12px] leading-5 text-[#6B7280]">
+                Trending peers, followers, following, and likes.
               </p>
             </div>
 
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#1A2B4C] bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[#1A2B4C] transition-colors hover:bg-[#F7F6F2] active:scale-95"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#4B5646] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
             >
-              <RefreshCw className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <RefreshCw className="h-3 w-3" strokeWidth={2.2} />
               Refresh
             </button>
           </div>
 
-          {/* Stats + tabs rail */}
+          {/* Stats strip */}
           {showSessionLoading || !me ? (
             <StatsSkeleton />
           ) : (
-            <>
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#B98A3E]/30 bg-[#B98A3E]/10 px-2.5 py-1 font-mono text-[11px] font-bold text-[#8A6A2E] tabular-nums">
-                  <Users className="h-3 w-3" strokeWidth={2.4} />
-                  {me.followersCount} followers
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-medium text-[#4B5646]">
+                <Users className="h-3 w-3 text-[#6B7280]" strokeWidth={2.2} />
+                <span className="font-semibold text-[#1A2B4C] tabular-nums">
+                  {me.followersCount}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#55705B]/30 bg-[#55705B]/10 px-2.5 py-1 font-mono text-[11px] font-bold text-[#55705B] tabular-nums">
-                  <Users className="h-3 w-3" strokeWidth={2.4} />
-                  {me.followingCount} following
+                followers
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-medium text-[#4B5646]">
+                <Users className="h-3 w-3 text-[#6B7280]" strokeWidth={2.2} />
+                <span className="font-semibold text-[#1A2B4C] tabular-nums">
+                  {me.followingCount}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 font-mono text-[11px] font-bold text-red-600 tabular-nums">
-                  <Heart
-                    className="h-3 w-3 fill-red-500 text-red-500"
-                    strokeWidth={2}
-                  />
-                  {me.likesReceivedCount} likes
+                following
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-medium text-[#4B5646]">
+                <Heart
+                  className="h-3 w-3 fill-red-500 text-red-500"
+                  strokeWidth={2}
+                />
+                <span className="font-semibold text-[#1A2B4C] tabular-nums">
+                  {me.likesReceivedCount}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#3E5C76]/30 bg-[#3E5C76]/10 px-2.5 py-1 font-mono text-[11px] font-bold text-[#3E5C76] tabular-nums">
-                  <Eye className="h-3 w-3" strokeWidth={2.2} />
-                  {me.profileViewsCount} views
+                likes
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-[11px] font-medium text-[#4B5646]">
+                <Eye className="h-3 w-3 text-[#6B7280]" strokeWidth={2.2} />
+                <span className="font-semibold text-[#1A2B4C] tabular-nums">
+                  {me.profileViewsCount}
                 </span>
-              </div>
-
-              {/* Tab rail — gold active underline mirrors students page convention */}
-              <nav
-                role="tablist"
-                aria-label="Connection views"
-                className="mt-4 flex flex-wrap items-center gap-1"
-              >
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`relative -mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-bold transition-colors ${isActive
-                        ? 'border-[#D4A84B] text-[#1A2B4C]'
-                        : 'border-transparent text-[#6B7280] hover:text-[#1A2B4C]'
-                        }`}
-                    >
-                      <span style={{ color: isActive ? tab.accent : undefined }}>
-                        {tab.icon}
-                      </span>
-                      <span>{tab.label}</span>
-                      {typeof tab.count === 'number' && (
-                        <span
-                          className={`ml-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums ${isActive
-                            ? 'bg-[#1A2B4C] text-white'
-                            : 'bg-[#E5E7EB] text-[#4B5646]'
-                            }`}
-                        >
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-            </>
+                views
+              </span>
+            </div>
           )}
+
+          {/* Tab rail */}
+          <nav
+            role="tablist"
+            aria-label="Connection views"
+            className="mt-3 flex flex-wrap items-center gap-0.5 border-b border-[#E5E7EB]"
+          >
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`relative -mb-px inline-flex items-center gap-1.5 border-b-2 px-2.5 py-2 text-[12px] font-semibold transition-colors ${
+                    isActive
+                      ? 'border-[#C59B4C] text-[#1A2B4C]'
+                      : 'border-transparent text-[#6B7280] hover:text-[#1A2B4C]'
+                  }`}
+                >
+                  <span className={isActive ? 'text-[#C59B4C]' : ''}>
+                    {tab.icon}
+                  </span>
+                  <span>{tab.label}</span>
+                  {typeof tab.count === 'number' && (
+                    <span
+                      className={`ml-0.5 rounded px-1 py-0.5 text-[9.5px] font-bold tabular-nums ${
+                        isActive
+                          ? 'bg-[#1A2B4C] text-white'
+                          : 'bg-[#F3F4F6] text-[#4B5646]'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </header>
 
         {/* LIKES SUB-TABS */}
         {activeTab === 'likes' && (
           <div
-            className="mb-4 flex items-center gap-1 rounded-md border border-[#D1D5DB] bg-white p-1"
+            className="mb-3 flex items-center gap-1 rounded-md border border-[#E5E7EB] bg-white p-0.5"
             role="tablist"
             aria-label="Likes filter"
           >
@@ -777,12 +774,13 @@ export default function ConnectionsPage() {
               role="tab"
               aria-selected={likesView === 'received'}
               onClick={() => setLikesView('received')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${likesView === 'received'
-                ? 'bg-red-600 text-white'
-                : 'text-[#4B5646] hover:bg-[#F7F6F2]'
-                }`}
+              className={`inline-flex flex-1 items-center justify-center gap-1 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                likesView === 'received'
+                  ? 'bg-[#1A2B4C] text-white'
+                  : 'text-[#4B5646] hover:bg-[#F8F9FA]'
+              }`}
             >
-              <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <Heart className="h-3 w-3" strokeWidth={2.2} />
               Received ({likesQuery.data?.pages[0]?.totalLikes ?? 0})
             </button>
             <button
@@ -790,12 +788,13 @@ export default function ConnectionsPage() {
               role="tab"
               aria-selected={likesView === 'sent'}
               onClick={() => setLikesView('sent')}
-              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[12px] font-bold transition-colors ${likesView === 'sent'
-                ? 'bg-red-600 text-white'
-                : 'text-[#4B5646] hover:bg-[#F7F6F2]'
-                }`}
+              className={`inline-flex flex-1 items-center justify-center gap-1 rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                likesView === 'sent'
+                  ? 'bg-[#1A2B4C] text-white'
+                  : 'text-[#4B5646] hover:bg-[#F8F9FA]'
+              }`}
             >
-              <Heart className="h-3.5 w-3.5" strokeWidth={2.2} />
+              <Heart className="h-3 w-3" strokeWidth={2.2} />
               You liked ({likesQuery.data?.pages[0]?.totalLikedUsers ?? 0})
             </button>
           </div>
@@ -803,17 +802,17 @@ export default function ConnectionsPage() {
 
         {/* CONTENT */}
         {showSessionLoading || isFetchingWithoutData ? (
-          <GridSkeleton cards={6} />
+          <GridSkeleton cards={8} />
         ) : error && connections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-[#A4462F]/40 bg-white px-6 py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-[#E5E7EB] bg-white px-5 py-12 text-center">
             <AlertCircle
-              className="mb-3 h-10 w-10 text-[#A4462F]"
+              className="mb-2 h-8 w-8 text-[#A4462F]"
               strokeWidth={1.6}
             />
-            <h3 className="mb-1.5 text-[16px] font-bold text-[#1A2B4C]">
-              Error loading connections
+            <h3 className="mb-1 text-[14px] font-semibold text-[#1A2B4C]">
+              Couldn&apos;t load connections
             </h3>
-            <p className="mb-4 max-w-md text-[13px] text-[#4B5646]">
+            <p className="mb-3 max-w-md text-[12px] text-[#6B7280]">
               {error instanceof Error
                 ? error.message
                 : 'Failed to load connections'}
@@ -821,39 +820,39 @@ export default function ConnectionsPage() {
             <button
               type="button"
               onClick={() => activeQuery?.refetch()}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#1A2B4C] px-4 text-[12px] font-bold uppercase tracking-wide text-white transition-colors hover:bg-[#2C3E5A]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#1A2B4C] px-3 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66]"
             >
               Retry
             </button>
           </div>
         ) : connections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#D1D5DB] bg-white px-6 py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-[#E5E7EB] bg-white px-5 py-12 text-center">
             {activeTab === 'likes' ? (
               <Heart
-                className="mb-3 h-10 w-10 text-[#9CA3AF]"
+                className="mb-2 h-8 w-8 text-[#9CA3AF]"
                 strokeWidth={1.6}
               />
             ) : activeTab === 'trending' ? (
               <TrendingUp
-                className="mb-3 h-10 w-10 text-[#9CA3AF]"
+                className="mb-2 h-8 w-8 text-[#9CA3AF]"
                 strokeWidth={1.6}
               />
             ) : (
               <Users
-                className="mb-3 h-10 w-10 text-[#9CA3AF]"
+                className="mb-2 h-8 w-8 text-[#9CA3AF]"
                 strokeWidth={1.6}
               />
             )}
-            <h3 className="mb-1.5 text-[16px] font-bold text-[#1A2B4C]">
+            <h3 className="mb-1 text-[14px] font-semibold text-[#1A2B4C]">
               {activeTab === 'trending'
                 ? 'No trending students yet'
                 : activeTab === 'likes' && likesView === 'sent'
                   ? 'No profiles liked yet'
                   : `No ${activeTab} yet`}
             </h3>
-            <p className="max-w-md text-[13px] text-[#4B5646]">
+            <p className="max-w-md text-[12px] text-[#6B7280]">
               {activeTab === 'likes' && likesView === 'sent'
-                ? 'Profiles you like will appear here. You can unlike them from this tab.'
+                ? 'Profiles you like will appear here.'
                 : activeTab === 'followers'
                   ? 'When people follow you, they will appear here.'
                   : activeTab === 'following'
@@ -865,7 +864,7 @@ export default function ConnectionsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
               {connections.map((user, index) => {
                 const rank = index + 1;
                 const isTrending = activeTab === 'trending';
@@ -914,7 +913,7 @@ export default function ConnectionsPage() {
                   type="button"
                   onClick={() => void activeQuery.fetchNextPage()}
                   disabled={activeQuery.isFetchingNextPage}
-                  className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-3 rounded-[22px] border border-dashed border-[#1A2B4C]/30 bg-white px-6 text-center text-[#1A2B4C] transition-colors hover:border-[#1A2B4C] hover:bg-[#F7F6F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4A84B] disabled:cursor-wait disabled:opacity-70"
+                  className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#E5E7EB] bg-white px-4 text-center text-[#1A2B4C] transition-colors hover:border-[#C59B4C] hover:bg-[#F8F9FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C] disabled:cursor-wait disabled:opacity-70"
                   aria-label={
                     activeQuery.isFetchNextPageError
                       ? 'Retry loading more connections'
@@ -922,36 +921,33 @@ export default function ConnectionsPage() {
                   }
                 >
                   {activeQuery.isFetchingNextPage ? (
-                    <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   ) : (
-                    <UserPlus className="h-6 w-6" aria-hidden="true" />
+                    <UserPlus className="h-5 w-5" aria-hidden="true" />
                   )}
-                  <span className="text-sm font-bold">
+                  <span className="text-[12px] font-semibold">
                     {activeQuery.isFetchingNextPage
                       ? 'Loading…'
                       : activeQuery.isFetchNextPageError
                         ? 'Try loading more'
                         : 'Load more'}
                   </span>
-                  <span className="text-xs text-[#6B7280]">
+                  <span className="text-[10.5px] text-[#6B7280]">
                     {activeQuery.isFetchingNextPage
                       ? 'Please wait'
-                      : 'Show the next 20 profiles'}
+                      : 'Show next 20'}
                   </span>
                 </button>
               )}
             </div>
 
             {activeTab === 'trending' && (
-              <p className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-center text-[12px] text-[#6B7280]">
+              <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11.5px] text-[#6B7280]">
                 <TrendingUp
-                  className="h-3.5 w-3.5 shrink-0 text-[#B98A3E]"
+                  className="h-3 w-3 shrink-0 text-[#C59B4C]"
                   strokeWidth={2.2}
                 />
-                <span>
-                  Showing the most popular students, ranked by followers
-                  first, then likes.
-                </span>
+                <span>Ranked by followers, then likes.</span>
               </p>
             )}
           </>

@@ -4,6 +4,7 @@ import { LifeBuoy, MessageSquare, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import type { Conversation, User } from '@/types/messaging';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import { getDisplayName } from '@/lib/messaging/displayName';
 
 interface ChatsListProps {
@@ -237,8 +238,11 @@ export function ChatsList({
             {/* Chat Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between">
-                <h3 className={`truncate text-sm ${isUnread ? 'font-bold text-[#1A2B4C]' : 'font-semibold text-[#26354D]'}`}>
-                  {fullName}
+                <h3 className={`flex items-center gap-1 truncate text-sm ${isUnread ? 'font-bold text-[#1A2B4C]' : 'font-semibold text-[#26354D]'}`}>
+                  <span className="truncate">{fullName}</span>
+                  {otherUser?.hasVerifiedBadge && (
+                    <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
+                  )}
                 </h3>
                 {lastMessage && (
                   <span className="shrink-0 text-[11px] text-[#8791A1]">

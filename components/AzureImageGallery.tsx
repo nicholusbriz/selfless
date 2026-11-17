@@ -59,7 +59,7 @@ export default function AzureImageGallery({
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Only show all users' media if user is dev or super_admin
-  const canSeeAll = user?.role?.name === 'dev' || user?.role?.name === 'super_admin';
+  const canSeeAll = user?.role === 'dev' || user?.role === 'super_admin';
   const shouldShowMine = mine || !canSeeAll;
 
   useEffect(() => {

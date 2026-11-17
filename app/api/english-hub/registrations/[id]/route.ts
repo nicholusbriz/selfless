@@ -19,8 +19,10 @@ export async function DELETE(
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { role: true, techCenterId: true },
+      select: { role: true, techCenterId: true, previousTechCenterId: true },
     });
+
+    const techCenterId = user?.techCenterId ?? user?.previousTechCenterId ?? null;
     const { id: registrationId } = await params;
     const registration = await prisma.englishHubRegistration.findUnique({
       where: { id: registrationId },
@@ -42,7 +44,7 @@ export async function DELETE(
       );
     }
 
-    if (isStaff && registration.techCenterId !== user?.techCenterId) {
+    if (isStaff && registration.techCenterId !== techCenterId) {
       return NextResponse.json(
         { success: false, error: 'You can only cancel registrations for your tech center' },
         { status: 403 }

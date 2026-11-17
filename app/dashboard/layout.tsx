@@ -18,7 +18,7 @@ import { PageTracker } from './components/PageTracker';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 
-import { Images, Users2, Home, GraduationCap, BookOpen } from 'lucide-react';
+import { Images, Users2, Home, FileText, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
 import { PageRefreshButton } from './components/PageRefreshButton';
@@ -54,7 +54,6 @@ function getPageInfo(pathname: string, userRole?: string) {
     },
     '/dashboard/students': {
       title: 'Students',
-      section: 'Workspace',
     },
     '/dashboard/english-hub': {
       title: 'English Hub',
@@ -472,6 +471,12 @@ export default function DashboardLayout({
                   pathname !== '/dashboard/announcements' &&
                   pathname !== '/dashboard/profile' &&
                   pathname !== '/dashboard/courses' &&
+                  !pathname.startsWith('/dashboard/students') &&
+                  !pathname.startsWith('/dashboard/teacher') &&
+                  !pathname.startsWith('/dashboard/admin/teachers') &&
+                  !pathname.startsWith('/dashboard/cleaning') &&
+                  !pathname.startsWith('/dashboard/admin/tuition') &&
+                  !pathname.startsWith('/dashboard/policies') &&
                   !isAiPage &&
                   !isMessagesPage &&
                   !isConnectionsPage &&
@@ -656,12 +661,12 @@ export default function DashboardLayout({
                 const isSuperAdmin = userRole === 'super_admin';
                 // super_admin goes to the same tutors page (they have isSuperAdmin() access)
                 // dev goes to their own dev dashboard
-                const href = isDev ? '/dashboard/dev' : '/dashboard/admin/teachers';
-                const label = isDev ? 'Dev' : 'Tutors';
+                const href = isDev ? '/dashboard/dev' : '/dashboard/policies';
+                const label = isDev ? 'Dev' : 'Policies';
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link href={href} className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <GraduationCap className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                    <FileText className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
                     <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>{label}</span>
                     {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
                   </Link>

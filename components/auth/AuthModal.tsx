@@ -482,7 +482,7 @@ function RegisterForm({
           throw new Error('Failed to load tech centers');
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as TechCenter[];
         setTechCenters(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch tech centers:', error);

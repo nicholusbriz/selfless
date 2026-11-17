@@ -59,7 +59,7 @@ export default function EnglishHubMonitorPage() {
     setIsLoadingTechCenters(true);
     try {
       const response = await fetch('/api/admin/tech-centers');
-      const data = await response.json();
+      const data = (await response.json()) as TechCenter[];
       if (response.ok && Array.isArray(data)) {
         setTechCenters(data);
       } else {

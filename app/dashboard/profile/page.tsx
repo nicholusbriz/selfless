@@ -19,6 +19,7 @@ import {
   EyeOff,
   User as UserIcon,
   Image as ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [settingImageUrl, setSettingImageUrl] = useState<string | null>(null);
   const [freshUser, setFreshUser] = useState(user);
   const [loadingFreshUser, setLoadingFreshUser] = useState(true);
 
@@ -48,7 +50,9 @@ export default function ProfilePage() {
         setLoadingFreshUser(true);
         try {
           const response = await fetch('/api/auth/me');
-          const data = await response.json();
+          const data = (await response.json()) as {
+            user?: Parameters<typeof setFreshUser>[0];
+          };
           if (data.user) setFreshUser(data.user);
         } catch (err) {
           console.error('Failed to fetch fresh user data:', err);
@@ -91,17 +95,18 @@ export default function ProfilePage() {
 
   const handleSetProfileImage = async (imageUrl: string) => {
     setIsLoading(true);
+    setSettingImageUrl(imageUrl);
     try {
       const res = await fetch('/api/user/set-profile-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || 'Failed to set profile image');
 
       const meRes = await fetch('/api/auth/me');
-      const meData = await meRes.json();
+      const meData = (await meRes.json()) as { user?: Parameters<typeof setFreshUser>[0] };
       if (meData.user) setFreshUser(meData.user);
 
       await refreshUser();
@@ -110,6 +115,7 @@ export default function ProfilePage() {
       setError(err.message || 'Failed to set profile image');
     } finally {
       setIsLoading(false);
+      setSettingImageUrl(null);
     }
   };
 
@@ -123,7 +129,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ imageUrl }),
       });
       if (!res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as { error?: string };
         throw new Error(data.error || 'Failed to delete image');
       }
       await refreshUser();
@@ -690,11 +696,11 @@ export default function ProfilePage() {
             accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
             allowAudio={false}
             allowVideo={false}
-            allowMultiple
+            allowMultiple={false}
             categoryLocked
             defaultCategory="profile"
-            label="Add photos to your profile gallery"
-            submitLabel="Add photos"
+            label="Add a photo to your profile gallery"
+            submitLabel="Add photo"
           />
 
           <div className="mt-5 border-t border-[#E7EDF3] pt-4">
@@ -724,9 +730,17 @@ export default function ProfilePage() {
                     <div className="p-2">
                       {url !== freshUser.profileImageUrl ? (
                         <div className="flex flex-col gap-1">
-                          <button type="button" onClick={() => handleSetProfileImage(url)} disabled={isLoading}
-                            className="rounded bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50">
-                            Set as Profile
+                          <button type="button" onClick={() => handleSetProfileImage(url)}
+                            disabled={isLoading || settingImageUrl === url}
+                            className="inline-flex items-center justify-center gap-1 rounded bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-wait disabled:opacity-60">
+                            {settingImageUrl === url ? (
+                              <>
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Changing profile image…
+                              </>
+                            ) : (
+                              'Set as Profile'
+                            )}
                           </button>
                           <button type="button" onClick={() => handleDeleteProfileImage(url)}
                             disabled={deletingImage === url}

@@ -4,6 +4,7 @@ import { Users } from 'lucide-react';
 import Image from 'next/image';
 import { MapPin } from 'lucide-react';
 import type { User } from '@/types/messaging';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface AllUsersListProps {
   users: User[];
@@ -97,8 +98,11 @@ export function AllUsersList({
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h3 className="truncate text-sm font-semibold text-[#26354D]">
-                    {fullName}
+                  <h3 className="flex items-center gap-1 truncate text-sm font-semibold text-[#26354D]">
+                    <span className="truncate">{fullName}</span>
+                    {user.hasVerifiedBadge && (
+                      <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
+                    )}
                   </h3>
                   <span className={`flex shrink-0 items-center gap-1 text-[10px] font-medium ${isOnline ? 'text-[#3F8F5B]' : 'text-[#8791A1]'}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-[#3F8F5B]' : 'bg-[#A0AEC0]'}`} />

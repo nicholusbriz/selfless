@@ -10,7 +10,7 @@ import {
 export async function DELETE(request: Request) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
+    const body = (await request.json()) as { imageUrl?: string };
     const { imageUrl } = body;
 
     if (!imageUrl) {

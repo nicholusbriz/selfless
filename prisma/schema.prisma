@@ -88,6 +88,9 @@ model User {
   verifiedByAdmin    User?     @relation("VerifiedUsers", fields: [verifiedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
   verifiedUsers      User[]    @relation("VerifiedUsers")
 
+  // Public verified badge (blue tick) — independent of account approval
+  hasVerifiedBadge   Boolean   @default(false)
+
   // Rejection tracking (NEW)
   rejectedAt    DateTime?
   rejectedById  String?   @db.ObjectId

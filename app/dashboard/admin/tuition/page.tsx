@@ -3,27 +3,18 @@
 import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
-  BookOpen,
   Building2,
-  DollarSign,
   Filter,
-  GraduationCap,
   Search,
   Users,
+  DollarSign,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
-
-interface Course {
-  id: string;
-  name: string;
-  code: string;
-  credits: number;
-  courseUnit: string;
-  tuition?: number;
-  takesReligion?: boolean;
-}
 
 interface Student {
   id: string;
@@ -31,12 +22,8 @@ interface Student {
   lastName: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   isActive: boolean;
-  tuitionAmount?: number;
+  tuitionAmount?: number | null;
   profileImageUrl?: string | null;
-  submittedCourses: Course[];
-  _count: {
-    submittedCourses: number;
-  };
 }
 
 interface APIResponse {
@@ -51,8 +38,7 @@ interface APIResponse {
     inactive: number;
     suspended: number;
   };
-  statuses: string[];
-  techCenter: {
+  techCenter?: {
     id: string;
     name: string;
     code: string;
@@ -61,102 +47,29 @@ interface APIResponse {
 
 type TuitionFilter = 'all' | 'with' | 'without';
 
-/* =========================================================
-   SKELETONS
-========================================================= */
-
-function StatsCardSkeleton() {
-  return (
-    <div className="rounded-xl border border-[#DADCD3] bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="h-3 w-20 animate-pulse rounded bg-[#F0F2EF]" />
-          <div className="mt-2 h-7 w-16 animate-pulse rounded bg-[#E8EBE7]" />
-        </div>
-
-        <div className="hidden h-8 w-8 shrink-0 animate-pulse rounded-lg bg-[#F0F2EF] sm:block" />
-      </div>
-    </div>
-  );
-}
-
-function StudentCardSkeleton() {
-  return (
-    <div className="rounded-xl border border-[#DADCD3] bg-white p-4">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[#E8EBE7]" />
-
-        <div className="min-w-0 flex-1">
-          <div className="h-4 w-40 animate-pulse rounded bg-[#E8EBE7]" />
-          <div className="mt-2 h-3 w-24 animate-pulse rounded bg-[#F0F2EF]" />
-        </div>
-
-        <div className="hidden h-7 w-20 animate-pulse rounded bg-[#F0F2EF] sm:block" />
-      </div>
-
-      <div className="mt-4 flex items-end justify-between gap-4">
-        <div>
-          <div className="h-2.5 w-12 animate-pulse rounded bg-[#F0F2EF]" />
-          <div className="mt-2 h-7 w-24 animate-pulse rounded bg-[#E8EBE7]" />
-        </div>
-
-        <div className="h-3 w-16 animate-pulse rounded bg-[#F0F2EF]" />
-      </div>
-
-      <div className="mt-4 border-t border-[#EEF0ED] pt-3">
-        <div className="h-3 w-full animate-pulse rounded bg-[#F0F2EF]" />
-        <div className="mt-2 h-3 w-4/5 animate-pulse rounded bg-[#F0F2EF]" />
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   PAGE
-========================================================= */
-
 export default function TuitionPage() {
   const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [tuitionFilter, setTuitionFilter] =
-    useState<TuitionFilter>('all');
+  const [tuitionFilter, setTuitionFilter] = useState<TuitionFilter>('all');
 
-  /* =======================================================
-     FETCH STUDENTS
-  ======================================================= */
-
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<APIResponse>({
+  const { data, isLoading, error, refetch } = useQuery<APIResponse>({
     queryKey: ['tuition-students', statusFilter],
-
     queryFn: async () => {
       const params = new URLSearchParams({
         limit: '1000',
+        lite: 'true',
       });
-
-      if (statusFilter) {
-        params.append('status', statusFilter);
-      }
+      if (statusFilter) params.append('status', statusFilter);
 
       const response = await fetch(
-        `/api/admin/tech-centers/users?${params.toString()}`
+        `/api/admin/tech-centers/users?${params.toString()}`,
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch students');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch students');
       return response.json();
     },
-
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: false, // Remove auto-polling
+    staleTime: 2 * 60 * 1000,
   });
 
   const allStudents: Student[] = data?.users || [];
@@ -174,104 +87,79 @@ export default function TuitionPage() {
 
   const techCenter = data?.techCenter;
 
-  /* =======================================================
-     FILTER STUDENTS
-  ======================================================= */
-
   const students = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    return allStudents.filter((student) => {
-      const fullName =
-        `${student.firstName} ${student.lastName}`.toLowerCase();
+    return allStudents
+      .filter((student) => {
+        const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+        const matchesSearch =
+          !normalizedSearch ||
+          fullName.includes(normalizedSearch) ||
+          student.firstName.toLowerCase().includes(normalizedSearch) ||
+          student.lastName.toLowerCase().includes(normalizedSearch);
 
-      const matchesSearch =
-        !normalizedSearch ||
-        fullName.includes(normalizedSearch) ||
-        student.firstName.toLowerCase().includes(normalizedSearch) ||
-        student.lastName.toLowerCase().includes(normalizedSearch);
+        const hasTuition =
+          typeof student.tuitionAmount === 'number' &&
+          student.tuitionAmount > 0;
 
-      const hasTuition =
-        typeof student.tuitionAmount === 'number' &&
-        student.tuitionAmount > 0;
+        const matchesTuition =
+          tuitionFilter === 'all' ||
+          (tuitionFilter === 'with' && hasTuition) ||
+          (tuitionFilter === 'without' && !hasTuition);
 
-      const matchesTuition =
-        tuitionFilter === 'all' ||
-        (tuitionFilter === 'with' && hasTuition) ||
-        (tuitionFilter === 'without' && !hasTuition);
-
-      return matchesSearch && matchesTuition;
-    }).sort((a, b) =>
-      `${a.firstName} ${a.lastName}`.localeCompare(
-        `${b.firstName} ${b.lastName}`,
-        undefined,
-        { sensitivity: 'base' },
-      ),
-    );
+        return matchesSearch && matchesTuition;
+      })
+      .sort((a, b) =>
+        `${a.firstName} ${a.lastName}`.localeCompare(
+          `${b.firstName} ${b.lastName}`,
+          undefined,
+          { sensitivity: 'base' },
+        ),
+      );
   }, [allStudents, searchTerm, tuitionFilter]);
 
-  /* =======================================================
-     HELPERS
-  ======================================================= */
-
-  const calculateTotalCredits = (student: Student) => {
-    return (
-      student.submittedCourses?.reduce(
-        (sum, course) => sum + (course.credits || 0),
-        0
-      ) || 0
-    );
-  };
-
-  const formatTuition = (amount?: number) => {
-    return `$${(amount || 0).toLocaleString()}`;
-  };
-
-  /* =======================================================
-     RENDER
-  ======================================================= */
+  const formatTuition = (amount?: number | null) =>
+    typeof amount === 'number' && amount > 0
+      ? `$${amount.toLocaleString()}`
+      : 'No tuition';
 
   return (
-    <div className="min-h-screen bg-[#F1F1EC] text-[#12203B]">
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
-      <header className="border-b border-[#DADCD3] bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
+      {/* HEADER */}
+      <header className="border-b border-[#E5E7EB] bg-white">
+        <div className="mx-auto max-w-6xl px-3 py-3 sm:px-5">
+          <div className="flex items-center gap-2.5">
             <button
+              type="button"
               onClick={() => router.back()}
               aria-label="Go back"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#DADCD3] bg-white text-[#6B7268] transition-all hover:border-[#C9CCC4] hover:bg-[#F7F6F2] hover:text-[#12203B]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#E5E7EB] bg-white text-[#6B7280] transition-colors hover:border-[#C59B4C] hover:text-[#1A2B4C]"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
 
-            <div className="hidden h-6 w-px bg-[#DADCD3] sm:block" />
+            <div className="hidden h-5 w-px bg-[#E5E7EB] sm:block" />
 
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8A9088]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]">
                 Administration
               </p>
-
-              <h1 className="truncate text-lg font-bold tracking-tight text-[#12203B] sm:text-xl">
+              <h1 className="truncate text-[15px] font-bold tracking-tight text-[#1A2B4C] sm:text-[16px]">
                 Tuition Management
               </h1>
             </div>
 
             {isLoading ? (
-              <div className="hidden h-9 w-40 animate-pulse rounded-lg bg-[#F0F2EF] sm:block" />
+              <div className="hidden h-8 w-36 animate-pulse rounded-md bg-[#F3F4F6] sm:block" />
             ) : (
               techCenter && (
-                <div className="hidden items-center gap-2 rounded-lg border border-[#E4E6E0] bg-[#F7F6F2] px-3 py-2 sm:flex">
-                  <Building2 className="h-4 w-4 text-[#6B7268]" />
-
-                  <span className="text-xs font-semibold text-[#344136]">
+                <div className="hidden items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-[#F8F9FA] px-2.5 py-1.5 sm:flex">
+                  <Building2 className="h-3.5 w-3.5 text-[#6B7280]" />
+                  <span className="text-[11.5px] font-semibold text-[#4B5646]">
                     {techCenter.name}
                   </span>
-
-                  <span className="text-[10px] text-[#8A9088]">
+                  <span className="text-[10px] text-[#9CA3AF]">
                     {techCenter.code}
                   </span>
                 </div>
@@ -281,193 +169,148 @@ export default function TuitionPage() {
         </div>
       </header>
 
-      {/* =====================================================
-          MAIN
-      ====================================================== */}
-
-      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-        {/* PAGE TITLE */}
-
-        <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#12203B]">
-              Student Tuition
-            </h2>
-
-            <p className="mt-0.5 text-sm text-[#6B7268]">
-              Review tuition records and enrolled courses.
-            </p>
-          </div>
-
-          {!isLoading && (
-            <p className="text-xs text-[#8A9088]">
-              Showing {students.length} of {allStudents.length}
-            </p>
-          )}
-        </div>
-
-        {/* =====================================================
-            SUMMARY
-        ====================================================== */}
-
-        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <main className="mx-auto max-w-6xl px-3 py-4 sm:px-5 sm:py-5">
+        {/* STATS — compact inline strip */}
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {isLoading ? (
-            <>
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-              <StatsCardSkeleton />
-            </>
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5"
+              >
+                <div className="h-2.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
+                <div className="mt-1.5 h-5 w-12 animate-pulse rounded bg-[#F3F4F6]" />
+              </div>
+            ))
           ) : (
             <>
-              {/* Students */}
-
-              <div className="rounded-xl border border-[#DADCD3] bg-white p-4 transition-shadow hover:shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-[#6B7268]">
-                      Students
-                    </p>
-
-                    <p className="mt-1 text-2xl font-bold tracking-tight text-[#12203B]">
-                      {stats.total || 0}
-                    </p>
-                  </div>
-
-                  <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-[#F1F1EC] sm:flex">
-                    <Users className="h-4 w-4 text-[#55705B]" />
-                  </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3 w-3 text-[#9CA3AF]" />
+                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                    Students
+                  </p>
                 </div>
+                <p className="mt-0.5 text-[18px] font-bold leading-tight text-[#1A2B4C]">
+                  {stats.total || 0}
+                </p>
               </div>
 
-              {/* Total Tuition */}
-
-              <div className="rounded-xl border border-[#DADCD3] bg-white p-4 transition-shadow hover:shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-[#6B7268]">
-                      Total Tuition
-                    </p>
-
-                    <p className="mt-1 truncate text-2xl font-bold tracking-tight text-[#12203B]">
-                      {formatTuition(stats.totalTuition)}
-                    </p>
-                  </div>
-
-                  <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F7F1E5] sm:flex">
-                    <DollarSign className="h-4 w-4 text-[#B98A3E]" />
-                  </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="h-3 w-3 text-[#9CA3AF]" />
+                  <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                    Total Tuition
+                  </p>
                 </div>
+                <p className="mt-0.5 text-[18px] font-bold leading-tight text-[#1A2B4C]">
+                  ${(stats.totalTuition || 0).toLocaleString()}
+                </p>
               </div>
-
-              {/* With Tuition */}
 
               <button
                 type="button"
                 onClick={() => setTuitionFilter('with')}
-                className={`rounded-xl border p-4 text-left transition-all hover:shadow-sm ${
+                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
                   tuitionFilter === 'with'
-                    ? 'border-[#B98A3E] bg-[#FBF7EF] shadow-sm'
-                    : 'border-[#DADCD3] bg-white hover:bg-[#F7F6F2]'
+                    ? 'border-[#C59B4C] bg-[#FBF7EE]'
+                    : 'border-[#E5E7EB] bg-white hover:border-[#C59B4C]/50 hover:bg-[#F8F9FA]'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-[#6B7268]">
-                      With Tuition
-                    </p>
-
-                    <p className="mt-1 text-2xl font-bold tracking-tight text-[#12203B]">
-                      {stats.withTuition || 0}
-                    </p>
-                  </div>
-
-                  <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-[#F7F1E5] sm:flex">
-                    <DollarSign className="h-4 w-4 text-[#B98A3E]" />
-                  </div>
-                </div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  With Tuition
+                </p>
+                <p className="mt-0.5 text-[18px] font-bold leading-tight text-[#1A2B4C]">
+                  {stats.withTuition || 0}
+                </p>
               </button>
-
-              {/* Without Tuition */}
 
               <button
                 type="button"
                 onClick={() => setTuitionFilter('without')}
-                className={`rounded-xl border p-4 text-left transition-all hover:shadow-sm ${
+                className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
                   tuitionFilter === 'without'
-                    ? 'border-[#A4462F] bg-[#FBF3F0] shadow-sm'
-                    : 'border-[#DADCD3] bg-white hover:bg-[#F7F6F2]'
+                    ? 'border-[#C59B4C] bg-[#FBF7EE]'
+                    : 'border-[#E5E7EB] bg-white hover:border-[#C59B4C]/50 hover:bg-[#F8F9FA]'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-medium text-[#6B7268]">
-                      Without Tuition
-                    </p>
-
-                    <p className="mt-1 text-2xl font-bold tracking-tight text-[#12203B]">
-                      {stats.withoutTuition || 0}
-                    </p>
-                  </div>
-
-                  <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-[#F8EDEA] sm:flex">
-                    <DollarSign className="h-4 w-4 text-[#A4462F]" />
-                  </div>
-                </div>
+                <p className="text-[10px] font-medium uppercase tracking-[0.06em] text-[#6B7280]">
+                  Without Tuition
+                </p>
+                <p className="mt-0.5 text-[18px] font-bold leading-tight text-[#1A2B4C]">
+                  {stats.withoutTuition || 0}
+                </p>
               </button>
             </>
           )}
         </div>
 
-        {/* =====================================================
-            SEARCH & FILTER
-        ====================================================== */}
-
-        <section className="mb-5 rounded-xl border border-[#DADCD3] bg-white p-3 sm:p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Filter className="h-4 w-4 text-[#55705B]" />
-
-            <div>
-              <h3 className="text-sm font-semibold text-[#12203B]">
-                Search & Filter
-              </h3>
-
-              <p className="text-[11px] text-[#8A9088]">
-                Find students by name, status, or tuition record.
-              </p>
-            </div>
+        {/* SEARCH & FILTER — compact single row */}
+        <section className="mb-4 rounded-lg border border-[#E5E7EB] bg-white">
+          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-3 py-2">
+            <Filter className="h-3.5 w-3.5 text-[#9CA3AF]" />
+            <h3 className="text-[12px] font-semibold text-[#1A2B4C]">
+              Search & Filter
+            </h3>
+            <span className="text-[10.5px] text-[#9CA3AF]">
+              — Find students by name, status, or tuition
+            </span>
           </div>
 
-          <div className="grid gap-2.5 md:grid-cols-[minmax(0,1fr)_180px_180px]">
-            {/* Search */}
-
+          <div className="grid gap-2 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)]">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8A9088]" />
-
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
               <input
                 type="text"
                 placeholder="Search by student name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white pl-9 pr-3 text-sm text-[#12203B] outline-none transition-colors placeholder:text-[#9A9F98] focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
+                className="h-9 w-full rounded-md border border-[#E5E7EB] bg-white pl-8 pr-3 text-[12.5px] text-[#1A2B4C] outline-none transition-colors placeholder:text-[#9CA3AF] focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15"
               />
             </div>
+          </div>
 
-            {/* Status */}
+          <div className="flex items-center gap-2 border-t border-[#F3F4F6] px-3 py-2">
+            {/* Tuition tabs */}
+            <div
+              className="flex min-w-0 flex-1 rounded-md border border-[#E5E7EB] bg-white p-0.5"
+              role="tablist"
+              aria-label="Tuition filter"
+            >
+              {(
+                [
+                  ['all', 'All'],
+                  ['with', 'With tuition'],
+                  ['without', 'Without tuition'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={tuitionFilter === value}
+                  onClick={() => setTuitionFilter(value)}
+                  className={`flex-1 rounded px-2.5 py-1.5 text-[11.5px] font-semibold transition sm:flex-none sm:px-3.5 ${
+                    tuitionFilter === value
+                      ? 'bg-[#1A2B4C] text-white'
+                      : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1A2B4C]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
-            <div>
-              <label
-                htmlFor="student-status"
-                className="sr-only"
-              >
+            {/* Status dropdown — same row as the tabs */}
+            <div className="w-32 shrink-0 sm:w-40">
+              <label htmlFor="student-status" className="sr-only">
                 Student status
               </label>
-
               <select
                 id="student-status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#344136] outline-none transition-colors focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
+                className="h-9 w-full rounded-md border border-[#E5E7EB] bg-white px-2.5 text-[12.5px] text-[#4B5646] outline-none transition-colors focus:border-[#C59B4C] focus:ring-2 focus:ring-[#C59B4C]/15"
               >
                 <option value="">All Status</option>
                 <option value="ACTIVE">Active</option>
@@ -475,357 +318,107 @@ export default function TuitionPage() {
                 <option value="SUSPENDED">Suspended</option>
               </select>
             </div>
-
-            {/* Tuition */}
-
-            <div>
-              <label
-                htmlFor="tuition-status"
-                className="sr-only"
-              >
-                Tuition status
-              </label>
-
-              <select
-                id="tuition-status"
-                value={tuitionFilter}
-                onChange={(e) =>
-                  setTuitionFilter(
-                    e.target.value as TuitionFilter
-                  )
-                }
-                className="h-10 w-full rounded-lg border border-[#DADCD3] bg-white px-3 text-sm text-[#344136] outline-none transition-colors focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
-              >
-                <option value="all">All Tuition</option>
-                <option value="with">With Tuition</option>
-                <option value="without">
-                  Without Tuition
-                </option>
-              </select>
-            </div>
           </div>
-
-          {tuitionFilter !== 'all' && (
-            <div className="mt-3 flex items-center justify-between border-t border-[#EEF0ED] pt-3">
-              <p className="text-xs text-[#6B7268]">
-                Showing students{' '}
-                <span className="font-semibold text-[#344136]">
-                  {tuitionFilter === 'with'
-                    ? 'with tuition'
-                    : 'without tuition'}
-                </span>
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setTuitionFilter('all')}
-                className="text-xs font-semibold text-[#55705B] hover:underline"
-              >
-                Clear
-              </button>
-            </div>
-          )}
         </section>
 
-        {/* =====================================================
-            STUDENT LIST
-        ====================================================== */}
-
-        <section className="rounded-xl border border-[#DADCD3] bg-white">
-          {/* LIST HEADER */}
-
-          <div className="flex items-center justify-between gap-3 border-b border-[#E8EAE5] px-4 py-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F1F1EC]">
-                <Users className="h-4 w-4 text-[#55705B]" />
-              </div>
-
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-[#12203B]">
-                  Students
-                </h2>
-
-                <p className="text-[11px] text-[#8A9088]">
-                  Tuition and course overview
-                </p>
-              </div>
+        {/* STUDENT LIST */}
+        <section className="rounded-lg border border-[#E5E7EB] bg-white">
+          <div className="flex items-center justify-between gap-2 border-b border-[#F3F4F6] px-3 py-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Users className="h-3.5 w-3.5 shrink-0 text-[#6B7280]" />
+              <h2 className="text-[12.5px] font-semibold text-[#1A2B4C]">
+                Students
+              </h2>
+              <span className="rounded bg-[#F3F4F6] px-1.5 py-0.5 text-[10px] font-semibold text-[#6B7280]">
+                {isLoading ? '…' : students.length}
+              </span>
             </div>
-
-            <span className="shrink-0 rounded-md bg-[#F7F6F2] px-2 py-1 text-[11px] font-semibold text-[#6B7268]">
-              {isLoading ? '...' : students.length}
-            </span>
           </div>
 
-          <div className="p-3 sm:p-4">
-            {/* =================================================
-                LOADING
-            ================================================== */}
-
+          <div className="px-3 py-2">
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <StudentCardSkeleton key={index} />
+              <div className="space-y-1.5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 rounded-md px-1.5 py-2"
+                  >
+                    <div className="h-8 w-8 animate-pulse rounded-full bg-[#F3F4F6]" />
+                    <div className="h-3 w-40 animate-pulse rounded bg-[#F3F4F6]" />
+                  </div>
                 ))}
               </div>
             ) : error ? (
-              /* =================================================
-                 ERROR
-              ================================================== */
-
-              <div className="rounded-lg border border-[#E7C9C2] bg-[#FBF3F0] px-5 py-10 text-center">
-                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#F8EDEA]">
-                  <DollarSign className="h-5 w-5 text-[#A4462F]" />
-                </div>
-
-                <h3 className="mt-3 text-sm font-semibold text-[#7E3426]">
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-8 text-center">
+                <AlertCircle className="mx-auto h-6 w-6 text-red-600" />
+                <h3 className="mt-2 text-[13px] font-semibold text-red-900">
                   Failed to load students
                 </h3>
-
-                <p className="mt-1 text-xs text-[#A4462F]/80">
+                <p className="mt-0.5 text-[11.5px] text-red-700">
                   We couldn't retrieve the tuition information.
                 </p>
-
                 <button
+                  type="button"
                   onClick={() => refetch()}
-                  className="mt-4 rounded-lg bg-[#12203B] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1C2D4B]"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-[#1A2B4C] px-3 py-1.5 text-[11.5px] font-semibold text-white transition-colors hover:bg-[#263D66]"
                 >
+                  <RefreshCw className="h-3 w-3" />
                   Retry
                 </button>
               </div>
             ) : students.length === 0 ? (
-              /* =================================================
-                 EMPTY
-              ================================================== */
-
-              <div className="rounded-lg border border-dashed border-[#DADCD3] bg-[#F7F6F2] px-5 py-12 text-center">
-                <Users className="mx-auto h-8 w-8 text-[#9A9F98]" />
-
-                <h3 className="mt-3 text-sm font-semibold text-[#344136]">
+              <div className="rounded-md border border-dashed border-[#E5E7EB] bg-[#F8F9FA] px-4 py-10 text-center">
+                <Users className="mx-auto h-6 w-6 text-[#9CA3AF]" />
+                <h3 className="mt-2 text-[13px] font-semibold text-[#4B5646]">
                   No students found
                 </h3>
-
-                <p className="mt-1 text-xs text-[#8A9088]">
+                <p className="mt-0.5 text-[11.5px] text-[#9CA3AF]">
                   Try changing your search or filter settings.
                 </p>
               </div>
             ) : (
-              /* =================================================
-                 STUDENT CARDS
-              ================================================== */
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <ul className="divide-y divide-[#F3F4F6]">
                 {students.map((student) => {
-                  const totalCredits =
-                    calculateTotalCredits(student);
-
-                  const courseCount =
-                    student._count?.submittedCourses ??
-                    student.submittedCourses?.length ??
-                    0;
-
                   const hasTuition =
                     typeof student.tuitionAmount === 'number' &&
                     student.tuitionAmount > 0;
 
                   return (
-                    <article
+                    <li
                       key={student.id}
-                      className={`group relative overflow-hidden rounded-xl border bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                        hasTuition
-                          ? 'border-[#DADCD3] hover:border-[#C8CBC3]'
-                          : 'border-[#E4D7D2] hover:border-[#D7C3BC]'
-                      }`}
+                      className="flex items-center gap-2.5 px-1 py-2"
                     >
-                      {/* Small status accent */}
+                      {student.profileImageUrl ? (
+                        <Image
+                          src={student.profileImageUrl}
+                          alt={`${student.firstName} ${student.lastName}`}
+                          width={32}
+                          height={32}
+                          unoptimized
+                          className="h-8 w-8 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1A2B4C] text-[10px] font-bold text-white">
+                          {student.firstName?.charAt(0)}
+                          {student.lastName?.charAt(0)}
+                        </div>
+                      )}
 
-                      <div
-                        className={`absolute left-0 top-0 h-full w-0.5 ${
-                          hasTuition
-                            ? 'bg-[#B98A3E]'
-                            : 'bg-[#A4462F]'
+                      <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[#1A2B4C]">
+                        {student.firstName} {student.lastName}
+                      </span>
+
+                      <span
+                        className={`shrink-0 text-[12px] font-semibold ${
+                          hasTuition ? 'text-[#1A2B4C]' : 'text-[#9CA3AF]'
                         }`}
-                      />
-
-                      {/* =================================================
-                          STUDENT HEADER
-                      ================================================== */}
-
-                      <div className="flex items-center gap-3">
-                        {/* Profile */}
-
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#DADCD3] bg-[#F1F1EC]">
-                          {student.profileImageUrl ? (
-                            <Image
-                              src={student.profileImageUrl}
-                              alt={`${student.firstName} ${student.lastName}`}
-                              width={40}
-                              height={40}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-[#55705B]">
-                              {student.firstName?.charAt(0)}
-                              {student.lastName?.charAt(0)}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Name + status */}
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <h3 className="min-w-0 truncate text-sm font-bold text-[#12203B]">
-                              {student.firstName}{' '}
-                              {student.lastName}
-                            </h3>
-
-                            <span
-                              className={`shrink-0 text-[10px] font-semibold ${
-                                student.status === 'SUSPENDED'
-                                  ? 'text-[#A46A16]'
-                                  : student.isActive
-                                  ? 'text-[#55705B]'
-                                  : 'text-[#A4462F]'
-                              }`}
-                            >
-                              {student.status === 'SUSPENDED'
-                                ? 'Suspended'
-                                : student.isActive
-                                ? 'Active'
-                                : 'Inactive'}
-                            </span>
-                          </div>
-
-                          {/* Course count + credits on same line */}
-
-                          <div className="mt-1 flex items-center gap-2 text-[10px] text-[#8A9088]">
-                            <span>
-                              {courseCount}{' '}
-                              {courseCount === 1
-                                ? 'course'
-                                : 'courses'}
-                            </span>
-
-                            <span className="h-1 w-1 rounded-full bg-[#C5C9C1]" />
-
-                            <span>
-                              {totalCredits}{' '}
-                              {totalCredits === 1
-                                ? 'credit'
-                                : 'credits'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* =================================================
-                          TUITION ROW
-                      ================================================== */}
-
-                      <div className="mt-4 flex items-end justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7A8077]">
-                            Tuition
-                          </p>
-
-                          <div className="mt-0.5 flex items-baseline gap-2">
-                            <p
-                              className={`text-2xl font-bold tracking-tight ${
-                                hasTuition
-                                  ? 'text-[#12203B]'
-                                  : 'text-[#7E3426]'
-                              }`}
-                            >
-                              {formatTuition(
-                                student.tuitionAmount
-                              )}
-                            </p>
-
-                            <span
-                              className={`text-[10px] font-semibold ${
-                                hasTuition
-                                  ? 'text-[#806126]'
-                                  : 'text-[#A4462F]'
-                              }`}
-                            >
-                              {hasTuition
-                                ? 'Recorded'
-                                : 'Not recorded'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Tuition icon */}
-
-                        <div
-                          className={`mb-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                            hasTuition
-                              ? 'bg-[#F7F1E5] text-[#B98A3E]'
-                              : 'bg-[#F8EDEA] text-[#A4462F]'
-                          }`}
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </div>
-                      </div>
-
-                      {/* =================================================
-                          COURSE INFORMATION
-                      ================================================== */}
-
-                      <div className="mt-4 border-t border-[#EEF0ED] pt-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-1.5">
-                            <BookOpen className="h-3.5 w-3.5 text-[#55705B]" />
-
-                            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#7A8077]">
-                              Courses
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1 text-[10px] text-[#8A9088]">
-                            <GraduationCap className="h-3 w-3" />
-
-                            <span>
-                              {totalCredits}{' '}
-                              {totalCredits === 1
-                                ? 'credit'
-                                : 'credits'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {student.submittedCourses?.length > 0 ? (
-                          <div className="mt-2 space-y-1">
-                            {student.submittedCourses.map(
-                              (course) => (
-                                <div
-                                  key={course.id}
-                                  className="flex items-center justify-between gap-3 text-[11px] leading-4"
-                                >
-                                  <span className="min-w-0 truncate text-[#4B564C]">
-                                    {course.name}
-                                  </span>
-
-                                  <span className="shrink-0 text-[10px] font-medium text-[#8A9088]">
-                                    {course.credits}{' '}
-                                    {course.credits === 1
-                                      ? 'credit'
-                                      : 'credits'}
-                                  </span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        ) : (
-                          <p className="mt-2 text-[11px] text-[#9A9F98]">
-                            No courses submitted
-                          </p>
-                        )}
-                      </div>
-                    </article>
+                      >
+                        {formatTuition(student.tuitionAmount)}
+                      </span>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </div>
         </section>

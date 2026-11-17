@@ -52,7 +52,16 @@ export async function GET(request: NextRequest) {
       ? requestedSortBy
       : 'createdAt';
     const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
+    const lite = searchParams.get('lite') === 'true';
     const skip = (page - 1) * limit;
+    const orderBy: Prisma.UserOrderByWithRelationInput =
+      sortBy === 'firstName'
+        ? { firstName: sortOrder }
+        : sortBy === 'lastName'
+          ? { lastName: sortOrder }
+          : sortBy === 'email'
+            ? { email: sortOrder }
+            : { createdAt: sortOrder };
 
     // Build where clause - only users in this tech center
     const where: Prisma.UserWhereInput = {
@@ -99,10 +108,26 @@ export async function GET(request: NextRequest) {
       techCenterId: techCenterId,
     };
 
-    // Get all users with their courses and tuition info
-    const users = await prisma.user.findMany({
-      where,
-      include: {
+    // Get all users — lite mode returns only profile fields (no courses)
+    const users = lite
+      ? await prisma.user.findMany({
+          where,
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            status: true,
+            isActive: true,
+            profileImageUrl: true,
+            tuitionAmount: true,
+          },
+          orderBy,
+          skip,
+          take: limit,
+        })
+      : await prisma.user.findMany({
+          where,
+          include: {
         role: {
           select: {
             id: true,
@@ -144,83 +169,99 @@ export async function GET(request: NextRequest) {
             gradesGiven: true,
           }
         }
-      },
-      orderBy: sortBy === 'firstName'
-        ? { firstName: sortOrder }
-        : sortBy === 'lastName'
-          ? { lastName: sortOrder }
-          : sortBy === 'email'
-            ? { email: sortOrder }
-            : { createdAt: sortOrder },
-      skip,
-      take: limit,
-    });
+          },
+          orderBy,
+          skip,
+          take: limit,
+        });
 
     // Add tuitionAmount to each user from their courses (use first course's tuition)
-    const usersWithTuition = users.map(user => {
-      const tuitionFromCourse = user.submittedCourses.length > 0
-        ? user.submittedCourses[0].tuition
-        : null;
-      return {
-        ...user,
-        tuitionAmount: tuitionFromCourse
-      };
-    });
+    const usersWithTuition = lite
+      ? users
+      : users.map(user => {
+          const courses =
+            (user as { submittedCourses?: Array<{ tuition?: number | null }> })
+              .submittedCourses ?? [];
+          const tuitionFromCourse = courses.length > 0
+            ? courses[0].tuition ?? null
+            : null;
+          return {
+            ...user,
+            tuitionAmount: tuitionFromCourse
+          };
+        });
 
-    // Calculate stats - now using student_courses for tuition
+    // Calculate stats
     const totalStudents = await prisma.user.count({ where: baseWhere });
 
-    // Get all active student courses to calculate tuition stats
-    const allStudentCourses = await prisma.studentCourse.findMany({
-      where: {
-        student: {
-          techCenterId: techCenterId,
+    let withTuition = 0;
+    let totalTuitionSum = 0;
+    let totalCreditsAllUsers = 0;
+
+    if (lite) {
+      const [tuitionCount, tuitionAgg] = await Promise.all([
+        prisma.user.count({
+          where: { techCenterId: techCenterId, tuitionAmount: { gt: 0 } },
+        }),
+        prisma.user.aggregate({
+          where: { techCenterId: techCenterId },
+          _sum: { tuitionAmount: true },
+        }),
+      ]);
+      withTuition = tuitionCount;
+      totalTuitionSum = tuitionAgg._sum.tuitionAmount ?? 0;
+    } else {
+      // Get all active student courses to calculate tuition stats
+      const allStudentCourses = await prisma.studentCourse.findMany({
+        where: {
+          student: {
+            techCenterId: techCenterId,
+          },
+          status: 'ACTIVE'
         },
-        status: 'ACTIVE'
-      },
-      select: {
-        tuition: true,
-        studentId: true,
-      }
-    });
-
-    // Count unique students with tuition (tuition > 0)
-    const studentsWithTuition = new Set();
-    const studentTuitionMap = new Map(); // Track tuition per student
-
-    allStudentCourses.forEach(course => {
-      if (course.tuition && course.tuition > 0) {
-        studentsWithTuition.add(course.studentId);
-        // Store tuition per student (use first course's tuition per student)
-        if (!studentTuitionMap.has(course.studentId)) {
-          studentTuitionMap.set(course.studentId, course.tuition);
+        select: {
+          tuition: true,
+          studentId: true,
         }
-      }
-    });
+      });
 
-    const withTuition = studentsWithTuition.size;
+      // Count unique students with tuition (tuition > 0)
+      const studentsWithTuition = new Set();
+      const studentTuitionMap = new Map(); // Track tuition per student
 
-    // Sum tuition across all unique students
-    const totalTuitionSum = Array.from(studentTuitionMap.values()).reduce((sum, tuition) => sum + tuition, 0);
-
-    // Calculate total credits across all users
-    const allUsersWithCourses = await prisma.user.findMany({
-      where: baseWhere,
-      select: {
-        submittedCourses: {
-          select: {
-            credits: true,
+      allStudentCourses.forEach(course => {
+        if (course.tuition && course.tuition > 0) {
+          studentsWithTuition.add(course.studentId);
+          // Store tuition per student (use first course's tuition per student)
+          if (!studentTuitionMap.has(course.studentId)) {
+            studentTuitionMap.set(course.studentId, course.tuition);
           }
         }
-      }
-    });
-
-    let totalCreditsAllUsers = 0;
-    allUsersWithCourses.forEach(user => {
-      user.submittedCourses.forEach(course => {
-        totalCreditsAllUsers += course.credits || 0;
       });
-    });
+
+      withTuition = studentsWithTuition.size;
+
+      // Sum tuition across all unique students
+      totalTuitionSum = Array.from(studentTuitionMap.values()).reduce((sum, tuition) => sum + tuition, 0);
+
+      // Calculate total credits across all users
+      const allUsersWithCourses = await prisma.user.findMany({
+        where: baseWhere,
+        select: {
+          submittedCourses: {
+            select: {
+              credits: true,
+            }
+          }
+        }
+      });
+
+      allUsersWithCourses.forEach(user => {
+        user.submittedCourses.forEach(course => {
+          totalCreditsAllUsers += course.credits || 0;
+        });
+      });
+    }
 
     // Get status counts
     const [activeCount, inactiveCount, suspendedCount] = await Promise.all([

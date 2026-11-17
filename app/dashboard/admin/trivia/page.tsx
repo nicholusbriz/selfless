@@ -121,7 +121,7 @@ export default function TriviaTrackingPage() {
         throw new Error('Failed to fetch trivia sessions');
       }
 
-      const result: TriviaSessionsResponse = await response.json();
+      const result = (await response.json()) as TriviaSessionsResponse;
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

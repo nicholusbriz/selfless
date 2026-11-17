@@ -81,7 +81,7 @@ function getPageInfo(pathname: string) {
   const pages: Record<string, { title: string; section?: string }> = {
     '/dashboard': { title: 'Dashboard', section: 'Workspace' },
     '/dashboard/ai': { title: 'Atbriz AI', section: 'Workspace' },
-    '/dashboard/students': { title: 'Students', section: 'Workspace' },
+    '/dashboard/students': { title: '' },
     '/dashboard/connections': { title: 'Connections', section: 'Network' },
     '/dashboard/english-hub': { title: 'English Hub', section: 'Workspace' },
     '/dashboard/courses': { title: 'Courses', section: 'Academics' },
@@ -291,6 +291,7 @@ export default function TopNav({
           <div className="hidden lg:block h-5 w-px bg-[#E5E7EB] shrink-0" />
 
           {/* Breadcrumb */}
+          {pageInfo.title && (
           <div className="hidden sm:flex min-w-0 items-center gap-1.5">
             {pageInfo.section && (
               <>
@@ -313,6 +314,7 @@ export default function TopNav({
               </motion.span>
             </AnimatePresence>
           </div>
+          )}
         </div>
 
         {/* ── RIGHT ── */}

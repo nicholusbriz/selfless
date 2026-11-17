@@ -32,6 +32,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AzureMediaUpload from '@/components/AzureMediaUpload';
 import MediaPostInteractions from './components/MediaPostInteractions';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface MediaItem {
   id: string;
@@ -50,6 +51,7 @@ interface MediaItem {
     firstName: string;
     lastName: string;
     profileImageUrl: string | null;
+    hasVerifiedBadge?: boolean;
     techCenter?: {
       id: string;
       name: string;
@@ -80,10 +82,6 @@ interface MediaPage {
     PENDING: number;
     REJECTED: number;
   };
-}
-
-interface FollowStatus {
-  [userId: string]: boolean;
 }
 
 function isMediaItem(value: unknown): value is MediaItem {
@@ -118,62 +116,6 @@ function isMediaItem(value: unknown): value is MediaItem {
   );
 }
 
-function PostDescription({ description }: { description: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const [isTruncated, setIsTruncated] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    const element = textRef.current;
-    if (!element) return;
-
-    const updateTruncation = () => {
-      if (!expanded) {
-        setIsTruncated(element.scrollHeight > element.clientHeight + 1);
-      }
-    };
-
-    updateTruncation();
-    const observer = new ResizeObserver(updateTruncation);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [description, expanded]);
-
-  return (
-    <div className="relative">
-      <p
-        ref={textRef}
-        className={`whitespace-pre-wrap text-sm leading-6 text-[#526078] ${
-          expanded ? '' : 'line-clamp-2'
-        }`}
-      >
-        {description}
-      </p>
-      {expanded && isTruncated && (
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          aria-expanded="true"
-          className="text-sm font-semibold text-[#1A2B4C] hover:underline"
-        >
-          Less
-        </button>
-      )}
-      {!expanded && isTruncated && (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          aria-expanded="false"
-          className="absolute bottom-0 right-0 bg-white pl-1 text-sm font-semibold leading-6 text-[#1A2B4C] hover:underline"
-        >
-          More
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ✅ Skeleton card for loading state
 function GallerySkeleton() {
   return (
     <div className="animate-pulse overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white">
@@ -186,20 +128,50 @@ function GallerySkeleton() {
   );
 }
 
+function StatSkeleton() {
+  return (
+    <div className="h-[76px] animate-pulse rounded-2xl border border-[#E7EAF0] bg-[#EEF0F4]" />
+  );
+}
+
 export default function GalleryPage() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
-  const [activeFilter, setActiveFilter] = useState<'all' | 'photos' | 'videos' | 'mine' | 'saved'>('all');
+  const [activeFilter, setActiveFilter] = useState<
+    'all' | 'photos' | 'videos' | 'mine' | 'saved'
+  >('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
-  const [deletePostError, setDeletePostError] = useState<{ id: string; message: string } | null>(null);
+  const [deletePostError, setDeletePostError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
   const [openPostMenuId, setOpenPostMenuId] = useState<string | null>(null);
-  // ✅ Proper confirmation dialog instead of window.confirm
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; title: string } | null>(null);
-  // ✅ fullscreen state declared ABOVE handleDeletePost (fixes reference-error risk)
+  const [confirmDelete, setConfirmDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
-  const [videoControls, setVideoControls] = useState<Record<string, VideoControlsState>>({});
+  const [videoControls, setVideoControls] = useState<
+    Record<string, VideoControlsState>
+  >({});
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [postUploadNotice, setPostUploadNotice] = useState<string | null>(null);
+  const [featuredVideoId, setFeaturedVideoId] = useState<string | null>(null);
+  const [heroVideoPlaying, setHeroVideoPlaying] = useState(false);
+  const heroVideoRef = useRef<HTMLVideoElement | null>(null);
+  const heroSoundEnabledRef = useRef(false);
 
-  const { data: items = [], isLoading, isFetching, error, refetch } = useQuery<MediaItem[]>({
+  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+
+  // ── Queries ────────────────────────────────────────────────────────────────
+
+  const {
+    data: items = [],
+    isLoading,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery<MediaItem[]>({
     queryKey: ['gallery-media'],
     queryFn: async () => {
       const response = await fetch('/api/media/list?category=gallery');
@@ -277,89 +249,227 @@ export default function GalleryPage() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const [followStatus, setFollowStatus] = useState<FollowStatus>({});
-  const [pendingFollows, setPendingFollows] = useState<FollowStatus>({});
-  const [followErrors, setFollowErrors] = useState<FollowStatus>({});
-  const pendingFollowIds = useRef(new Set<string>());
-  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  const [postUploadNotice, setPostUploadNotice] = useState<string | null>(null);
+  // ── Derived data ───────────────────────────────────────────────────────────
 
-  // ✅ ONE request for the whole feed instead of N per-author requests
+  const myPosts = myPostsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const savedPosts = savedPostsQuery.data ?? [];
+
+  const photos = useMemo(
+    () => items.filter((item) => item.contentType.startsWith('image/')),
+    [items],
+  );
+  const videos = useMemo(
+    () => items.filter((item) => item.contentType.startsWith('video/')),
+    [items],
+  );
+
+  // Filter-scoped source list so the hero reflects what the user is viewing
+  const sourceItems =
+    activeFilter === 'mine'
+      ? myPosts
+      : activeFilter === 'saved'
+        ? savedPosts
+        : activeFilter === 'photos'
+          ? photos
+          : activeFilter === 'videos'
+            ? videos
+            : items;
+
+  const sourceVideos = useMemo(
+    () => sourceItems.filter((item) => item.contentType.startsWith('video/')),
+    [sourceItems],
+  );
+
+  const recentVideos = useMemo(
+    () =>
+      [...sourceVideos]
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 6),
+    [sourceVideos],
+  );
+
+  const featuredVideo =
+    recentVideos.find((video) => video.id === featuredVideoId) ??
+    recentVideos[0] ??
+    null;
+
+  const visibleItems =
+    activeFilter === 'mine'
+      ? myPosts
+      : activeFilter === 'saved'
+        ? savedPosts
+        : activeFilter === 'photos'
+          ? photos
+          : activeFilter === 'videos'
+            ? videos
+            : items;
+
+  const visibleCount =
+    activeFilter === 'mine'
+      ? myPostsQuery.data?.pages[0]?.totalCount ?? myPosts.length
+      : activeFilter === 'saved'
+        ? savedPosts.length
+        : activeFilter === 'photos'
+          ? photos.length
+          : activeFilter === 'videos'
+            ? videos.length
+            : items.length;
+
+  const myPostStats =
+    myPostsQuery.data?.pages[0]?.statusCounts ??
+    myPosts.reduce(
+      (stats, item) => {
+        stats[item.approvalStatus] += 1;
+        return stats;
+      },
+      { APPROVED: 0, PENDING: 0, REJECTED: 0 },
+    );
+
+  const heroCopy = useMemo(() => {
+    if (activeFilter === 'mine') {
+      return {
+        eyebrow: `${currentUser?.techCenter?.name ?? 'Your'} · My gallery`,
+        title: 'Your work,',
+        highlight: 'front and center.',
+        subtitle:
+          'Every photo and video you\u2019ve shared, with its live review status.',
+      };
+    }
+    if (activeFilter === 'saved') {
+      return {
+        eyebrow: 'Saved collection',
+        title: 'Your bookmarks,',
+        highlight: 'ready when you are.',
+        subtitle: 'Revisit the posts you saved from across the community.',
+      };
+    }
+    if (activeFilter === 'videos') {
+      return {
+        eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Videos`,
+        title: 'Watch the community',
+        highlight: 'come alive.',
+        subtitle: 'Recent videos from research, events, and campus life.',
+      };
+    }
+    if (activeFilter === 'photos') {
+      return {
+        eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Photos`,
+        title: 'Moments that',
+        highlight: 'tell our story.',
+        subtitle: 'A snapshot of the people, projects, and places that shape us.',
+      };
+    }
+    return {
+      eyebrow: `${currentUser?.techCenter?.name ?? 'University'} · Community Gallery`,
+      title: 'Where our community',
+      highlight: 'shines.',
+      subtitle:
+        'Share research, events, projects, and campus moments. Approved posts appear in the university-wide feed.',
+    };
+  }, [activeFilter, currentUser?.techCenter?.name]);
+
+  const communityGrowth = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfToday);
+      date.setDate(startOfToday.getDate() - (6 - index));
+      return {
+        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: 0,
+      };
+    });
+
+    for (const item of items) {
+      const createdAt = new Date(item.createdAt);
+      if (!Number.isFinite(createdAt.getTime())) continue;
+      const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}-${createdAt.getDate()}`;
+      const day = days.find((entry) => entry.key === key);
+      if (day) day.count += 1;
+    }
+
+    let total = 0;
+    const points = days.map((day) => {
+      total += day.count;
+      return { ...day, cumulative: total };
+    });
+
+    return {
+      points,
+      maximumDaily: Math.max(1, ...points.map((point) => point.count)),
+      maximumCumulative: Math.max(1, total),
+    };
+  }, [items]);
+
+  // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Reset selected featured video when switching filters
   useEffect(() => {
-    if (!currentUser || items.length === 0) return;
+    setFeaturedVideoId(null);
+  }, [activeFilter]);
 
-    const checkFollowStatus = async () => {
-      const userIds = [
-        ...new Set(
-          items
-            .map((item) => item.user?.id)
-            .filter((userId): userId is string => Boolean(userId)),
-        ),
-      ];
-      if (userIds.length === 0) return;
-
-      try {
-        const response = await fetch(
-          `/api/social/connections/${currentUser.id}?type=following&limit=500`,
-        );
-        if (!response.ok) return;
-        const data: unknown = await response.json();
-        if (!isRecord(data) || !Array.isArray(data.connections)) return;
-
-        const followingSet = new Set(
-          data.connections
-            .filter(isRecord)
-            .map((conn) => conn.id)
-            .filter((id): id is string => typeof id === 'string'),
-        );
-        const status: FollowStatus = {};
-        for (const userId of userIds) status[userId] = followingSet.has(userId);
-
-        setFollowStatus((previous) => {
-          const merged = { ...previous, ...status };
-          for (const userId of pendingFollowIds.current) merged[userId] = true;
-          return merged;
-        });
-      } catch (followError) {
-        console.error('Failed to check follow status:', followError);
+  // Outside-click + Escape close for post menu
+  useEffect(() => {
+    if (!openPostMenuId) return;
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (target && !target.closest('[data-post-menu]')) {
+        setOpenPostMenuId(null);
       }
     };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPostMenuId(null);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [openPostMenuId]);
 
-    void checkFollowStatus();
-  }, [currentUser, items]);
+  // Fullscreen escape + scroll lock
+  useEffect(() => {
+    if (!fullscreenMedia) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreenMedia(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [fullscreenMedia]);
 
-  const handleFollow = async (userId: string) => {
-    if (!currentUser || pendingFollowIds.current.has(userId)) return;
+  // Cleanup video refs on unmount
+  useEffect(() => {
+    return () => {
+      videoRefs.current = {};
+    };
+  }, []);
 
-    const isCurrentlyFollowing = followStatus[userId];
-    pendingFollowIds.current.add(userId);
-    setPendingFollows((previous) => ({ ...previous, [userId]: true }));
-    setFollowErrors((previous) => ({ ...previous, [userId]: false }));
-    try {
-      const response = await fetch(`/api/social/follow/${userId}`, {
-        method: isCurrentlyFollowing ? 'DELETE' : 'POST',
-      });
+  useEffect(() => {
+    setHeroVideoPlaying(false);
+    const video = heroVideoRef.current;
+    if (!video) return;
+    video.muted = !heroSoundEnabledRef.current;
+    void video.play().catch(() => {
+      video.muted = true;
+      void video.play().catch(() => {});
+    });
+  }, [featuredVideo?.id]);
 
-      if (!response.ok) {
-        throw new Error(
-          isCurrentlyFollowing
-            ? 'Could not unfollow this user'
-            : 'Could not follow this user',
-        );
-      }
-
-      setFollowStatus((previous) => ({
-        ...previous,
-        [userId]: !isCurrentlyFollowing,
-      }));
-    } catch (followError) {
-      console.error('Failed to toggle follow:', followError);
-      setFollowErrors((previous) => ({ ...previous, [userId]: true }));
-    } finally {
-      pendingFollowIds.current.delete(userId);
-      setPendingFollows((previous) => ({ ...previous, [userId]: false }));
-    }
-  };
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   const handleDeletePost = async (mediaId: string) => {
     setDeletingPostId(mediaId);
@@ -430,97 +540,6 @@ export default function GalleryPage() {
     void myPostsQuery.refetch();
   };
 
-  const photos = items.filter((item) => item.contentType.startsWith('image/'));
-  const videos = items.filter((item) => item.contentType.startsWith('video/'));
-  const myPosts = myPostsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const visibleItems =
-    activeFilter === 'mine'
-      ? myPosts
-      : activeFilter === 'saved'
-        ? savedPostsQuery.data ?? []
-        : activeFilter === 'photos'
-          ? photos
-          : activeFilter === 'videos'
-            ? videos
-            : items;
-  const visibleCount =
-    activeFilter === 'mine'
-      ? myPostsQuery.data?.pages[0]?.totalCount ?? myPosts.length
-      : activeFilter === 'saved'
-        ? savedPostsQuery.data?.length ?? 0
-        : activeFilter === 'photos'
-          ? photos.length
-          : activeFilter === 'videos'
-            ? videos.length
-            : items.length;
-  const myPostStats =
-    myPostsQuery.data?.pages[0]?.statusCounts ??
-    myPosts.reduce(
-      (stats, item) => {
-        stats[item.approvalStatus] += 1;
-        return stats;
-      },
-      { APPROVED: 0, PENDING: 0, REJECTED: 0 },
-    );
-
-  const communityGrowth = useMemo(() => {
-    const today = new Date();
-    const startOfToday = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    );
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(startOfToday);
-      date.setDate(startOfToday.getDate() - (6 - index));
-      return {
-        key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
-        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        count: 0,
-      };
-    });
-
-    for (const item of items) {
-      const createdAt = new Date(item.createdAt);
-      if (!Number.isFinite(createdAt.getTime())) continue;
-      const key = `${createdAt.getFullYear()}-${createdAt.getMonth()}-${createdAt.getDate()}`;
-      const day = days.find((entry) => entry.key === key);
-      if (day) day.count += 1;
-    }
-
-    let total = 0;
-    const points = days.map((day) => {
-      total += day.count;
-      return { ...day, cumulative: total };
-    });
-
-    return {
-      points,
-      maximumDaily: Math.max(1, ...points.map((point) => point.count)),
-      maximumCumulative: Math.max(1, total),
-    };
-  }, [items]);
-
-  // ✅ Outside-click + Escape close for post menu
-  useEffect(() => {
-    if (!openPostMenuId) return;
-    const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as Element | null;
-      if (target && !target.closest('[data-post-menu]')) {
-        setOpenPostMenuId(null);
-      }
-    };
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpenPostMenuId(null);
-    };
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [openPostMenuId]);
-
   const updateVideoControls = useCallback(
     (videoId: string, patch: Partial<VideoControlsState>) => {
       setVideoControls((current) => ({
@@ -554,30 +573,6 @@ export default function GalleryPage() {
     setFullscreenMedia(item);
   }, []);
 
-  const closeFullscreenMedia = useCallback(() => {
-    setFullscreenMedia(null);
-  }, []);
-
-  useEffect(() => {
-    if (!fullscreenMedia) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeFullscreenMedia();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fullscreenMedia, closeFullscreenMedia]);
-
-  useEffect(() => {
-    if (!fullscreenMedia) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [fullscreenMedia]);
-
-  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
-
   const handleVideoPlay = (videoId: string) => {
     Object.entries(videoRefs.current).forEach(([id, video]) => {
       if (id !== videoId && video) {
@@ -586,11 +581,20 @@ export default function GalleryPage() {
     });
   };
 
-  useEffect(() => {
-    return () => {
-      videoRefs.current = {};
-    };
-  }, []);
+  const toggleVideoPlayback = (videoId: string) => {
+    const video = videoRefs.current[videoId];
+    if (!video) return;
+    if (video.paused) {
+      handleVideoPlay(videoId);
+      void video.play().catch(() => {
+        updateVideoControls(videoId, { isPlaying: false });
+      });
+    } else {
+      video.pause();
+    }
+  };
+
+  // ── Loading / error / refresh flags ────────────────────────────────────────
 
   const isRefreshing =
     activeFilter === 'mine'
@@ -631,68 +635,265 @@ export default function GalleryPage() {
         : refetch());
   };
 
+  const statCards = [
+    {
+      label: 'Total posts',
+      value: visibleCount,
+      icon: ImageIcon,
+      tone: 'bg-white text-[#172033] border-[#E7EAF0]',
+      accent: 'text-[#172033]',
+    },
+    {
+      label: 'Live in feed',
+      value: myPostStats.APPROVED,
+      icon: CheckCircle2,
+      tone: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      accent: 'text-emerald-700',
+    },
+    {
+      label: 'In review',
+      value: myPostStats.PENDING,
+      icon: Loader2,
+      tone: 'bg-amber-50 text-amber-800 border-amber-200',
+      accent: 'text-amber-700',
+    },
+    {
+      label: 'Needs changes',
+      value: myPostStats.REJECTED,
+      icon: AlertCircle,
+      tone: 'bg-red-50 text-red-800 border-red-200',
+      accent: 'text-red-700',
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8f9fb_0%,#f2f4f7_100%)]">
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:py-8">
-        {/* ✅ Hero — university-specific copy + stat strip */}
-        <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[280px]">
-          <Image
-            src="/camera.jpg"
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 1280px) 100vw, 1152px"
-            className="object-cover object-[center_44%]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#101827]/95 via-[#101827]/75 to-[#101827]/15" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#101827]/70 via-transparent to-[#101827]/10" />
-          <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border border-white/10 sm:inset-4" />
-          <div className="relative flex min-h-[230px] flex-col justify-end gap-5 px-6 py-6 sm:min-h-[280px] sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-8">
-            <div className="max-w-2xl">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#E6C779]">
-                {currentUser?.techCenter?.name ?? 'University'} · Community Gallery
-              </p>
-              <h1 className="max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
-                Where our community{' '}
-                <span className="text-[#E6C779]">shines.</span>
-              </h1>
-              <p className="mt-2 max-w-lg text-sm leading-5 text-white/80">
-                Share research, events, projects, and campus moments. Approved
-                posts appear in the university-wide feed.
-              </p>
-              {!isInitialLoading && items.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-5 text-sm">
-                  <div>
-                    <span className="text-2xl font-bold tabular-nums text-white">
-                      {items.length}
-                    </span>{' '}
-                    <span className="text-white/70">posts</span>
+        {/* ── Hero ─────────────────────────────────────────────────────── */}
+        {featuredVideo ? (
+          <div className="overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg">
+            <div className="grid gap-6 px-6 py-6 sm:px-9 sm:py-8 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+              <div className="max-w-2xl">
+                <p className="max-w-lg text-sm leading-5 text-white/80">
+                  {heroCopy.subtitle}
+                </p>
+
+                {!isInitialLoading && sourceItems.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-5 text-sm">
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {visibleCount}
+                      </span>{' '}
+                      <span className="text-white/70">
+                        {activeFilter === 'mine' ? 'your posts' : 'posts'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {sourceItems.filter((i) =>
+                          i.contentType.startsWith('image/'),
+                        ).length}
+                      </span>{' '}
+                      <span className="text-white/70">photos</span>
+                    </div>
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {sourceVideos.length}
+                      </span>{' '}
+                      <span className="text-white/70">videos</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-2xl font-bold tabular-nums text-white">
-                      {photos.length}
-                    </span>{' '}
-                    <span className="text-white/70">photos</span>
-                  </div>
-                  <div>
-                    <span className="text-2xl font-bold tabular-nums text-white">
-                      {videos.length}
-                    </span>{' '}
-                    <span className="text-white/70">videos</span>
+                )}
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatePostModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#E6C779] px-4 py-2.5 text-sm font-bold text-[#172033] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#F0D88F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create a post
+                  </button>
+                  {activeFilter === 'mine' && videos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilter('videos')}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                    >
+                      View all my videos
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="min-w-0">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E6C779]">
+                    {activeFilter === 'mine' ? 'Your recent videos' : 'Recent videos'}
+                  </p>
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/80">
+                    {recentVideos.length} shown
+                  </span>
+                </div>
+
+                <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl">
+                  <video
+                    key={featuredVideo.id}
+                    ref={heroVideoRef}
+                    src={featuredVideo.publicUrl}
+                    controls
+                    autoPlay
+                    loop
+                    playsInline
+                    preload="auto"
+                    poster={featuredVideo.publicUrl}
+                    onPlay={() => setHeroVideoPlaying(true)}
+                    onPause={() => setHeroVideoPlaying(false)}
+                    onEnded={() => setHeroVideoPlaying(false)}
+                    className="h-full w-full object-contain"
+                  />
+                  {/* pointer-events-none wrapper so only the button is clickable —
+                      native player controls stay reachable (no collision) */}
+                  {!heroVideoPlaying && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          heroSoundEnabledRef.current = true;
+                          const video = heroVideoRef.current;
+                          if (!video) return;
+                          video.muted = false;
+                          void video.play().catch(() => {});
+                        }}
+                        aria-label={`Play ${featuredVideo.title || 'video'}`}
+                        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/60"
+                      >
+                        <Play className="ml-1 h-6 w-6 fill-current" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/70 to-transparent p-3 opacity-100 transition group-hover:opacity-0">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {featuredVideo.title || 'Untitled video'}
+                    </p>
+                    {featuredVideo.user && (
+                      <p className="text-[11px] text-white/70">
+                        {featuredVideo.user.firstName}{' '}
+                        {featuredVideo.user.lastName}
+                        {featuredVideo.user.techCenter?.name &&
+                          ` · ${featuredVideo.user.techCenter.name}`}
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
+
+                <div
+                  className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  role="list"
+                  aria-label="Recent videos"
+                >
+                  {recentVideos.map((video) => {
+                    const isActive = video.id === featuredVideo.id;
+                    return (
+                      <button
+                        key={video.id}
+                        type="button"
+                        role="listitem"
+                        onClick={() => {
+                          heroSoundEnabledRef.current = true;
+                          setFeaturedVideoId(video.id);
+                        }}
+                        aria-label={`Show ${video.title || 'video'} in player`}
+                        aria-pressed={isActive}
+                        className="group w-24 shrink-0 text-left focus-visible:outline-none"
+                      >
+                        <span
+                          className={`relative block aspect-video w-24 overflow-hidden rounded-lg bg-black/60 transition ${
+                            isActive
+                              ? 'ring-2 ring-[#E6C779]'
+                              : 'ring-1 ring-white/20 group-hover:ring-white/50'
+                          }`}
+                        >
+                          <video
+                            src={video.publicUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition group-hover:opacity-100">
+                            <Play className="h-4 w-4 fill-white text-white" />
+                          </span>
+                          {isActive && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <Play className="h-4 w-4 fill-white text-white" />
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-1 block truncate text-[10px] font-medium text-white/70 group-hover:text-white">
+                          {video.title || 'Video'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsCreatePostModalOpen(true)}
-              className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#E6C779] px-4 py-2.5 text-sm font-bold text-[#172033] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#F0D88F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:self-auto"
-            >
-              <Plus className="h-4 w-4" />
-              Create a post
-            </button>
           </div>
-        </div>
+        ) : (
+          <div className="relative isolate min-h-[230px] overflow-hidden rounded-3xl bg-[#101827] text-white shadow-lg sm:min-h-[280px]">
+            <Image
+              src="/camera.jpg"
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 1280px) 100vw, 1152px"
+              className="object-cover object-[center_44%]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#101827]/95 via-[#101827]/75 to-[#101827]/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#101827]/70 via-transparent to-[#101827]/10" />
+            <div className="pointer-events-none absolute inset-3 rounded-[1.35rem] border border-white/10 sm:inset-4" />
+            <div className="relative flex min-h-[230px] flex-col justify-end gap-5 px-6 py-6 sm:min-h-[280px] sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-8">
+              <div className="max-w-2xl">
+                <p className="max-w-lg text-sm leading-5 text-white/80">
+                  {heroCopy.subtitle}
+                </p>
+                {!isInitialLoading && sourceItems.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-5 text-sm">
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {visibleCount}
+                      </span>{' '}
+                      <span className="text-white/70">
+                        {activeFilter === 'mine' ? 'your posts' : 'posts'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {photos.length}
+                      </span>{' '}
+                      <span className="text-white/70">photos</span>
+                    </div>
+                    <div>
+                      <span className="text-2xl font-bold tabular-nums text-white">
+                        {videos.length}
+                      </span>{' '}
+                      <span className="text-white/70">videos</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreatePostModalOpen(true)}
+                className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#E6C779] px-4 py-2.5 text-sm font-bold text-[#172033] shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-[#F0D88F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:self-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Create a post
+              </button>
+            </div>
+          </div>
+        )}
 
         {postUploadNotice && (
           <div
@@ -747,7 +948,7 @@ export default function GalleryPage() {
               </button>
             </div>
 
-            {/* ✅ Filter pills — horizontal scroll on mobile instead of 3-col wrap */}
+            {/* Filter pills */}
             <div
               aria-label="Filter posts"
               className="mb-5 flex w-full gap-1 overflow-x-auto rounded-2xl border border-[#E5E8ED] bg-white p-1 shadow-sm sm:rounded-full"
@@ -778,53 +979,38 @@ export default function GalleryPage() {
               ))}
             </div>
 
+            {/* Dashboard stat strip — My posts only */}
             {activeFilter === 'mine' && (
               <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  {
-                    label: 'All posts',
-                    count: visibleCount,
-                    color: 'text-[#172033]',
-                    surface: 'bg-white',
-                  },
-                  {
-                    label: 'Approved',
-                    count: myPostStats.APPROVED,
-                    color: 'text-emerald-700',
-                    surface: 'bg-emerald-50',
-                  },
-                  {
-                    label: 'Pending',
-                    count: myPostStats.PENDING,
-                    color: 'text-amber-700',
-                    surface: 'bg-amber-50',
-                  },
-                  {
-                    label: 'Rejected',
-                    count: myPostStats.REJECTED,
-                    color: 'text-red-700',
-                    surface: 'bg-red-50',
-                  },
-                ].map((stat) => (
-                  <div
-                    key={stat.label}
-                    className={`rounded-2xl border border-[#E7EAF0] px-4 py-3 shadow-sm ${stat.surface}`}
-                  >
-                    <p className="text-xs font-medium text-[#687386]">
-                      {stat.label}
-                    </p>
-                    <p className={`mt-1 text-2xl font-bold ${stat.color}`}>
-                      {myPostsQuery.isLoading ? '—' : stat.count}
-                    </p>
-                  </div>
-                ))}
+                {myPostsQuery.isLoading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <StatSkeleton key={i} />
+                    ))
+                  : statCards.map(({ label, value, icon: Icon, tone, accent }) => (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm ${tone}`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 opacity-70" />
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium opacity-70">
+                            {label}
+                          </p>
+                          <p
+                            className={`text-xl font-bold tabular-nums leading-tight ${accent}`}
+                          >
+                            {value}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
               </div>
             )}
 
-            {/* ✅ Skeleton grid on initial load */}
+            {/* Content */}
             {isInitialLoading ? (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, index) => (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
                   <GallerySkeleton key={index} />
                 ))}
               </div>
@@ -855,7 +1041,7 @@ export default function GalleryPage() {
                 </div>
                 <h3 className="mt-5 text-lg font-semibold text-[#172033]">
                   {activeFilter === 'mine'
-                    ? 'You haven\u2019t shared any posts yet'
+                    ? 'Your gallery is empty'
                     : activeFilter === 'saved'
                       ? 'No saved posts yet'
                       : activeFilter === 'all'
@@ -864,14 +1050,32 @@ export default function GalleryPage() {
                 </h3>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-[#687386]">
                   {activeFilter === 'mine'
-                    ? 'Posts you share will appear here with their review status.'
+                    ? 'Share your first photo or video. It will appear here with its review status, and in the community feed once approved.'
                     : activeFilter === 'saved'
                       ? 'Posts you save will be collected here for easy access.'
                       : activeFilter === 'all'
                         ? 'Share a photo or video to bring the latest moments from your community to life.'
                         : 'Try another feed filter to see more posts.'}
                 </p>
-                {(activeFilter === 'mine' || activeFilter === 'all') && (
+                {activeFilter === 'mine' ? (
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatePostModalOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#1A2B4C] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#263D66]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create your first post
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFilter('all')}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#D9E0EA] bg-white px-4 py-2.5 text-sm font-semibold text-[#1A2B4C] transition hover:bg-[#F7F9FC]"
+                    >
+                      Browse community feed
+                    </button>
+                  </div>
+                ) : activeFilter === 'all' ? (
                   <button
                     type="button"
                     onClick={() => setIsCreatePostModalOpen(true)}
@@ -880,8 +1084,7 @@ export default function GalleryPage() {
                     <Plus className="h-4 w-4" />
                     Create a post
                   </button>
-                )}
-                {activeFilter !== 'all' && activeFilter !== 'mine' && (
+                ) : (
                   <button
                     type="button"
                     onClick={() => setActiveFilter('all')}
@@ -893,8 +1096,7 @@ export default function GalleryPage() {
               </div>
             ) : (
               <>
-                {/* ✅ 1 column on small screens, 2 columns on larger screens */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {visibleItems.map((item) => {
                     const isVideo = item.contentType.startsWith('video/');
                     const authorId = item.user?.id;
@@ -910,9 +1112,13 @@ export default function GalleryPage() {
                     return (
                       <article
                         key={item.id}
-                        className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)]"
+                        className="overflow-hidden rounded-2xl border border-[#E4E8EF] bg-white shadow-[0_4px_16px_rgba(16,24,40,0.06)] transition hover:shadow-[0_8px_24px_rgba(16,24,40,0.08)]"
                       >
-                        <div className="relative aspect-square w-full overflow-hidden bg-[#101827]">
+                        <div
+                          className={`relative w-full overflow-hidden bg-[#101827] ${
+                            isVideo ? 'aspect-video' : 'aspect-square'
+                          }`}
+                        >
                           {isVideo ? (
                             <div className="relative h-full w-full">
                               <video
@@ -921,8 +1127,9 @@ export default function GalleryPage() {
                                 }}
                                 src={item.publicUrl}
                                 playsInline
-                                preload="metadata"
-                                className="h-full w-full object-cover"
+                                preload="auto"
+                                onClick={() => toggleVideoPlayback(item.id)}
+                                className="h-full w-full cursor-pointer object-cover"
                                 onLoadedMetadata={(event) =>
                                   updateVideoControls(item.id, {
                                     duration: event.currentTarget.duration,
@@ -931,7 +1138,8 @@ export default function GalleryPage() {
                                 }
                                 onTimeUpdate={(event) =>
                                   updateVideoControls(item.id, {
-                                    currentTime: event.currentTarget.currentTime,
+                                    currentTime:
+                                      event.currentTarget.currentTime,
                                   })
                                 }
                                 onVolumeChange={(event) =>
@@ -941,18 +1149,34 @@ export default function GalleryPage() {
                                 }
                                 onPlay={() => {
                                   handleVideoPlay(item.id);
-                                  updateVideoControls(item.id, { isPlaying: true });
+                                  updateVideoControls(item.id, {
+                                    isPlaying: true,
+                                  });
                                 }}
                                 onPause={() =>
-                                  updateVideoControls(item.id, { isPlaying: false })
+                                  updateVideoControls(item.id, {
+                                    isPlaying: false,
+                                  })
                                 }
                               />
-                              {/* ✅ Video badge */}
+                              {!(videoControls[item.id]?.isPlaying ?? false) && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleVideoPlayback(item.id)}
+                                  aria-label={`Play ${item.title || 'video'}`}
+                                  className="absolute inset-0 flex items-center justify-center"
+                                >
+                                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:scale-105 hover:bg-black/60">
+                                    <Play className="ml-1 h-6 w-6 fill-current" />
+                                  </span>
+                                </button>
+                              )}
                               <span className="pointer-events-none absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-semibold text-white backdrop-blur">
-                                <Play className="h-2.5 w-2.5 fill-current" /> Video
+                                <Play className="h-2.5 w-2.5 fill-current" />{' '}
+                                Video
                               </span>
                               {item.description && (
-                                <div className="absolute inset-x-0 bottom-0 p-3 pt-16">
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pt-16">
                                   <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
                                     {item.description}
                                   </p>
@@ -980,7 +1204,8 @@ export default function GalleryPage() {
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const video = videoRefs.current[item.id];
+                                          const video =
+                                            videoRefs.current[item.id];
                                           if (!video) return;
                                           if (video.paused) {
                                             void video.play().catch(() => {
@@ -993,9 +1218,13 @@ export default function GalleryPage() {
                                           }
                                         }}
                                         aria-label={
-                                          state.isPlaying ? 'Pause video' : 'Play video'
+                                          state.isPlaying
+                                            ? 'Pause video'
+                                            : 'Play video'
                                         }
-                                        title={state.isPlaying ? 'Pause' : 'Play'}
+                                        title={
+                                          state.isPlaying ? 'Pause' : 'Play'
+                                        }
                                         className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                       >
                                         {state.isPlaying ? (
@@ -1012,9 +1241,13 @@ export default function GalleryPage() {
                                         type="button"
                                         onClick={() => toggleVideoMute(item.id)}
                                         aria-label={
-                                          state.isMuted ? 'Unmute video' : 'Mute video'
+                                          state.isMuted
+                                            ? 'Unmute video'
+                                            : 'Mute video'
                                         }
-                                        title={state.isMuted ? 'Unmute' : 'Mute'}
+                                        title={
+                                          state.isMuted ? 'Unmute' : 'Mute'
+                                        }
                                         className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                                       >
                                         {state.isMuted ? (
@@ -1034,11 +1267,11 @@ export default function GalleryPage() {
                                 src={item.publicUrl}
                                 alt={item.title}
                                 fill
-                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                 className="object-cover"
                               />
                               {item.description && (
-                                <div className="absolute inset-x-0 bottom-0 p-3">
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-10">
                                   <p className="line-clamp-3 text-xs leading-5 text-white drop-shadow-md">
                                     {item.description}
                                   </p>
@@ -1057,25 +1290,23 @@ export default function GalleryPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 border-t border-[#F0F2F5] px-2.5 py-1.5">
+                        <div className="flex items-center gap-2 border-t border-[#F0F2F5] px-2.5 py-2">
                           {item.user?.id ? (
-                            <div className="relative shrink-0">
-                              <div className="rounded-full">
-                                {item.user.profileImageUrl ? (
-                                  <Image
-                                    src={item.user.profileImageUrl}
-                                    alt={`${item.user.firstName} ${item.user.lastName}`}
-                                    width={28}
-                                    height={28}
-                                    className="h-7 w-7 rounded-full object-cover ring-1 ring-[#F1F3F6]"
-                                  />
-                                ) : (
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
-                                    {item.user.firstName[0]}
-                                    {item.user.lastName[0]}
-                                  </div>
-                                )}
-                              </div>
+                            <div className="shrink-0">
+                              {item.user.profileImageUrl ? (
+                                <Image
+                                  src={item.user.profileImageUrl}
+                                  alt={`${item.user.firstName} ${item.user.lastName}`}
+                                  width={28}
+                                  height={28}
+                                  className="h-7 w-7 rounded-full object-cover ring-1 ring-[#F1F3F6]"
+                                />
+                              ) : (
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
+                                  {item.user.firstName[0]}
+                                  {item.user.lastName[0]}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E8ECF3] text-xs font-bold text-[#1A2B4C] ring-1 ring-[#F1F3F6]">
@@ -1083,24 +1314,30 @@ export default function GalleryPage() {
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-xs font-semibold text-[#172033]">
+                            <h3 className="flex items-center gap-1 truncate text-xs font-semibold text-[#172033]">
                               {item.user?.id ? (
                                 <Link
                                   href={`/dashboard/students/${item.user.id}`}
-                                  className="rounded-sm transition hover:text-[#1A2B4C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
+                                  className="truncate rounded-sm transition hover:text-[#1A2B4C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]"
                                 >
                                   {item.user.firstName} {item.user.lastName}
                                 </Link>
                               ) : (
-                                'Selfless community'
+                                <span className="truncate">Selfless community</span>
+                              )}
+                              {item.user?.hasVerifiedBadge && (
+                                <VerifiedBadge className="h-3.5 w-3.5 shrink-0" />
                               )}
                             </h3>
                             <p className="truncate text-[10px] text-[#7A8495]">
                               {item.user?.techCenter?.name} ·{' '}
-                              {new Date(displayDate).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                              })}
+                              {new Date(displayDate).toLocaleDateString(
+                                'en-US',
+                                {
+                                  month: 'short',
+                                  day: 'numeric',
+                                },
+                              )}
                             </p>
                           </div>
                           {isOwnPost && item.approvalStatus !== 'APPROVED' && (
@@ -1165,7 +1402,10 @@ export default function GalleryPage() {
                         </div>
 
                         {deletePostError?.id === item.id && (
-                          <p role="alert" className="px-3 pb-2 text-[10px] text-red-600">
+                          <p
+                            role="alert"
+                            className="px-3 pb-2 text-[10px] text-red-600"
+                          >
                             {deletePostError.message}
                           </p>
                         )}
@@ -1194,7 +1434,6 @@ export default function GalleryPage() {
                   })}
                 </div>
 
-                {/* ✅ Pagination moved OUTSIDE the grid */}
                 {activeFilter === 'mine' && myPostsQuery.hasNextPage && (
                   <div className="mt-6 flex flex-col items-center gap-2">
                     <p className="text-xs text-[#8A93A2]">
@@ -1252,8 +1491,16 @@ export default function GalleryPage() {
                       y1="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor="#C59B4C" stopOpacity="0.22" />
-                      <stop offset="100%" stopColor="#C59B4C" stopOpacity="0.01" />
+                      <stop
+                        offset="0%"
+                        stopColor="#C59B4C"
+                        stopOpacity="0.22"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#C59B4C"
+                        stopOpacity="0.01"
+                      />
                     </linearGradient>
                   </defs>
                   {[0, 1, 2].map((line) => (
@@ -1324,7 +1571,9 @@ export default function GalleryPage() {
                     const y =
                       12 +
                       62 *
-                        (1 - point.cumulative / communityGrowth.maximumCumulative);
+                        (1 -
+                          point.cumulative /
+                            communityGrowth.maximumCumulative);
                     return (
                       <circle
                         key={point.key}
@@ -1364,19 +1613,25 @@ export default function GalleryPage() {
 
               <div className="mt-5 grid grid-cols-3 gap-2 border-t border-[#EEF0F4] pt-4">
                 <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">Posts</p>
+                  <p className="text-[10px] font-medium text-[#7A8495]">
+                    Posts
+                  </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
                     {items.length}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">Photos</p>
+                  <p className="text-[10px] font-medium text-[#7A8495]">
+                    Photos
+                  </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
                     {photos.length}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium text-[#7A8495]">Videos</p>
+                  <p className="text-[10px] font-medium text-[#7A8495]">
+                    Videos
+                  </p>
                   <p className="mt-0.5 text-xl font-bold tabular-nums text-[#172033]">
                     {videos.length}
                   </p>
@@ -1387,7 +1642,7 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      {/* ✅ Confirmation dialog replaces window.confirm */}
+      {/* Confirmation dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div
@@ -1442,12 +1697,12 @@ export default function GalleryPage() {
           aria-label={fullscreenMedia.title || 'Fullscreen community media'}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-3 sm:p-6"
           onClick={(event) => {
-            if (event.target === event.currentTarget) closeFullscreenMedia();
+            if (event.target === event.currentTarget) setFullscreenMedia(null);
           }}
         >
           <button
             type="button"
-            onClick={closeFullscreenMedia}
+            onClick={() => setFullscreenMedia(null)}
             className="absolute right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Close fullscreen media"
           >

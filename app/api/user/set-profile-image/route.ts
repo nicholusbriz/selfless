@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma/client';
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
-    const { imageUrl } = await request.json();
+    const { imageUrl } = (await request.json()) as {
+      imageUrl?: string;
+    };
 
     if (!imageUrl) {
       return NextResponse.json(

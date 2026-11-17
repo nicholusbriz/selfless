@@ -52,6 +52,7 @@ export async function GET() {
               firstName: true,
               lastName: true,
               profileImageUrl: true,
+              hasVerifiedBadge: true,
               techCenter: {
                 select: {
                   id: true,
@@ -88,6 +89,7 @@ export async function GET() {
             lastName: otherUser.lastName,
             fullName: `${otherUser.firstName} ${otherUser.lastName}`,
             image: otherUser.profileImageUrl,
+            hasVerifiedBadge: otherUser.hasVerifiedBadge,
             techCenter: otherUser.techCenter,
           } : null,
           unreadCount,
