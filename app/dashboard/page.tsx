@@ -1975,17 +1975,17 @@ export default function DashboardPage() {
         ============================================================ */}
         <header className="relative overflow-hidden bg-[#1A2B4C] text-white">
           {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1B33]/92 via-[#1A2B4C]/82 to-[#0F1B33]/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1B33]/70 via-[#1A2B4C]/55 to-[#0F1B33]/75" />
 
           {/* Spinning globe accents — kept, subtler */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
           >
-            <div className="absolute -right-28 -top-28 h-[440px] w-[440px] opacity-25">
+            <div className="absolute -right-28 -top-28 h-[520px] w-[520px] opacity-60">
               <SpinningGlobe />
             </div>
-            <div className="absolute -bottom-32 -left-24 h-[380px] w-[380px] opacity-15">
+            <div className="absolute -bottom-32 -left-24 h-[460px] w-[460px] opacity-40">
               <SpinningGlobe />
             </div>
           </div>

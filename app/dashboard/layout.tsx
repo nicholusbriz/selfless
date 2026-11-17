@@ -1,14 +1,8 @@
 // app/dashboard/layout.tsx
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import {
-  useEffect,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
@@ -18,13 +12,14 @@ import { PageTracker } from './components/PageTracker';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 
-import { Images, Users2, Home, FileText, BookOpen } from 'lucide-react';
+
 import Link from 'next/link';
 
 import { PageRefreshButton } from './components/PageRefreshButton';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import GiftIcon from '@/components/GiftIcon';
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
+import { Home, Users2, FileText } from 'lucide-react';
 
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -36,37 +31,19 @@ const DASHBOARD_FOOTER_LINKS = [
 ];
 
 // ============================================================
-// HELPERS
+// PAGE TITLE LOOKUP
 // ============================================================
 
-function getPageInfo(pathname: string, userRole?: string) {
-  const pages: Record<
-    string,
-    { title: string; section?: string }
-  > = {
-    '/dashboard': {
-      title: 'Dashboard',
-      section: 'Workspace',
-    },
-    '/dashboard/ai': {
-      title: 'Atbriz AI',
-      section: 'Workspace',
-    },
-    '/dashboard/students': {
-      title: 'Students',
-    },
-    '/dashboard/english-hub': {
-      title: 'English Hub',
-      section: 'Workspace',
-    },
-    '/dashboard/trivia/leaderboard': {
-      title: 'Trivia Leaderboard',
-      section: 'Community',
-    },
-    '/dashboard/courses': {
-      title: 'Courses',
-      section: 'Academics',
-    },
+type PageInfo = { title: string; section?: string };
+
+function getPageInfo(pathname: string, userRole?: string): PageInfo {
+  const pages: Record<string, PageInfo> = {
+    '/dashboard': { title: 'Dashboard', section: 'Workspace' },
+    '/dashboard/ai': { title: 'Atbriz AI', section: 'Workspace' },
+    '/dashboard/students': { title: 'Students' },
+    '/dashboard/english-hub': { title: 'English Hub', section: 'Workspace' },
+    '/dashboard/trivia/leaderboard': { title: 'Trivia Leaderboard', section: 'Community' },
+    '/dashboard/courses': { title: 'Courses', section: 'Academics' },
     '/dashboard/course-units': {
       title: 'Course Units',
       section:
@@ -76,121 +53,69 @@ function getPageInfo(pathname: string, userRole?: string) {
             ? 'System'
             : 'Academics',
     },
-    '/dashboard/manage-grades': {
-      title: 'Manage Grades',
-      section: 'System',
-    },
-    '/dashboard/grades': {
-      title: 'Grades',
-      section: 'Academics',
-    },
-    '/dashboard/admin/teachers': {
-      title: 'Tutors',
-      section: 'Academics',
-    },
-    '/dashboard/internships': {
-      title: 'Internships',
-      section: 'Opportunities',
-    },
-    '/dashboard/live-streaming': {
-      title: 'Live Streaming',
-      section: 'Media',
-    },
-    '/dashboard/support-groups': {
-      title: 'Support Groups',
-      section: 'Community',
-    },
-    '/dashboard/temple-trips': {
-      title: 'Temple Trips',
-      section: 'Community',
-    },
-    '/dashboard/football-team': {
-      title: 'Sports',
-      section: 'Community',
-    },
-    '/dashboard/cleaning': {
-      title: 'Cleaning Rota',
-      section: 'Campus',
-    },
-    '/dashboard/announcements': {
-      title: 'Announcements',
-      section: 'Communication',
-    },
-    '/dashboard/notifications': {
-      title: 'Notifications',
-      section: 'Communication',
-    },
-    '/dashboard/admin': {
-      title: 'Administration',
-      section: 'Administration',
-    },
-    '/dashboard/admin/users': {
-      title: 'Users',
-      section: 'Administration',
-    },
-    '/dashboard/admin/tuition': {
-      title: 'Tuition',
-      section: 'Administration',
-    },
-    '/dashboard/admin/tech-centers': {
-      title: 'Tech Centers',
-      section: 'Administration',
-    },
-    '/dashboard/admin/cleaning': {
-      title: 'Cleaning Management',
-      section: 'Administration',
-    },
-    '/dashboard/teacher': {
-      title: 'Tutors',
-      section: 'Tutoring',
-    },
-    '/dashboard/teacher/grades': {
-      title: 'Assign Grades',
-      section: 'Administration',
-    },
-    '/dashboard/profile': {
-      title: 'My Profile',
-      section: 'Account',
-    },
-    '/dashboard/gallery': {
-      title: 'Posts',
-      section: 'Media',
-    },
-    '/dashboard/media-approvals': {
-      title: 'Media Approvals',
-      section: 'Administration',
-    },
-    '/dashboard/super-admin': {
-      title: 'System Overview',
-      section: 'System',
-    },
-    '/dashboard/super-admin/centers': {
-      title: 'Tech Centers',
-      section: 'System',
-    },
-    '/dashboard/super-admin/users': {
-      title: 'Users',
-      section: 'System',
-    },
+    '/dashboard/manage-grades': { title: 'Manage Grades', section: 'System' },
+    '/dashboard/grades': { title: 'Grades', section: 'Academics' },
+    '/dashboard/admin/teachers': { title: 'Tutors', section: 'Academics' },
+    '/dashboard/internships': { title: 'Internships', section: 'Opportunities' },
+    '/dashboard/live-streaming': { title: 'Live Streaming', section: 'Media' },
+    '/dashboard/support-groups': { title: 'Support Groups', section: 'Community' },
+    '/dashboard/temple-trips': { title: 'Temple Trips', section: 'Community' },
+    '/dashboard/football-team': { title: 'Sports', section: 'Community' },
+    '/dashboard/cleaning': { title: 'Cleaning Rota', section: 'Campus' },
+    '/dashboard/announcements': { title: 'Announcements', section: 'Communication' },
+    '/dashboard/notifications': { title: 'Notifications', section: 'Communication' },
+    '/dashboard/admin': { title: 'Administration', section: 'Administration' },
+    '/dashboard/admin/users': { title: 'Users', section: 'Administration' },
+    '/dashboard/admin/tuition': { title: 'Tuition', section: 'Administration' },
+    '/dashboard/admin/tech-centers': { title: 'Tech Centers', section: 'Administration' },
+    '/dashboard/admin/cleaning': { title: 'Cleaning Management', section: 'Administration' },
+    '/dashboard/teacher': { title: 'Tutors', section: 'Tutoring' },
+    '/dashboard/teacher/grades': { title: 'Assign Grades', section: 'Administration' },
+    '/dashboard/profile': { title: 'My Profile', section: 'Account' },
+    '/dashboard/gallery': { title: 'Posts', section: 'Media' },
+    '/dashboard/media-approvals': { title: 'Media Approvals', section: 'Administration' },
+    '/dashboard/super-admin': { title: 'System Overview', section: 'System' },
+    '/dashboard/super-admin/centers': { title: 'Tech Centers', section: 'System' },
+    '/dashboard/super-admin/users': { title: 'Users', section: 'System' },
   };
 
-  if (pages[pathname]) {
-    return pages[pathname];
-  }
+  if (pages[pathname]) return pages[pathname];
 
   const matchedPath = Object.keys(pages)
     .filter((path) => path !== '/dashboard')
     .sort((a, b) => b.length - a.length)
-    .find((path) =>
-      pathname.startsWith(`${path}/`)
-    );
+    .find((path) => pathname.startsWith(`${path}/`));
 
-  return matchedPath
-    ? pages[matchedPath]
-    : {
-      title: 'Dashboard',
-      section: 'Workspace',
-    };
+  return matchedPath ? pages[matchedPath] : { title: 'Dashboard', section: 'Workspace' };
+}
+
+// Pages that already render their own heading — the layout must not render one.
+const PAGES_WITH_OWN_HEADER = new Set([
+  '/dashboard',
+  '/dashboard/announcements',
+  '/dashboard/profile',
+  '/dashboard/courses',
+  '/dashboard/gallery',
+  '/dashboard/messages',
+  '/dashboard/connections',
+  '/dashboard/ai',
+]);
+
+const PAGES_WITH_OWN_HEADER_PREFIXES = [
+  '/dashboard/students',
+  '/dashboard/teacher',
+  '/dashboard/admin/teachers',
+  '/dashboard/cleaning',
+  '/dashboard/admin/tuition',
+  '/dashboard/policies',
+];
+
+function pageHasOwnHeader(pathname: string): boolean {
+  if (PAGES_WITH_OWN_HEADER.has(pathname)) return true;
+  if (pathname.startsWith('/dashboard/ai/')) return true;
+  return PAGES_WITH_OWN_HEADER_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
 }
 
 // ============================================================
@@ -202,34 +127,20 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const {
-    user,
-    isLoading,
-    isAuthenticated,
-    logout,
-  } = useAuth();
-
-  const [sidebarOpen, setSidebarOpen] =
-    useState(true);
-
-  const [isMobile, setIsMobile] =
-    useState(false);
-
-  // Prevents the sidebar from flashing in its "desktop-open" state on mobile
-  // before the viewport has been measured. Until `mounted` is true we render
-  // breakpoint-correct CSS defaults (off-canvas on mobile, visible on desktop).
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Initialize sidebar state based on screen size
+  // Sync responsive state
   useEffect(() => {
     const syncResponsiveState = () => {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
-      // Close sidebar on mobile, open on desktop
       setSidebarOpen(!mobile);
       setMounted(true);
     };
@@ -242,23 +153,13 @@ export default function DashboardLayout({
     };
   }, []);
 
-  const userRole =
-    user?.role || 'student';
-
+  const userRole = user?.role || 'student';
   const isAiPage =
-    pathname === '/dashboard/ai' ||
-    pathname.startsWith(
-      '/dashboard/ai/'
-    );
-  const isMessagesPage = pathname === '/dashboard/messages';
-  const isConnectionsPage = pathname === '/dashboard/connections';
+    pathname === '/dashboard/ai' || pathname.startsWith('/dashboard/ai/');
 
   const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
-  const {
-    data: postCount,
-    isPending: isPostCountPending,
-    isError: isPostCountError,
-  } = useQuery<number>({
+
+  const { data: postCount } = useQuery<number>({
     queryKey: ['gallery-post-count'],
     queryFn: async () => {
       const response = await fetch('/api/media/list?category=gallery&countOnly=true');
@@ -278,45 +179,38 @@ export default function DashboardLayout({
 
   useEffect(() => {
     const refreshPostCount = () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['gallery-post-count'],
-      });
+      void queryClient.invalidateQueries({ queryKey: ['gallery-post-count'] });
     };
-
     window.addEventListener('selfless:gallery-posts-changed', refreshPostCount);
     return () => {
       window.removeEventListener('selfless:gallery-posts-changed', refreshPostCount);
     };
   }, [queryClient]);
 
-  // ----------------------------------------------------------
-  // AUTHENTICATION
-  // ----------------------------------------------------------
-
+  // Auth gate — use router.replace so Next state is preserved
   useEffect(() => {
-    if (
-      !isLoading &&
-      !isAuthenticated
-    ) {
-      window.location.replace('/');
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/');
     }
-  }, [
-    isAuthenticated,
-    isLoading,
-    router,
-  ]);
-
-  // ----------------------------------------------------------
-  // ACTIVITY TRACKING
-  // ----------------------------------------------------------
-
-  // ----------------------------------------------------------
-  // LOGOUT
-  // ----------------------------------------------------------
+  }, [isAuthenticated, isLoading, router]);
 
   const handleLogout = async () => {
     await logout();
   };
+
+  // Compute page info + header decision once per render
+  const pageInfo = useMemo(
+    () => getPageInfo(pathname, userRole),
+    [pathname, userRole],
+  );
+  const hasOwnHeader = useMemo(() => pageHasOwnHeader(pathname), [pathname]);
+
+  // Update document title (next/head is deprecated in App Router client components)
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = `${pageInfo.title} | Selfless`;
+    }
+  }, [pageInfo.title]);
 
   // ----------------------------------------------------------
   // LOADING
@@ -324,92 +218,47 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh w-full bg-[#F8F9FA] flex items-center justify-center">
+      <div className="flex min-h-dvh w-full items-center justify-center bg-[#F8F9FA]">
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 8,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          <div className="relative w-9 h-9 mx-auto mb-4">
+          <div className="relative mx-auto mb-3 h-8 w-8">
             <motion.div
-              animate={{
-                rotate: 360,
-              }}
-              transition={{
-                duration: 1.2,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
               className="absolute inset-0 rounded-full border-2 border-[#E5E7EB] border-t-[#1A2B4C]"
             />
-
-            <div className="absolute inset-[9px] bg-[#C59B4C] rounded-full" />
+            <div className="absolute inset-[7px] rounded-full bg-[#C59B4C]" />
           </div>
-
-          <p className="text-[#6B7268] text-sm font-mono uppercase tracking-wide">
-            Loading Selfless...
+          <p className="text-[12px] font-medium tracking-wide text-[#6B7280]">
+            Loading Selfless…
           </p>
         </motion.div>
       </div>
     );
   }
 
-  if (
-    !isAuthenticated ||
-    !user
-  ) {
+  if (!isAuthenticated || !user) {
     return null;
   }
 
-  const pageInfo =
-    getPageInfo(pathname, userRole);
-
   return (
     <>
-      <Head>
-        <meta
-          name="robots"
-          content="noindex, nofollow"
-        />
-
-        <meta
-          name="googlebot"
-          content="noindex, nofollow"
-        />
-
-        <title>
-          {pageInfo.title} | Selfless
-        </title>
-      </Head>
-
-      {/* 🎯 Page visit tracker — fires POST /api/user/activity on route change */}
       <PageTracker />
-
-      {/* 🎯 Global online users popup */}
       <GlobalOnlineUsersPopup />
 
       <div className="min-h-screen w-full min-w-0 overflow-x-clip bg-white">
-        {/* ================================================== */}
         {/* MOBILE OVERLAY */}
-        {/* ================================================== */}
-
         {isMobile && sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-[90] lg:hidden"
+            className="fixed inset-0 z-[90] bg-black/50 lg:hidden"
           />
         )}
 
-        {/* ================================================== */}
-        {/* SIDEBAR - Mobile slide-in, Desktop fixed */}
-        {/* ================================================== */}
-
+        {/* SIDEBAR */}
         <Sidebar
           key={userRole}
           sidebarOpen={sidebarOpen}
@@ -422,10 +271,7 @@ export default function DashboardLayout({
           mounted={mounted}
         />
 
-        {/* ================================================== */}
         {/* TOP NAV */}
-        {/* ================================================== */}
-
         <TopNav
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
@@ -437,115 +283,76 @@ export default function DashboardLayout({
           isLoadingOnlineUsers={isLoadingOnlineUsers}
         />
 
-        {/* ================================================== */}
-        {/* MAIN CONTENT */}
-        {/* ================================================== */}
-
+        {/* MAIN WRAPPER */}
         <div
           className={cn(
-            'min-h-screen',
-            'transition-[margin] duration-350',
-            'ease-[cubic-bezier(0.22,1,0.36,1)]',
-            // Before mount: CSS-responsive defaults (no shift on mobile, 240px on desktop).
-            // After mount: drive by measured state.
+            'min-h-screen transition-[margin] duration-300 ease-out',
             mounted
               ? isMobile
                 ? 'ml-0'
                 : sidebarOpen
                   ? 'ml-[240px]'
                   : 'ml-[64px]'
-              : 'ml-0 lg:ml-[240px]'
+              : 'ml-0 lg:ml-[240px]',
           )}
         >
-          {/* ================================================= */}
-          {/* MAIN CONTENT */}
-          {/* ================================================= */}
-
           <div className="w-full min-w-0">
-            {/* ✅ FULL-WIDTH CONTENT — no max-width cap */}
-            <main className="min-h-screen w-full min-w-0 px-2 sm:px-3 lg:px-4 pt-14 pb-16">
+            <main
+              className={cn(
+                'min-h-screen w-full min-w-0 px-2 pt-14 sm:px-3 lg:px-4',
+                // Reserve space for the fixed bottom nav on mobile only.
+                // Desktop has no bottom nav — the footer takes over.
+                'pb-16 lg:pb-20',
+              )}
+            >
               <div className="w-full min-w-0">
-                {/* PAGE HEADING */}
-                {pathname !==
-                  '/dashboard' &&
-                  pathname !== '/dashboard/announcements' &&
-                  pathname !== '/dashboard/profile' &&
-                  pathname !== '/dashboard/courses' &&
-                  !pathname.startsWith('/dashboard/students') &&
-                  !pathname.startsWith('/dashboard/teacher') &&
-                  !pathname.startsWith('/dashboard/admin/teachers') &&
-                  !pathname.startsWith('/dashboard/cleaning') &&
-                  !pathname.startsWith('/dashboard/admin/tuition') &&
-                  !pathname.startsWith('/dashboard/policies') &&
-                  !isAiPage &&
-                  !isMessagesPage &&
-                  !isConnectionsPage &&
-                  pathname !== '/dashboard/gallery' && (
-                    <motion.div
-                      key={pathname}
-                      initial={{
-                        opacity: 0,
-                        y: 8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.25,
-                      }}
-                      className="mb-4"
-                    >
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-[#B98A3E] mb-1.5 uppercase tracking-wide font-bold">
-                        <span className="text-[#1A2B4C] font-bold">
-                          {pageInfo.section}
-                        </span>
+                {/* PAGE HEADING (only for pages without their own) */}
+                {!hasOwnHeader && (
+                  <motion.div
+                    key={pathname}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="mb-3"
+                  >
+                    {pageInfo.section && (
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C59B4C]">
+                        {pageInfo.section}
+                      </p>
+                    )}
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <h1 className="text-[20px] font-bold tracking-tight text-[#1A2B4C]">
+                          {pageInfo.title}
+                        </h1>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: 28 }}
+                          transition={{ duration: 0.3, delay: 0.08 }}
+                          className="mt-2 h-[2px] bg-[#C59B4C]"
+                        />
                       </div>
-
-                      <div className="flex items-end justify-between gap-5">
-                        <div>
-                          <h1 className="text-2xl font-bold tracking-tight text-[#1A2B4C]">
-                            {
-                              pageInfo.title
-                            }
-                          </h1>
-
-                          <motion.div
-                            initial={{
-                              width: 0,
-                            }}
-                            animate={{
-                              width: 32,
-                            }}
-                            transition={{
-                              duration: 0.35,
-                              delay: 0.1,
-                            }}
-                            className="mt-2.5 h-[2px] bg-[#B98A3E]"
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                    </div>
+                  </motion.div>
+                )}
 
                 {children}
               </div>
             </main>
 
-            {/* DESKTOP FOOTER — full width */}
-            <footer className="bg-transparent">
-              <div className="w-full min-w-0 px-2 sm:px-3 lg:px-4 py-3">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-2">
-                  <p className="font-mono text-xs text-[#8A9088]">
-                    Selfless Portal - Learn, connect, grow.
+            {/* DESKTOP FOOTER — visible on lg+ only (mobile uses bottom nav) */}
+            <footer className="hidden border-t border-[#E5E7EB] bg-white lg:block">
+              <div className="w-full min-w-0 px-3 py-3 lg:px-4">
+                <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
+                  <p className="text-[11.5px] text-[#6B7280]">
+                    Selfless Portal — Learn, connect, grow.
                   </p>
-
-                  <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-[#8A9088] md:justify-end">
+                  <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11.5px] text-[#6B7280] md:justify-end">
                     {DASHBOARD_FOOTER_LINKS.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}
-                        className="hover:text-[#1A2B4C] transition-colors duration-200"
+                        className="transition-colors hover:text-[#1A2B4C]"
                       >
                         {link.label}
                       </Link>
@@ -556,119 +363,188 @@ export default function DashboardLayout({
             </footer>
           </div>
 
-          {/* ================================================== */}
-          {/* GIFT ICON - Top Right */}
-          {/* ================================================== */}
-
+          {/* GIFT ICON — top right */}
           {!isAiPage && (
             <motion.div
-              initial={{
-                opacity: 0,
-                scale: 0.9,
-                y: 8,
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.35,
-                delay: 0.25,
-              }}
-              className="fixed top-20 right-4 z-40"
+              initial={{ opacity: 0, scale: 0.9, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="fixed right-3 top-[68px] z-40 lg:right-4"
             >
               <GiftIcon />
             </motion.div>
           )}
 
           {/* ================================================== */}
-          {/* BOTTOM NAVIGATION BAR */}
+          {/* BOTTOM NAVIGATION — mobile only (hidden on lg+) */}
           {/* ================================================== */}
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
+          <motion.nav
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#1A2B4C] border-t border-[#243857]"
+            transition={{ duration: 0.3, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            aria-label="Primary navigation"
+            className={cn(
+              'fixed bottom-0 left-0 right-0 z-50',
+              'border-t border-[#243857] bg-[#1A2B4C]',
+              'pb-[env(safe-area-inset-bottom)]',
+            )}
           >
-            <div className="flex items-stretch justify-around px-1" style={{ height: 52 }}>
-
+            <div className="flex items-stretch justify-around px-0.5" style={{ height: 36 }}>
               {/* Home */}
               {(() => {
                 const active = pathname === '/dashboard';
                 return (
-                  <Link href="/dashboard" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <Home className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
-                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Home</span>
-                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  <Link
+                    href="/dashboard"
+                    aria-current={active ? 'page' : undefined}
+                    className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
+                  >
+                    <span
+                      className={cn(
+                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
+                      )}
+                    >
+                      Home
+                    </span>
+                    {active && (
+                      <motion.span
+                        layoutId="bottom-nav-indicator"
+                        className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-[#C59B4C]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                   </Link>
                 );
               })()}
 
-              {/* Posts */}
+                            {/* Posts */}
               {(() => {
-                const active = pathname === '/dashboard/gallery' || pathname.startsWith('/dashboard/gallery/');
+                const active =
+                  pathname === '/dashboard/gallery' ||
+                  pathname.startsWith('/dashboard/gallery/');
                 return (
-                  <Link href="/dashboard/gallery" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <div className="relative">
-                      <Images className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
+                  <Link
+                    href="/dashboard/gallery"
+                    aria-current={active ? 'page' : undefined}
+                    className="group relative flex flex-1 items-center justify-center gap-1"
+                  >
+                    <span className="relative inline-flex items-center gap-1">
+                      <span
+                        className={cn(
+                          'text-[10px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                          active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
+                        )}
+                      >
+                        Posts
+                      </span>
                       {postCount !== undefined && postCount > 0 && (
-                        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} className="absolute -top-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#B98A3E] text-[7px] font-bold text-white border border-[#1A2B4C] leading-none">
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          className="flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-[#1A2B4C] bg-[#C59B4C] px-1 text-[8px] font-bold leading-none text-white"
+                        >
                           {postCount > 9 ? '9+' : postCount}
                         </motion.span>
                       )}
-                    </div>
-                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Posts</span>
-                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                    </span>
+                    {active && (
+                      <motion.span
+                        layoutId="bottom-nav-indicator"
+                        className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-[#C59B4C]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                   </Link>
                 );
               })()}
 
               {/* Courses — center pill */}
               {(() => {
-                const active = pathname === '/dashboard/courses' || pathname.startsWith('/dashboard/courses/');
+                const active =
+                  pathname === '/dashboard/courses' ||
+                  pathname.startsWith('/dashboard/courses/');
                 return (
-                  <Link href="/dashboard/courses" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <div className={cn(
-                      'flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200',
-                      active
-                        ? 'bg-[#B98A3E] shadow-[0_0_12px_rgba(185,138,62,0.5)]'
-                        : 'bg-white/15 group-hover:bg-white/25'
-                    )}>
-                      <BookOpen className="h-[16px] w-[16px] text-white" />
-                    </div>
-                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Courses</span>
+                  <Link
+                    href="/dashboard/courses"
+                    aria-current={active ? 'page' : undefined}
+                    className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
+                  >
+<span
+                      className={cn(
+                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
+                      )}
+                    >
+                      Courses
+                    </span>
                   </Link>
                 );
               })()}
 
               {/* Connections */}
               {(() => {
-                const active = pathname === '/dashboard/connections' || pathname.startsWith('/dashboard/connections/');
+                const active =
+                  pathname === '/dashboard/connections' ||
+                  pathname.startsWith('/dashboard/connections/');
                 return (
-                  <Link href="/dashboard/connections" className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <Users2 className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
-                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>Connect</span>
-                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  <Link
+                    href="/dashboard/connections"
+                    aria-current={active ? 'page' : undefined}
+                    className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
+                  >
+                    <span
+                      className={cn(
+                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
+                      )}
+                    >
+                      Connect
+                    </span>
+                    {active && (
+                      <motion.span
+                        layoutId="bottom-nav-indicator"
+                        className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-[#C59B4C]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                   </Link>
                 );
               })()}
 
-              {/* Tutors / Dev Dashboard — role-aware */}
+              {/* Tutors / Policies / Dev — role-aware */}
               {(() => {
                 const isDev = userRole === 'dev';
                 const isSuperAdmin = userRole === 'super_admin';
-                // super_admin goes to the same tutors page (they have isSuperAdmin() access)
-                // dev goes to their own dev dashboard
-                const href = isDev ? '/dashboard/dev' : '/dashboard/policies';
-                const label = isDev ? 'Dev' : 'Policies';
+                const href = isDev
+                  ? '/dashboard/dev'
+                  : isSuperAdmin
+                    ? '/dashboard/policies'
+                    : '/dashboard/admin/teachers';
+                const label = isDev ? 'Dev' : isSuperAdmin ? 'Policies' : 'Tutors';
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
-                  <Link href={href} className="relative flex flex-1 flex-col items-center justify-center gap-0.5 group">
-                    <FileText className={cn('h-[18px] w-[18px] transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')} />
-                    <span className={cn('text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150', active ? 'text-[#B98A3E]' : 'text-white/70 group-hover:text-white')}>{label}</span>
-                    {active && <motion.span layoutId="bottom-nav-indicator" className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-[#B98A3E]" transition={{ type: 'spring', stiffness: 500, damping: 35 }} />}
+                  <Link
+                    href={href}
+                    aria-current={active ? 'page' : undefined}
+                    className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
+                  >
+                    <span
+                      className={cn(
+                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
+                      )}
+                    >
+                      {label}
+                    </span>
+                    {active && (
+                      <motion.span
+                        layoutId="bottom-nav-indicator"
+                        className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-[#C59B4C]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                   </Link>
                 );
               })()}
@@ -677,13 +553,12 @@ export default function DashboardLayout({
               <div className="relative flex flex-1 flex-col items-center justify-center gap-0.5">
                 <PageRefreshButton
                   variant="icon"
-                  className="!w-[18px] !h-[18px] !p-0 !rounded-none text-white/70 hover:text-white hover:!bg-transparent"
+                  className="!h-[18px] !w-[18px] !rounded-none !p-0 text-white/70 hover:!bg-transparent hover:text-white"
                 />
-                <span className="text-[9px] font-semibold leading-none tracking-wide text-white/70">Refresh</span>
+                
               </div>
-
             </div>
-          </motion.div>
+          </motion.nav>
         </div>
       </div>
     </>

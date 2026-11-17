@@ -14,7 +14,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
-  Dot,
 } from 'lucide-react';
 
 import {
@@ -81,7 +80,6 @@ function getPageInfo(pathname: string) {
   const pages: Record<string, { title: string; section?: string }> = {
     '/dashboard': { title: 'Dashboard', section: 'Workspace' },
     '/dashboard/ai': { title: 'Atbriz AI', section: 'Workspace' },
-    '/dashboard/students': { title: '' },
     '/dashboard/connections': { title: 'Connections', section: 'Network' },
     '/dashboard/english-hub': { title: 'English Hub', section: 'Workspace' },
     '/dashboard/courses': { title: 'Courses', section: 'Academics' },
@@ -123,7 +121,7 @@ function getPageInfo(pathname: string) {
 }
 
 // ============================================================
-// BADGE — reusable notification dot
+// BADGE
 // ============================================================
 
 function NavBadge({ count, color }: { count: number; color: string }) {
@@ -137,10 +135,9 @@ function NavBadge({ count, color }: { count: number; color: string }) {
           exit={{ scale: 0, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           className={cn(
-            'absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1',
-            'rounded-full text-white text-[8px] font-bold font-mono',
-            'flex items-center justify-center border-2 border-white',
-            color
+            'absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1',
+            'border-2 border-white text-[8px] font-semibold leading-none text-white tabular-nums',
+            color,
           )}
         >
           {count > 99 ? '99+' : count}
@@ -166,17 +163,16 @@ function NavIconButton({
   badge?: React.ReactNode;
 }) {
   return (
-    <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}>
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
       <Link
         href={href}
         aria-label={label}
         className={cn(
-          'relative flex items-center justify-center',
-          'w-9 h-9 rounded-xl',
-          'text-[#4A5568]',
-          'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
-          'transition-all duration-150',
-          'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/40'
+          'relative flex h-9 w-9 items-center justify-center rounded-lg',
+          'text-[#4B5646]',
+          'transition-colors duration-150',
+          'hover:bg-[#F8F9FA] hover:text-[#1A2B4C]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]',
         )}
       >
         {children}
@@ -215,16 +211,19 @@ export default function TopNav({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const userLabel = user?.firstName
+    ? `${user.firstName}${user?.lastName ? ` ${user.lastName.charAt(0)}.` : ''}`
+    : 'Account';
+
   return (
     <motion.header
       initial={{ y: -56, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      style={{ height: TOPBAR_HEIGHT }}
       className={cn(
-        'fixed top-0 right-0 z-30',
-        'bg-white/98 backdrop-blur-sm',
-        'border-b border-[#EAECEF]',
+        'fixed right-0 top-0 z-30 h-14',
+        'bg-white/95 backdrop-blur-sm',
+        'border-b border-[#E5E7EB]',
         'transition-all duration-300',
         isMobile
           ? 'left-0'
@@ -232,28 +231,25 @@ export default function TopNav({
             ? 'left-0 lg:left-[240px]'
             : 'left-0 lg:left-[64px]',
         scrolled
-          ? 'shadow-[0_1px_0_rgba(0,0,0,0.05),0_4px_16px_rgba(18,32,59,0.08)]'
-          : 'shadow-none'
+          ? 'shadow-[0_1px_0_rgba(0,0,0,0.04),0_2px_8px_rgba(26,43,76,0.04)]'
+          : 'shadow-none',
       )}
     >
-      <div className="h-full flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-5">
-
+      <div className="flex h-full items-center justify-between gap-2 px-3 sm:px-4 lg:px-5">
         {/* ── LEFT ── */}
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-
           {/* Mobile: logo button */}
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
+            whileTap={{ scale: 0.96 }}
             onClick={onMenuToggle}
             className={cn(
-              'flex lg:hidden items-center justify-center shrink-0',
-              'w-9 h-9 rounded-xl',
+              'flex shrink-0 items-center justify-center overflow-hidden lg:hidden',
+              'h-9 w-9 rounded-lg',
               'ring-1 ring-[#E5E7EB]',
-              'hover:ring-[#B98A3E] hover:bg-[#FBF7EE]',
-              'transition-all duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/40',
-              'overflow-hidden'
+              'transition-colors duration-150',
+              'hover:bg-[#F8F9FA] hover:ring-[#C59B4C]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]',
             )}
             aria-label="Open sidebar"
           >
@@ -262,142 +258,139 @@ export default function TopNav({
               alt="Selfless"
               width={36}
               height={36}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           </motion.button>
 
           {/* Desktop: sidebar toggle */}
           <motion.button
             type="button"
-            whileTap={{ scale: 0.9 }}
-            whileHover={{ scale: 1.06 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setSidebarOpen((prev) => !prev)}
             className={cn(
-              'hidden lg:flex items-center justify-center shrink-0',
-              'w-8 h-8 rounded-lg',
+              'hidden shrink-0 items-center justify-center lg:flex',
+              'h-8 w-8 rounded-md',
               'text-[#6B7280]',
-              'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
-              'transition-all duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/40'
+              'transition-colors duration-150',
+              'hover:bg-[#F8F9FA] hover:text-[#1A2B4C]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]',
             )}
             aria-label="Toggle sidebar"
           >
-            {sidebarOpen
-              ? <PanelLeftClose className="w-[18px] h-[18px]" />
-              : <PanelLeftOpen className="w-[18px] h-[18px]" />}
+            {sidebarOpen ? (
+              <PanelLeftClose className="h-[18px] w-[18px]" />
+            ) : (
+              <PanelLeftOpen className="h-[18px] w-[18px]" />
+            )}
           </motion.button>
 
           {/* Divider */}
-          <div className="hidden lg:block h-5 w-px bg-[#E5E7EB] shrink-0" />
+          <div className="hidden h-5 w-px shrink-0 bg-[#E5E7EB] lg:block" />
 
           {/* Breadcrumb */}
           {pageInfo.title && (
-          <div className="hidden sm:flex min-w-0 items-center gap-1.5">
-            {pageInfo.section && (
-              <>
-                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-[#B98A3E] shrink-0">
-                  {pageInfo.section}
-                </span>
-                <ChevronRight className="w-3 h-3 text-[#D1D5DB] shrink-0" />
-              </>
-            )}
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={pageInfo.title}
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 6 }}
-                transition={{ duration: 0.18 }}
-                className="text-[13px] font-semibold text-[#1A2B4C] truncate"
-              >
-                {pageInfo.title}
-              </motion.span>
-            </AnimatePresence>
-          </div>
+            <div className="hidden min-w-0 items-center gap-1.5 sm:flex">
+              {pageInfo.section && (
+                <>
+                  <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#C59B4C] sm:block">
+                    {pageInfo.section}
+                  </span>
+                  <ChevronRight className="hidden h-3 w-3 shrink-0 text-[#D1D5DB] sm:block" />
+                </>
+              )}
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={pageInfo.title}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 6 }}
+                  transition={{ duration: 0.18 }}
+                  className="truncate text-[13px] font-semibold text-[#1A2B4C]"
+                >
+                  {pageInfo.title}
+                </motion.span>
+              </AnimatePresence>
+            </div>
           )}
         </div>
 
         {/* ── RIGHT ── */}
         <div className="flex shrink-0 items-center gap-0.5">
-
           {/* Announcements */}
           <NavIconButton
             href="/dashboard/announcements"
             label="Announcements"
-            badge={<NavBadge count={announcementCount ?? 0} color="bg-[#3E5C76]" />}
+            badge={<NavBadge count={announcementCount ?? 0} color="bg-[#C59B4C]" />}
           >
-            <Megaphone className="w-[18px] h-[18px]" />
+            <Megaphone className="h-[18px] w-[18px]" />
           </NavIconButton>
 
           {/* Notifications */}
           <NavIconButton
             href="/dashboard/notifications"
             label="Notifications"
-            badge={<NavBadge count={unreadCount ?? 0} color="bg-[#C0392B]" />}
+            badge={<NavBadge count={unreadCount ?? 0} color="bg-[#DC2626]" />}
           >
-            <Bell className="w-[18px] h-[18px]" />
+            <Bell className="h-[18px] w-[18px]" />
           </NavIconButton>
 
           {/* Messages */}
           <NavIconButton
             href="/dashboard/messages"
             label="Messages"
-            badge={<NavBadge count={unreadMessageCount ?? 0} color="bg-[#2E7D52]" />}
+            badge={<NavBadge count={unreadMessageCount ?? 0} color="bg-[#C59B4C]" />}
           >
-            <MessageSquare className="w-[18px] h-[18px]" />
+            <MessageSquare className="h-[18px] w-[18px]" />
           </NavIconButton>
 
           {/* Divider */}
           <div className="mx-1 h-5 w-px bg-[#E5E7EB]" />
 
           {/* User chip */}
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-            <Link
-              href="/dashboard/profile"
-              className={cn(
-                'flex items-center gap-2',
-                'h-9 pl-1 pr-2.5 rounded-xl',
-                'ring-1 ring-transparent',
-                'hover:ring-[#E5E7EB] hover:bg-[#F9FAFB]',
-                'transition-all duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-[#B98A3E]/40'
+          <Link
+            href="/dashboard/profile"
+            className={cn(
+              'flex h-9 items-center gap-2 rounded-lg pl-1 pr-2.5',
+              'ring-1 ring-transparent',
+              'transition-colors duration-150',
+              'hover:bg-[#F8F9FA] hover:ring-[#E5E7EB]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C59B4C]',
+            )}
+          >
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              {user?.profileImageUrl ? (
+                <Image
+                  src={user.profileImageUrl}
+                  alt={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`}
+                  width={28}
+                  height={28}
+                  unoptimized
+                  className="h-7 w-7 rounded-full object-cover ring-1 ring-[#E5E7EB]"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#C59B4C] ring-1 ring-[#E5E7EB]">
+                  <span className="text-[10.5px] font-semibold tabular-nums text-white">
+                    {getInitials(user)}
+                  </span>
+                </div>
               )}
-            >
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                {user?.profileImageUrl ? (
-                  <Image
-                    src={user.profileImageUrl}
-                    alt={`${user?.firstName ?? ''} ${user?.lastName ?? ''}`}
-                    width={30}
-                    height={30}
-                    unoptimized
-                    className="w-[30px] h-[30px] rounded-full object-cover ring-2 ring-[#B98A3E]/60"
-                  />
-                ) : (
-                  <div className="w-[30px] h-[30px] rounded-full bg-gradient-to-br from-[#B98A3E] to-[#8A6328] flex items-center justify-center ring-2 ring-[#B98A3E]/60">
-                    <span className="font-mono text-[10px] font-bold text-white">
-                      {getInitials(user)}
-                    </span>
-                  </div>
-                )}
-                {/* Online dot */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-white" />
-              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#22C55E]" />
+            </div>
 
-              {/* Name + role */}
-              <div className="hidden sm:block min-w-0">
-                <p className="text-[12px] font-semibold text-[#1A2B4C] leading-tight truncate max-w-[110px]">
-                  {user?.firstName}
-                </p>
-                <p className="text-[9px] font-mono font-bold text-[#B98A3E] uppercase tracking-widest leading-tight">
-                  {formatRole(userRole)}
-                </p>
-              </div>
+            {/* Name + role */}
+            <div className="hidden min-w-0 sm:block">
+              <p className="max-w-[120px] truncate text-[12px] font-semibold leading-tight text-[#1A2B4C]">
+                {userLabel}
+              </p>
+              <p className="text-[9.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-[#C59B4C]">
+                {formatRole(userRole)}
+              </p>
+            </div>
 
-              <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
-            </Link>
-          </motion.div>
+            <ChevronDown className="hidden h-3.5 w-3.5 shrink-0 text-[#9CA3AF] sm:block" />
+          </Link>
         </div>
       </div>
     </motion.header>

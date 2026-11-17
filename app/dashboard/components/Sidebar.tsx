@@ -30,7 +30,6 @@ import {
   Calendar,
   GraduationCap,
   ArrowUpRight,
-
   Radio,
   BookMarked,
   BookOpen,
@@ -342,62 +341,14 @@ const adminNavigation: NavSection = {
   id: 'administration',
   label: 'Administration',
   items: [
-    {
-      id: 'admin-dashboard',
-      label: 'Admin',
-      path: '/dashboard/admin',
-      icon: <Shield className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'manage-users',
-      label: 'Users',
-      path: '/dashboard/admin/users',
-      icon: <Users className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'manage-teachers',
-      label: 'Tutors',
-      path: '/dashboard/admin/teachers',
-      icon: <UserCog className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'assign-grades',
-      label: 'Assign Grades',
-      path: '/dashboard/teacher/grades',
-      icon: <Award className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'manage-tuition',
-      label: 'Tuition',
-      path: '/dashboard/admin/tuition',
-      icon: <DollarSign className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'manage-tech-centers',
-      label: 'Tech Center',
-      path: '/dashboard/admin/tech-centers',
-      icon: <School className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'course-units',
-      label: 'Course Units',
-      path: '/dashboard/course-units',
-      icon: <BookMarked className={iconClass} />,
-      roles: ['admin'],
-    },
-    {
-      id: 'manage-cleaning',
-      label: 'Cleaning Management',
-      path: '/dashboard/admin/cleaning',
-      icon: <Calendar className={iconClass} />,
-      roles: ['admin'],
-    },
+    { id: 'admin-dashboard', label: 'Admin', path: '/dashboard/admin', icon: <Shield className={iconClass} />, roles: ['admin'] },
+    { id: 'manage-users', label: 'Users', path: '/dashboard/admin/users', icon: <Users className={iconClass} />, roles: ['admin'] },
+    { id: 'manage-teachers', label: 'Tutors', path: '/dashboard/admin/teachers', icon: <UserCog className={iconClass} />, roles: ['admin'] },
+    { id: 'assign-grades', label: 'Assign Grades', path: '/dashboard/teacher/grades', icon: <Award className={iconClass} />, roles: ['admin'] },
+    { id: 'manage-tuition', label: 'Tuition', path: '/dashboard/admin/tuition', icon: <DollarSign className={iconClass} />, roles: ['admin'] },
+    { id: 'manage-tech-centers', label: 'Tech Center', path: '/dashboard/admin/tech-centers', icon: <School className={iconClass} />, roles: ['admin'] },
+    { id: 'course-units', label: 'Course Units', path: '/dashboard/course-units', icon: <BookMarked className={iconClass} />, roles: ['admin'] },
+    { id: 'manage-cleaning', label: 'Cleaning Management', path: '/dashboard/admin/cleaning', icon: <Calendar className={iconClass} />, roles: ['admin'] },
   ],
 };
 
@@ -405,34 +356,10 @@ const teacherNavigation: NavSection = {
   id: 'teaching',
   label: 'Tutoring',
   items: [
-    {
-      id: 'teacher-dashboard',
-      label: 'Tutors',
-      path: '/dashboard/admin/teachers',
-      icon: <Briefcase className={iconClass} />,
-      roles: ['teacher'],
-    },
-    {
-      id: 'assign-grades',
-      label: 'Assign Grades',
-      path: '/dashboard/teacher/grades',
-      icon: <Award className={iconClass} />,
-      roles: ['teacher'],
-    },
-    {
-      id: 'manage-tuition',
-      label: 'Tuition',
-      path: '/dashboard/admin/tuition',
-      icon: <DollarSign className={iconClass} />,
-      roles: ['teacher'],
-    },
-    {
-      id: 'attendance',
-      label: 'Attendance',
-      path: '/dashboard/cleaning',
-      icon: <Calendar className={iconClass} />,
-      roles: ['teacher'],
-    },
+    { id: 'teacher-dashboard', label: 'Tutors', path: '/dashboard/admin/teachers', icon: <Briefcase className={iconClass} />, roles: ['teacher'] },
+    { id: 'assign-grades', label: 'Assign Grades', path: '/dashboard/teacher/grades', icon: <Award className={iconClass} />, roles: ['teacher'] },
+    { id: 'manage-tuition', label: 'Tuition', path: '/dashboard/admin/tuition', icon: <DollarSign className={iconClass} />, roles: ['teacher'] },
+    { id: 'attendance', label: 'Attendance', path: '/dashboard/cleaning', icon: <Calendar className={iconClass} />, roles: ['teacher'] },
   ],
 };
 
@@ -440,69 +367,15 @@ const superAdminNavigation: NavSection = {
   id: 'system',
   label: 'System',
   items: [
-    {
-      id: 'manage-grades',
-      label: 'Manage Grades',
-      path: '/dashboard/manage-grades',
-      icon: <Award className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
-      id: 'course-units',
-      label: 'Course Units',
-      path: '/dashboard/course-units',
-      icon: <BookMarked className={iconClass} />,
-      roles: ['super_admin'],
-    },
-    {
-      id: 'super-admin-dashboard',
-      label: 'Overview',
-      path: '/dashboard/super-admin',
-      icon: <Shield className={iconClass} />,
-      roles: ['super_admin'],
-    },
-    {
-      id: 'trivia-tracking',
-      label: 'Trivia Tracking',
-      path: '/dashboard/admin/trivia',
-      icon: <Trophy className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
-      id: 'english-class',
-      label: 'English Class',
-      path: '/dashboard/dev/english-hub',
-      icon: <BookOpen className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
-      id: 'cleaning-management',
-      label: 'Cleaning Management',
-      path: '/dashboard/dev/cleaning',
-      icon: <Settings className={iconClass} />,
-      roles: ['super_admin'],
-    },
-    {
-      id: 'all-centers',
-      label: 'Tech Centers',
-      path: '/dashboard/super-admin/centers',
-      icon: <School className={iconClass} />,
-      roles: ['super_admin'],
-    },
-    {
-      id: 'all-users',
-      label: 'Users',
-      path: '/dashboard/super-admin/users',
-      icon: <Users className={iconClass} />,
-      roles: ['super_admin'],
-    },
-    {
-      id: 'email-settings',
-      label: 'Send Emails',
-      path: '/dashboard/super-admin/email',
-      icon: <Mail className={iconClass} />,
-      roles: ['super_admin'],
-    },
+    { id: 'manage-grades', label: 'Manage Grades', path: '/dashboard/manage-grades', icon: <Award className={iconClass} />, roles: ['dev', 'super_admin'] },
+    { id: 'course-units', label: 'Course Units', path: '/dashboard/course-units', icon: <BookMarked className={iconClass} />, roles: ['super_admin'] },
+    { id: 'super-admin-dashboard', label: 'Overview', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['super_admin'] },
+    { id: 'trivia-tracking', label: 'Trivia Tracking', path: '/dashboard/admin/trivia', icon: <Trophy className={iconClass} />, roles: ['dev', 'super_admin'] },
+    { id: 'english-class', label: 'English Class', path: '/dashboard/dev/english-hub', icon: <BookOpen className={iconClass} />, roles: ['dev', 'super_admin'] },
+    { id: 'cleaning-management', label: 'Cleaning Management', path: '/dashboard/dev/cleaning', icon: <Settings className={iconClass} />, roles: ['super_admin'] },
+    { id: 'all-centers', label: 'Tech Centers', path: '/dashboard/super-admin/centers', icon: <School className={iconClass} />, roles: ['super_admin'] },
+    { id: 'all-users', label: 'Users', path: '/dashboard/super-admin/users', icon: <Users className={iconClass} />, roles: ['super_admin'] },
+    { id: 'email-settings', label: 'Send Emails', path: '/dashboard/super-admin/email', icon: <Mail className={iconClass} />, roles: ['super_admin'] },
   ],
 };
 
@@ -510,76 +383,16 @@ const devNavigation: NavSection = {
   id: 'developers',
   label: 'Developers',
   items: [
-    {
-      id: 'dev-dashboard',
-      label: 'Dev Dashboard',
-      path: '/dashboard/dev',
-      icon: <Code className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'dev-cleaning',
-      label: 'Cleaning Management',
-      path: '/dashboard/dev/cleaning',
-      icon: <Settings className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
-      id: 'super-admin-overview',
-      label: 'System Overview',
-      path: '/dashboard/super-admin',
-      icon: <Shield className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'trivia-tracking',
-      label: 'Trivia Tracking',
-      path: '/dashboard/admin/trivia',
-      icon: <Trophy className={iconClass} />,
-      roles: ['dev', 'super_admin'],
-    },
-    {
-      id: 'email-settings',
-      label: 'Send Emails',
-      path: '/dashboard/super-admin/email',
-      icon: <Mail className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'all-centers',
-      label: 'Tech Centers',
-      path: '/dashboard/super-admin/centers',
-      icon: <School className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'all-users',
-      label: 'Users',
-      path: '/dashboard/super-admin/users',
-      icon: <Users className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'password-resets',
-      label: 'Password Resets',
-      path: '/dashboard/dev/password-resets',
-      icon: <Key className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'knowledge-base',
-      label: 'Knowledge Base',
-      path: '/dashboard/dev/knowledge-base',
-      icon: <Database className={iconClass} />,
-      roles: ['dev'],
-    },
-    {
-      id: 'activity-logs',
-      label: 'Activity Logs',
-      path: '/dashboard/dev/logs',
-      icon: <FileText className={iconClass} />,
-      roles: ['dev'],
-    },
+    { id: 'dev-dashboard', label: 'Dev Dashboard', path: '/dashboard/dev', icon: <Code className={iconClass} />, roles: ['dev'] },
+    { id: 'dev-cleaning', label: 'Cleaning Management', path: '/dashboard/dev/cleaning', icon: <Settings className={iconClass} />, roles: ['dev', 'super_admin'] },
+    { id: 'super-admin-overview', label: 'System Overview', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['dev'] },
+    { id: 'trivia-tracking', label: 'Trivia Tracking', path: '/dashboard/admin/trivia', icon: <Trophy className={iconClass} />, roles: ['dev', 'super_admin'] },
+    { id: 'email-settings', label: 'Send Emails', path: '/dashboard/super-admin/email', icon: <Mail className={iconClass} />, roles: ['dev'] },
+    { id: 'all-centers', label: 'Tech Centers', path: '/dashboard/super-admin/centers', icon: <School className={iconClass} />, roles: ['dev'] },
+    { id: 'all-users', label: 'Users', path: '/dashboard/super-admin/users', icon: <Users className={iconClass} />, roles: ['dev'] },
+    { id: 'password-resets', label: 'Password Resets', path: '/dashboard/dev/password-resets', icon: <Key className={iconClass} />, roles: ['dev'] },
+    { id: 'knowledge-base', label: 'Knowledge Base', path: '/dashboard/dev/knowledge-base', icon: <Database className={iconClass} />, roles: ['dev'] },
+    { id: 'activity-logs', label: 'Activity Logs', path: '/dashboard/dev/logs', icon: <FileText className={iconClass} />, roles: ['dev'] },
   ],
 };
 
@@ -587,13 +400,7 @@ const accountNavigation: NavSection = {
   id: 'account',
   label: 'Account',
   items: [
-    {
-      id: 'profile',
-      label: 'My Profile',
-      path: '/dashboard/profile',
-      icon: <User className={iconClass} />,
-      roles: ALL_ROLES,
-    },
+    { id: 'profile', label: 'My Profile', path: '/dashboard/profile', icon: <User className={iconClass} />, roles: ALL_ROLES },
   ],
 };
 
@@ -604,92 +411,66 @@ const accountNavigation: NavSection = {
 function getNavigation(userRole: string): NavSection[] {
   const navigation: NavSection[] = sharedNavigation.map((section) => ({
     ...section,
-    items: section.items.filter((item) =>
-      item.roles.includes(userRole)
-    ),
+    items: section.items.filter((item) => item.roles.includes(userRole)),
   }));
 
   if (userRole === 'admin') {
     navigation.push({
       ...adminNavigation,
-      items: adminNavigation.items.filter((item) =>
-        item.roles.includes(userRole)
-      ),
+      items: adminNavigation.items.filter((item) => item.roles.includes(userRole)),
     });
   }
 
   if (userRole === 'teacher') {
     navigation.push({
       ...teacherNavigation,
-      items: teacherNavigation.items.filter((item) =>
-        item.roles.includes(userRole)
-      ),
+      items: teacherNavigation.items.filter((item) => item.roles.includes(userRole)),
     });
   }
 
   if (userRole === 'dev') {
     navigation.push({
       ...devNavigation,
-      items: devNavigation.items.filter((item) =>
-        item.roles.includes(userRole)
-      ),
+      items: devNavigation.items.filter((item) => item.roles.includes(userRole)),
     });
     navigation.push({
       ...superAdminNavigation,
-      items: superAdminNavigation.items.filter((item) =>
-        item.roles.includes(userRole)
-      ),
+      items: superAdminNavigation.items.filter((item) => item.roles.includes(userRole)),
     });
   }
 
   if (userRole === 'super_admin') {
     navigation.push({
       ...superAdminNavigation,
-      items: superAdminNavigation.items.filter((item) =>
-        item.roles.includes(userRole)
-      ),
+      items: superAdminNavigation.items.filter((item) => item.roles.includes(userRole)),
     });
   }
 
   navigation.push({
     ...accountNavigation,
-    items: accountNavigation.items.filter((item) =>
-      item.roles.includes(userRole)
-    ),
+    items: accountNavigation.items.filter((item) => item.roles.includes(userRole)),
   });
 
-  return navigation.filter(
-    (section) => section.items.length > 0
-  );
+  return navigation.filter((section) => section.items.length > 0);
 }
 
 function isPathActive(pathname: string, path: string) {
   if (path === '/dashboard') {
     return pathname === '/dashboard';
   }
-
-  return (
-    pathname === path ||
-    pathname.startsWith(`${path}/`)
-  );
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 function getInitials(user: UserInfo | null) {
-  const first =
-    user?.firstName?.charAt(0).toUpperCase() || '';
-
-  const last =
-    user?.lastName?.charAt(0).toUpperCase() || '';
-
+  const first = user?.firstName?.charAt(0).toUpperCase() || '';
+  const last = user?.lastName?.charAt(0).toUpperCase() || '';
   return `${first}${last}` || 'U';
 }
 
 function formatRole(role: string) {
   const formatted = role
     .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) =>
-      letter.toUpperCase()
-    );
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   if (formatted === 'Admin') return 'Manager';
   if (formatted === 'Super Admin' || formatted === 'Superadmin') return 'Director';
@@ -724,10 +505,7 @@ function NavigationItem({
   sidebarOpen = false,
   onNavigate,
 }: NavigationItemProps) {
-  const active = isPathActive(
-    pathname,
-    item.path
-  );
+  const active = isPathActive(pathname, item.path);
 
   const badge =
     item.id === 'notifications'
@@ -737,17 +515,11 @@ function NavigationItem({
         : undefined;
 
   const itemVariants: Variants = {
-    hidden: {
-      opacity: 0,
-      x: -8,
-    },
+    hidden: { opacity: 0, x: -6 },
     visible: {
       opacity: 1,
       x: 0,
-      transition: {
-        duration: 0.2,
-        delay: Math.min(index * 0.025, 0.18),
-      },
+      transition: { duration: 0.18, delay: Math.min(index * 0.02, 0.15) },
     },
   };
 
@@ -759,42 +531,31 @@ function NavigationItem({
 
   if (collapsed) {
     return (
-      <motion.div
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <motion.div variants={itemVariants} initial="hidden" animate="visible">
         <Link
           href={item.path}
           aria-label={item.label}
           onClick={handleClick}
           className={cn(
             'relative group flex items-center justify-center',
-            'w-full h-12 rounded-lg',
-            'transition-all duration-200',
+            'w-full h-11 rounded-md',
+            'transition-colors duration-150',
             active
-              ? 'bg-[#FFF8E7] text-[#B98A3E]'
-              : 'text-[#1A2B4C] hover:text-[#B98A3E] hover:bg-[#F7F6F2]'
+              ? 'bg-[#FBF7EE] text-[#C59B4C]'
+              : 'text-[#1A2B4C] hover:text-[#C59B4C] hover:bg-[#F8F9FA]',
           )}
         >
           {active && (
             <motion.span
-              layoutId="collapsed-active-indicator"
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E] rounded-r"
-              transition={{
-                type: 'spring',
-                stiffness: 450,
-                damping: 32,
-              }}
+              layoutId="sidebar-active-indicator"
+              className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r bg-[#C59B4C]"
+              transition={{ type: 'spring', stiffness: 450, damping: 32 }}
             />
           )}
 
           <motion.span
-            whileHover={{
-              scale: 1.08,
-              y: -1,
-            }}
-            whileTap={{ scale: 0.92 }}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
             className="flex"
           >
             {item.icon}
@@ -804,7 +565,7 @@ function NavigationItem({
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 rounded-full bg-[#1A2B4C] text-white text-[8px] font-mono font-semibold flex items-center justify-center border border-white"
+              className="absolute right-1 top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-white bg-[#C59B4C] px-1 text-[8px] font-semibold leading-none text-white"
             >
               {badge > 9 ? '9+' : badge}
             </motion.span>
@@ -812,17 +573,14 @@ function NavigationItem({
 
           <span
             className={cn(
-              'absolute left-full ml-3 top-1/2 -translate-y-1/2',
-              'whitespace-nowrap',
-              'bg-[#1A2B4C] text-white',
-              'text-xs font-semibold',
-              'px-3 py-2 rounded-lg',
-              'shadow-[0_8px_20px_rgba(18,32,59,0.16)]',
-              'opacity-0 invisible',
-              'group-hover:opacity-100 group-hover:visible',
-              'translate-x-1 group-hover:translate-x-0',
-              'transition-all duration-200',
-              'pointer-events-none z-[300]'
+              'absolute left-full top-1/2 ml-2 -translate-y-1/2',
+              'whitespace-nowrap rounded-md',
+              'bg-[#1A2B4C] px-2.5 py-1.5 text-[11.5px] font-medium text-white',
+              'shadow-lg',
+              'pointer-events-none opacity-0 invisible',
+              'translate-x-0 group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:visible',
+              'transition-all duration-150',
+              'z-[300]',
             )}
           >
             {item.label}
@@ -833,71 +591,51 @@ function NavigationItem({
   }
 
   return (
-    <motion.div
-      variants={itemVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <motion.div variants={itemVariants} initial="hidden" animate="visible">
       <Link
         href={item.path}
         onClick={handleClick}
         className={cn(
-          'relative group flex items-center gap-3',
-          'w-full min-h-12 px-3 rounded-lg',
-          'text-[14px]',
-          'transition-all duration-200',
+          'relative group flex items-center gap-2.5',
+          'w-full min-h-10 px-2.5 rounded-md',
+          'text-[13px]',
+          'transition-colors duration-150',
           active
-            ? 'bg-[#FFF8E7] text-[#1A2B4C] font-semibold'
-            : 'text-[#1A2B4C] font-semibold hover:text-[#B98A3E] hover:bg-[#F7F6F2]'
+            ? 'bg-[#FBF7EE] text-[#1A2B4C] font-semibold'
+            : 'text-[#4B5646] font-medium hover:text-[#1A2B4C] hover:bg-[#F8F9FA]',
         )}
       >
         {active && (
           <motion.span
-            layoutId="expanded-active-indicator"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#B98A3E] rounded-r"
-            transition={{
-              type: 'spring',
-              stiffness: 450,
-              damping: 32,
-            }}
+            layoutId="sidebar-active-indicator"
+            className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r bg-[#C59B4C]"
+            transition={{ type: 'spring', stiffness: 450, damping: 32 }}
           />
         )}
 
         <motion.span
-          whileHover={{
-            scale: 1.08,
-            x: 1,
-          }}
-          whileTap={{ scale: 0.92 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
           className={cn(
-            'flex items-center justify-center transition-colors duration-200',
-            active
-              ? 'text-[#B98A3E]'
-              : 'text-[#1A2B4C]'
+            'flex items-center justify-center transition-colors duration-150',
+            active ? 'text-[#C59B4C]' : 'text-[#4B5646] group-hover:text-[#1A2B4C]',
           )}
         >
           {item.icon}
         </motion.span>
 
-        <span className="flex-1 min-w-0 font-semibold">
+        <span className="min-w-0 flex-1 truncate font-medium">
           {item.label}
         </span>
 
         {badge && badge > 0 ? (
           <motion.span
-            initial={{
-              scale: 0.7,
-              opacity: 0,
-            }}
-            animate={{
-              scale: 1,
-              opacity: 1,
-            }}
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
             className={cn(
-              'ml-auto min-w-[20px] h-5 px-1.5 rounded-full',
-              'flex items-center justify-center',
-              'text-[10px] font-mono font-semibold text-white',
-              'bg-[#1A2B4C]'
+              'ml-auto flex h-4.5 min-w-[18px] items-center justify-center rounded-full px-1.5',
+              'text-[9.5px] font-semibold leading-none text-white',
+              'bg-[#C59B4C]',
             )}
           >
             {badge > 99 ? '99+' : badge}
@@ -906,16 +644,12 @@ function NavigationItem({
 
         <ArrowUpRight
           className={cn(
-            'w-3.5 h-3.5',
-            'ml-auto',
-            'text-[#B98A3E]',
-            'opacity-0 -translate-x-1',
-            'group-hover:opacity-100',
-            'group-hover:translate-x-0',
-            'transition-all duration-200',
-            badge || item.id === 'tutors'
-              ? 'hidden'
-              : ''
+            'ml-auto h-3 w-3 shrink-0',
+            'text-[#C59B4C]',
+            'opacity-0 -translate-x-0.5',
+            'group-hover:opacity-100 group-hover:translate-x-0',
+            'transition-all duration-150',
+            badge || item.id === 'tutors' ? 'hidden' : '',
           )}
         />
       </Link>
@@ -937,26 +671,16 @@ export default function Sidebar({
   setSidebarOpen,
   mounted = false,
 }: SidebarProps) {
-  const navigation = useMemo(
-    () => getNavigation(userRole),
-    [userRole]
+  const navigation = useMemo(() => getNavigation(userRole), [userRole]);
+
+  const [expandedSections, setExpandedSections] = useState<string[]>(
+    navigation.map((section) => section.id),
   );
 
-  const [expandedSections, setExpandedSections] =
-    useState<string[]>(
-      navigation.map(
-        (section) => section.id
-      )
-    );
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const [searchQuery, setSearchQuery] =
-    useState('');
-
-  const { data: unreadCount } =
-    useUnreadNotificationCount();
-
-  const { data: announcementCount } =
-    useAnnouncementCount();
+  const { data: unreadCount } = useUnreadNotificationCount();
+  const { data: announcementCount } = useAnnouncementCount();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -966,54 +690,32 @@ export default function Sidebar({
     }
   };
 
-  const toggleSection = (
-    sectionId: string
-  ) => {
+  const toggleSection = (sectionId: string) => {
     setExpandedSections((previous) =>
       previous.includes(sectionId)
-        ? previous.filter(
-          (id) => id !== sectionId
-        )
-        : [...previous, sectionId]
+        ? previous.filter((id) => id !== sectionId)
+        : [...previous, sectionId],
     );
   };
 
   const searchResults = useMemo(() => {
-    const query = searchQuery
-      .trim()
-      .toLowerCase();
-
-    if (!query) {
-      return navigation;
-    }
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return navigation;
 
     return navigation
       .map((section) => ({
         ...section,
         items: section.items.filter(
           (item) =>
-            item.label
-              .toLowerCase()
-              .includes(query) ||
-            item.id
-              .toLowerCase()
-              .includes(query) ||
-            section.label
-              .toLowerCase()
-              .includes(query)
+            item.label.toLowerCase().includes(query) ||
+            item.id.toLowerCase().includes(query) ||
+            section.label.toLowerCase().includes(query),
         ),
       }))
-      .filter(
-        (section) =>
-          section.items.length > 0
-      );
-  }, [
-    navigation,
-    searchQuery,
-  ]);
+      .filter((section) => section.items.length > 0);
+  }, [navigation, searchQuery]);
 
-  const searchActive =
-    searchQuery.trim().length > 0;
+  const searchActive = searchQuery.trim().length > 0;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1027,8 +729,9 @@ export default function Sidebar({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Fixed: toggle now actually toggles state (was a no-op before).
   const toggleSidebar = () => {
-    // Sidebar is controlled by parent component
+    setSidebarOpen?.(!sidebarOpen);
   };
 
   return (
@@ -1049,85 +752,60 @@ export default function Sidebar({
         className={cn(
           'h-screen bg-white',
           'flex flex-col overflow-hidden',
-          'shadow-[0_8px_32px_rgba(18,32,59,0.12),0_2px_8px_rgba(18,32,59,0.06)]',
-          'transition-all duration-350 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'border-r border-[#E5E7EB]',
+          'shadow-[0_2px_12px_rgba(26,43,76,0.06)]',
+          'transition-[width,transform] duration-300 ease-out',
           'fixed left-0 top-0 z-[100]',
-          // Pre-mount: CSS defaults correct per breakpoint (off-canvas on mobile,
-          // visible on desktop) so nothing flashes before the viewport is measured.
-          // Post-mount: JS state drives the transform.
           mounted
             ? isMobile
               ? sidebarOpen
                 ? 'translate-x-0'
                 : '-translate-x-full'
               : 'translate-x-0'
-            : '-translate-x-full lg:translate-x-0'
+            : '-translate-x-full lg:translate-x-0',
         )}
       >
-        {/* ================================================== */}
         {/* BRAND */}
-        {/* ================================================== */}
-
         <div
           style={{ height: TOPBAR_HEIGHT }}
           className={cn(
             'flex-shrink-0',
             'flex items-center',
             'relative overflow-hidden',
-            'bg-transparent',
-            sidebarOpen
-              ? 'px-4'
-              : 'justify-center'
+            'border-b border-[#F3F4F6]',
+            sidebarOpen ? 'px-3' : 'justify-center',
           )}
         >
           <Link
             href="/dashboard"
             onClick={() => isMobile && sidebarOpen && setSidebarOpen?.(false)}
-            className="relative flex items-center gap-3 min-w-0 group"
+            className="group relative flex min-w-0 items-center gap-2.5"
             aria-label="Selfless Dashboard"
           >
             <motion.div
-              whileHover={{
-                scale: 1.06,
-                rotate: 2,
-              }}
-              whileTap={{
-                scale: 0.94,
-              }}
-              className="relative w-9 h-9 bg-[#B98A3E] flex items-center justify-center overflow-hidden flex-shrink-0 rounded-lg shadow-lg"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#C59B4C] shadow-sm"
             >
               <Image
                 src="/freedom.png"
                 alt="Selfless Logo"
-                width={36}
-                height={36}
-                className="w-full h-full object-cover"
-              />
-
-              <motion.span
-                className="absolute inset-y-0 left-0 w-1/3 bg-white/20"
-                animate={{
-                  x: ['-120%', '320%'],
-                }}
-                transition={{
-                  duration: 2.8,
-                  repeat: Infinity,
-                  repeatDelay: 5,
-                  ease: 'easeInOut',
-                }}
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
               />
             </motion.div>
 
             {sidebarOpen && (
               <motion.div
-                initial={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex-1 min-w-0"
+                className="min-w-0 flex-1"
               >
-                <p className="text-[13px] font-semibold text-[#1A2B4C] leading-tight">
+                <p className="text-[12.5px] font-semibold leading-tight text-[#1A2B4C]">
                   Selfless
                 </p>
-                <p className="text-[10.5px] text-[#8A9088] leading-tight">
+                <p className="text-[10px] leading-tight text-[#9CA3AF]">
                   Nurturing Resilient Minds
                 </p>
               </motion.div>
@@ -1139,70 +817,51 @@ export default function Sidebar({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={toggleSidebar}
-              className="ml-auto text-[#8A9088] hover:text-[#1A2B4C] transition-colors"
-              aria-label="Toggle sidebar"
+              className="ml-auto rounded p-1 text-[#9CA3AF] transition-colors hover:bg-[#F8F9FA] hover:text-[#1A2B4C]"
+              aria-label="Collapse sidebar"
             >
-              <ChevronDown
-                className={cn(
-                  'w-4 h-4 transition-transform duration-200',
-                  sidebarOpen ? 'rotate-180' : 'rotate-0'
-                )}
-              />
+              <ChevronDown className="h-3.5 w-3.5 rotate-90" />
             </motion.button>
           )}
         </div>
 
-        {/* ================================================== */}
         {/* SCROLLABLE CONTENT */}
-        {/* ================================================== */}
-
         <div
           className={cn(
             'flex-1 overflow-y-auto overflow-x-hidden',
-            'sidebar-scroll'
+            'sidebar-scroll',
           )}
         >
           {/* SEARCH */}
           {sidebarOpen && (
             <motion.div
-              initial={{
-                opacity: 0,
-                height: 0,
-              }}
-              animate={{
-                opacity: 1,
-                height: 'auto',
-              }}
-              className="px-3 pt-0.5 pb-2"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="px-2 pt-1 pb-1.5"
             >
               <div className="relative">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B98A3E]" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
 
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
-                  onChange={(event) =>
-                    setSearchQuery(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search navigation..."
                   aria-label="Search navigation"
                   className={cn(
-                    'w-full h-10 pl-10 pr-9 rounded-lg',
-                    'bg-[#F7F6F2]',
-                    'text-[13px] text-[#1A2B4C] font-semibold',
-                    'placeholder:text-[#8A9088]',
-                    'outline-none',
-                    'focus:bg-white',
-                    'focus:ring-2 focus:ring-[#B98A3E]/30',
-                    'transition-all duration-200'
+                    'h-8 w-full rounded-md border border-transparent pl-8 pr-14',
+                    'bg-[#F8F9FA]',
+                    'text-[12px] text-[#1A2B4C]',
+                    'placeholder:text-[#9CA3AF]',
+                    'outline-none transition-colors',
+                    'focus:border-[#C59B4C] focus:bg-white',
+                    'focus:ring-2 focus:ring-[#C59B4C]/15',
                   )}
                 />
 
                 {!searchQuery && (
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden xl:flex items-center gap-0.5 font-mono text-[9px] text-[#B98A3E] bg-white px-1.5 py-0.5 rounded-lg font-semibold">
+                  <span className="absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-[#E5E7EB] bg-white px-1 py-0.5 text-[9px] font-semibold text-[#9CA3AF] md:flex">
                     ⌘K
                   </span>
                 )}
@@ -1212,13 +871,11 @@ export default function Sidebar({
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     type="button"
-                    onClick={() =>
-                      setSearchQuery('')
-                    }
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#B98A3E] hover:text-[#1A2B4C] p-1 rounded-lg"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-[#9CA3AF] transition-colors hover:text-[#1A2B4C]"
                     aria-label="Clear navigation search"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="h-3.5 w-3.5" />
                   </motion.button>
                 )}
               </div>
@@ -1227,325 +884,204 @@ export default function Sidebar({
 
           {/* NAVIGATION */}
           <nav
-            className={cn(
-              'py-2',
-              sidebarOpen
-                ? 'px-2'
-                : 'px-1.5'
-            )}
+            className={cn('py-1.5', sidebarOpen ? 'px-1.5' : 'px-1')}
             aria-label="Dashboard navigation"
           >
             {/* COLLAPSED */}
             {!sidebarOpen && (
               <div className="space-y-0.5">
-                {searchResults.flatMap(
-                  (section) =>
-                    section.items.map(
-                      (item, index) => (
-                        <NavigationItem
-                          key={`${section.id}-${item.id}`}
-                          item={item}
-                          pathname={pathname}
-                          collapsed
-                          index={index}
-                          unreadCount={
-                            unreadCount ||
-                            undefined
-                          }
-                          announcementCount={
-                            announcementCount ||
-                            undefined
-                          }
-                          isMobile={isMobile}
-                          sidebarOpen={sidebarOpen}
-                          onNavigate={closeSidebarOnMobile}
-                        />
-                      )
-                    )
+                {searchResults.flatMap((section) =>
+                  section.items.map((item, index) => (
+                    <NavigationItem
+                      key={`${section.id}-${item.id}`}
+                      item={item}
+                      pathname={pathname}
+                      collapsed
+                      index={index}
+                      unreadCount={unreadCount || undefined}
+                      announcementCount={announcementCount || undefined}
+                      isMobile={isMobile}
+                      sidebarOpen={sidebarOpen}
+                      onNavigate={closeSidebarOnMobile}
+                    />
+                  )),
                 )}
               </div>
             )}
 
             {/* EXPANDED */}
             {sidebarOpen && (
-              <div className="space-y-2.5">
-                {searchResults.map(
-                  (section) => {
-                    const expanded =
-                      searchActive ||
-                      expandedSections.includes(
-                        section.id
-                      );
+              <div className="space-y-1.5">
+                {searchResults.map((section) => {
+                  const expanded =
+                    searchActive || expandedSections.includes(section.id);
 
-                    return (
-                      <motion.div
-                        key={section.id}
-                        initial={{
-                          opacity: 0,
-                        }}
-                        animate={{
-                          opacity: 1,
-                        }}
-                        transition={{
-                          duration: 0.2,
-                        }}
-                      >
-                        {/* SECTION HEADING */}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            toggleSection(
-                              section.id
-                            )
-                          }
-                          className={cn(
-                            'w-full flex items-center gap-2',
-                            'px-2.5 mb-1 py-1.5 rounded-lg',
-                            'font-mono text-[10px]',
-                            'uppercase tracking-[0.12em]',
-                            'font-bold',
-                            'text-[#B98A3E]',
-                            'hover:text-[#1A2B4C]',
-                            'hover:bg-[#F7F6F2]',
-                            'transition-all duration-200'
-                          )}
-                          aria-expanded={
-                            expanded
-                          }
-                        >
-                          <span>
-                            {section.label}
-                          </span>
-
-                          <motion.span
-                            animate={{
-                              rotate: expanded
-                                ? 180
-                                : 0,
-                            }}
-                            transition={{
-                              duration: 0.18,
-                            }}
-                            className="ml-auto flex"
-                          >
-                            <ChevronDown className="w-3 h-3 text-[#B98A3E]" />
-                          </motion.span>
-                        </button>
-
-                        {/* ITEMS */}
-                        <AnimatePresence initial={false}>
-                          {expanded && (
-                            <motion.div
-                              initial={{
-                                height: 0,
-                                opacity: 0,
-                              }}
-                              animate={{
-                                height: 'auto',
-                                opacity: 1,
-                              }}
-                              exit={{
-                                height: 0,
-                                opacity: 0,
-                              }}
-                              transition={{
-                                duration: 0.2,
-                              }}
-                              className="overflow-hidden space-y-0.5"
-                            >
-                              {section.items.map(
-                                (item, index) => (
-                                  <NavigationItem
-                                    key={item.id}
-                                    item={item}
-                                    pathname={pathname}
-                                    index={index}
-                                    unreadCount={
-                                      unreadCount || undefined
-                                    }
-                                    announcementCount={
-                                      announcementCount || undefined
-                                    }
-                                    isMobile={isMobile}
-                                    sidebarOpen={sidebarOpen}
-                                    onNavigate={closeSidebarOnMobile}
-                                  />
-                                )
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  }
-                )}
-
-                {searchActive &&
-                  searchResults.length ===
-                  0 && (
+                  return (
                     <motion.div
-                      initial={{
-                        opacity: 0,
-                        y: 5,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      className="px-3 py-8 text-center"
+                      key={section.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.18 }}
                     >
-                      <Search className="w-5 h-5 mx-auto mb-2 text-[#B9BEB2]" />
+                      {/* SECTION HEADING */}
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(section.id)}
+                        className={cn(
+                          'mb-0.5 flex w-full items-center gap-1.5 rounded-md px-2 py-1',
+                          'text-[10px] font-semibold uppercase tracking-[0.1em]',
+                          'text-[#9CA3AF]',
+                          'transition-colors duration-150 hover:text-[#4B5646]',
+                        )}
+                        aria-expanded={expanded}
+                      >
+                        <span>{section.label}</span>
 
-                      <p className="text-xs text-[#6B7268]">
-                        No pages found
-                      </p>
+                        <motion.span
+                          animate={{ rotate: expanded ? 180 : 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="ml-auto flex"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </motion.span>
+                      </button>
+
+                      {/* ITEMS */}
+                      <AnimatePresence initial={false}>
+                        {expanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.18 }}
+                            className="space-y-0.5 overflow-hidden"
+                          >
+                            {section.items.map((item, index) => (
+                              <NavigationItem
+                                key={item.id}
+                                item={item}
+                                pathname={pathname}
+                                index={index}
+                                unreadCount={unreadCount || undefined}
+                                announcementCount={announcementCount || undefined}
+                                isMobile={isMobile}
+                                sidebarOpen={sidebarOpen}
+                                onNavigate={closeSidebarOnMobile}
+                              />
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
-                  )}
+                  );
+                })}
+
+                {searchActive && searchResults.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="px-3 py-8 text-center"
+                  >
+                    <Search className="mx-auto mb-2 h-5 w-5 text-[#D1D5DB]" />
+                    <p className="text-[12px] text-[#6B7280]">No pages found</p>
+                  </motion.div>
+                )}
               </div>
             )}
 
             {/* BACK TO HOME */}
-            <div className="mt-3 pt-1">
+            <div className="mt-2 border-t border-[#F3F4F6] pt-2">
               <Link
                 href="/"
                 aria-label="Back to Home"
                 onClick={closeSidebarOnMobile}
                 className={cn(
-                  'relative group w-full flex items-center gap-3',
-                  'h-12 px-3 rounded-lg',
-                  'text-[14px] text-[#6B7268] font-medium',
-                  'hover:text-[#1A2B4C] hover:bg-[#F3F4F6]',
-                  'transition-all duration-200',
-                  !sidebarOpen && 'justify-center px-0'
+                  'group relative flex h-10 w-full items-center gap-2.5 rounded-md px-2.5',
+                  'text-[12.5px] font-medium text-[#6B7280]',
+                  'transition-colors duration-150 hover:bg-[#F8F9FA] hover:text-[#1A2B4C]',
+                  !sidebarOpen && 'justify-center px-0',
                 )}
               >
-                <Home className="w-[18px] h-[18px] flex-shrink-0" />
+                <Home className="h-[18px] w-[18px] flex-shrink-0" />
 
                 {sidebarOpen && <span>Back to Home</span>}
 
                 {!sidebarOpen && (
-                  <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#1A2B4C] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                  <span className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1A2B4C] px-2.5 py-1.5 text-[11.5px] font-medium text-white opacity-0 shadow-lg transition-all duration-150 group-hover:opacity-100 group-hover:visible invisible z-[300]">
                     Back to Home
                   </span>
                 )}
               </Link>
-            </div>
 
-            {/* LOGOUT */}
-            <div className="mt-2 pt-1">
               <motion.button
                 type="button"
-                whileHover={{
-                  x: sidebarOpen ? 2 : 0,
-                }}
-                whileTap={{
-                  scale: 0.98,
-                }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleLogout}
                 className={cn(
-                  'relative group w-full flex items-center gap-3',
-                  'h-12 px-3 rounded-lg',
-                  'text-[14px]',
-                  'text-[#6B7268]',
-                  'font-medium',
-                  'hover:text-[#A4462F]',
-                  'hover:bg-[#FBF0EC]',
-                  'transition-all duration-200',
-                  !sidebarOpen &&
-                  'justify-center px-0'
+                  'group relative mt-0.5 flex h-10 w-full items-center gap-2.5 rounded-md px-2.5',
+                  'text-[12.5px] font-medium text-[#6B7280]',
+                  'transition-colors duration-150 hover:bg-[#FBEDE8] hover:text-[#A4462F]',
+                  !sidebarOpen && 'justify-center px-0',
                 )}
               >
-                <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
+                <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
 
-                {sidebarOpen && (
-                  <span>Logout</span>
-                )}
+                {sidebarOpen && <span>Logout</span>}
 
                 {!sidebarOpen && (
-                  <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap bg-[#1A2B4C] text-white text-xs font-medium px-3 py-2 rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-[300]">
+                  <span className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1A2B4C] px-2.5 py-1.5 text-[11.5px] font-medium text-white opacity-0 shadow-lg transition-all duration-150 group-hover:opacity-100 group-hover:visible invisible z-[300]">
                     Logout
                   </span>
                 )}
               </motion.button>
             </div>
 
-            <div className="h-3" />
+            <div className="h-2" />
           </nav>
         </div>
 
-        {/* ================================================== */}
         {/* SIDEBAR USER */}
-        {/* ================================================== */}
-
         {sidebarOpen && (
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 6,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.25,
-            }}
-            className="flex-shrink-0 px-1.5 py-2 bg-transparent"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="flex-shrink-0 border-t border-[#F3F4F6] px-1.5 py-1.5"
           >
             <Link
               href="/dashboard/profile"
               onClick={closeSidebarOnMobile}
-              className="group flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-[#F3F4F6] transition-all duration-200"
+              className="group flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-[#F8F9FA]"
             >
               {user?.profileImageUrl ? (
                 <Image
                   src={user.profileImageUrl}
                   alt={`${user?.firstName || ''} ${user?.lastName || ''}`}
-                  width={32}
-                  height={32}
+                  width={28}
+                  height={28}
                   unoptimized
-                  className="w-[32px] h-[32px] object-cover border-2 border-[#B98A3E] rounded-full"
+                  className="h-7 w-7 rounded-full border border-[#C59B4C] object-cover"
                 />
               ) : (
-                <div className="w-[32px] h-[32px] bg-[#B98A3E] flex items-center justify-center text-white font-mono text-[11px] font-semibold rounded-full">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#C59B4C] text-[10.5px] font-semibold text-white">
                   {getInitials(user)}
                 </div>
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="text-[#1A2B4C] text-xs font-semibold truncate">
-                  {user?.firstName}{' '}
-                  {user?.lastName}
+                <p className="truncate text-[11.5px] font-semibold text-[#1A2B4C]">
+                  {user?.firstName} {user?.lastName}
                 </p>
 
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <motion.span
-                    animate={{
-                      opacity: [0.55, 1, 0.55],
-                    }}
-                    transition={{
-                      duration: 2.4,
-                      repeat: Infinity,
-                    }}
-                    className="w-1.5 h-1.5 rounded-full bg-[#55705B]"
-                  />
-
-                  <p className="text-[#8A9088] text-[10px] font-mono uppercase tracking-wide truncate">
+                <div className="mt-0.5 flex items-center gap-1">
+                  <span className="h-1 w-1 rounded-full bg-[#55705B]" />
+                  <p className="truncate text-[9.5px] font-medium uppercase tracking-[0.06em] text-[#9CA3AF]">
                     {formatRole(userRole)}
                   </p>
                 </div>
               </div>
 
-              <motion.div
-                initial={{
-                  x: 0,
-                }}
-                whileHover={{
-                  x: 3,
-                }}
-              >
-                <ChevronRight className="w-3.5 h-3.5 text-[#B9BEB2] group-hover:text-[#C59B4C] transition-colors duration-200" />
-              </motion.div>
+              <ChevronRight className="h-3 w-3 shrink-0 text-[#D1D5DB] transition-colors group-hover:text-[#C59B4C]" />
             </Link>
           </motion.div>
         )}
@@ -1576,12 +1112,12 @@ export default function Sidebar({
         }
 
         .sidebar-scroll:hover::-webkit-scrollbar-thumb {
-          background-color: #b9beb2;
+          background-color: #d1d5db;
           background-clip: padding-box;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background-color: #8f968d;
+          background-color: #9ca3af;
           background-clip: padding-box;
         }
       `}</style>

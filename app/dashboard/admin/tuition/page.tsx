@@ -122,7 +122,7 @@ export default function TuitionPage() {
   const formatTuition = (amount?: number | null) =>
     typeof amount === 'number' && amount > 0
       ? `$${amount.toLocaleString()}`
-      : 'No tuition';
+      : '$0';
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A2B4C]">
