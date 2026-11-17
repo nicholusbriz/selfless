@@ -5,6 +5,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  BookOpen,
+  Code,
+  GraduationCap,
+  Images,
+  LayoutDashboard,
+  Shield,
+  User,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
@@ -343,7 +352,7 @@ export default function DashboardLayout({
               </div>
             </main>
 
-            {/* DESKTOP FOOTER — visible on lg+ only (mobile uses bottom nav) */}
+            {/* DESKTOP FOOTER */}
             <footer className="hidden border-t border-[#E5E7EB] bg-white lg:block">
               <div className="w-full min-w-0 px-3 py-3 lg:px-4">
                 <div className="flex flex-col items-center justify-between gap-2 md:flex-row">
@@ -379,7 +388,7 @@ export default function DashboardLayout({
           )}
 
           {/* ================================================== */}
-          {/* BOTTOM NAVIGATION — mobile only (hidden on lg+) */}
+          {/* BOTTOM NAVIGATION — available at every screen size */}
           {/* ================================================== */}
           <motion.nav
             initial={{ opacity: 0, y: 20 }}
@@ -387,10 +396,17 @@ export default function DashboardLayout({
             transition={{ duration: 0.3, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             aria-label="Primary navigation"
             className={cn(
-              'fixed bottom-0 left-0 right-0 z-50',
+              'fixed bottom-0 right-0 z-50',
               'border-t border-[#243857] bg-[#1A2B4C]',
               'pb-[env(safe-area-inset-bottom)]',
             )}
+            style={{
+              left: mounted && !isMobile
+                ? sidebarOpen
+                  ? '240px'
+                  : '64px'
+                : 0,
+            }}
           >
             <div className="flex items-stretch justify-around px-0.5" style={{ height: 36 }}>
               {/* Home */}
@@ -402,9 +418,13 @@ export default function DashboardLayout({
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
                   >
+                    <LayoutDashboard
+                      aria-hidden="true"
+                      className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
+                    />
                     <span
                       className={cn(
-                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        'text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150',
                         active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
                       )}
                     >
@@ -421,7 +441,7 @@ export default function DashboardLayout({
                 );
               })()}
 
-                            {/* Posts */}
+              {/* Posts */}
               {(() => {
                 const active =
                   pathname === '/dashboard/gallery' ||
@@ -430,12 +450,16 @@ export default function DashboardLayout({
                   <Link
                     href="/dashboard/gallery"
                     aria-current={active ? 'page' : undefined}
-                    className="group relative flex flex-1 items-center justify-center gap-1"
+                    className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
                   >
-                    <span className="relative inline-flex items-center gap-1">
+                    <span className="relative inline-flex flex-col items-center gap-0.5">
+                      <Images
+                        aria-hidden="true"
+                        className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
+                      />
                       <span
                         className={cn(
-                          'text-[10px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                          'text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150',
                           active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
                         )}
                       >
@@ -446,7 +470,7 @@ export default function DashboardLayout({
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                          className="flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-[#1A2B4C] bg-[#C59B4C] px-1 text-[8px] font-bold leading-none text-white"
+                          className="absolute -right-3 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full border border-[#1A2B4C] bg-[#C59B4C] px-1 text-[8px] font-bold leading-none text-white"
                         >
                           {postCount > 9 ? '9+' : postCount}
                         </motion.span>
@@ -474,14 +498,25 @@ export default function DashboardLayout({
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
                   >
-<span
+                    <BookOpen
+                      aria-hidden="true"
+                      className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
+                    />
+                    <span
                       className={cn(
-                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        'text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150',
                         active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
                       )}
                     >
                       Courses
                     </span>
+                    {active && (
+                      <motion.span
+                        layoutId="bottom-nav-indicator"
+                        className="absolute bottom-0 left-1/2 h-[2px] w-5 -translate-x-1/2 rounded-full bg-[#C59B4C]"
+                        transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      />
+                    )}
                   </Link>
                 );
               })()}
@@ -497,9 +532,13 @@ export default function DashboardLayout({
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
                   >
+                    <User
+                      aria-hidden="true"
+                      className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
+                    />
                     <span
                       className={cn(
-                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        'text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150',
                         active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
                       )}
                     >
@@ -526,6 +565,7 @@ export default function DashboardLayout({
                     ? '/dashboard/policies'
                     : '/dashboard/admin/teachers';
                 const label = isDev ? 'Dev' : isSuperAdmin ? 'Policies' : 'Tutors';
+                const RoleIcon = isDev ? Code : isSuperAdmin ? Shield : GraduationCap;
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
                   <Link
@@ -533,9 +573,13 @@ export default function DashboardLayout({
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
                   >
+                    <RoleIcon
+                      aria-hidden="true"
+                      className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
+                    />
                     <span
                       className={cn(
-                        'text-[9.5px] font-semibold leading-none tracking-wide transition-colors duration-150',
+                        'text-[9px] font-semibold leading-none tracking-wide transition-colors duration-150',
                         active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white',
                       )}
                     >
@@ -558,7 +602,9 @@ export default function DashboardLayout({
                   variant="icon"
                   className="!h-[18px] !w-[18px] !rounded-none !p-0 text-white/70 hover:!bg-transparent hover:text-white"
                 />
-                
+                <span className="text-[9px] font-semibold leading-none tracking-wide text-white/70">
+                  Refresh
+                </span>
               </div>
             </div>
           </motion.nav>
