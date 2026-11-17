@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
 
 // GET - Fetch all active temple trips
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
@@ -61,8 +61,15 @@ export async function GET(request: NextRequest) {
                 firstName: true,
                 lastName: true,
                 profileImageUrl: true,
+                previousTechCenterId: true,
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
                 techCenter: {
                   select: {
+                    id: true,
                     name: true
                   }
                 }
@@ -76,8 +83,50 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    const previousTechCenterIds = Array.from(
+      new Set(
+        trips.flatMap((trip) =>
+          trip.registrations
+            .filter(
+              ({ user: participant }) =>
+                participant.role?.name === 'super_admin' &&
+                !participant.techCenter &&
+                participant.previousTechCenterId,
+            )
+            .map(({ user: participant }) => participant.previousTechCenterId!)
+        ),
+      ),
+    );
+    const previousTechCenters = previousTechCenterIds.length
+      ? await prisma.techCenter.findMany({
+          where: { id: { in: previousTechCenterIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const previousTechCentersById = new Map(
+      previousTechCenters.map((techCenter) => [techCenter.id, techCenter]),
+    );
+    const tripsWithParticipantCenters = trips.map((trip) => ({
+      ...trip,
+      registrations: trip.registrations.map((registration) => {
+        const { role, previousTechCenterId, ...participant } =
+          registration.user;
+        return {
+          ...registration,
+          user: {
+            ...participant,
+            techCenter:
+              participant.techCenter ??
+              (role?.name === 'super_admin' && previousTechCenterId
+                ? previousTechCentersById.get(previousTechCenterId) ?? null
+                : null),
+          },
+        };
+      }),
+    }));
+
     return NextResponse.json({ 
-      trips,
+      trips: tripsWithParticipantCenters,
       currentUser: {
         id: session.user.id,
         isAdmin: user.role?.name === 'admin' || user.role?.name === 'super_admin' || user.role?.name === 'dev',

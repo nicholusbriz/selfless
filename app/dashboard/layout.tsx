@@ -19,8 +19,6 @@ import { PageRefreshButton } from './components/PageRefreshButton';
 import { useOnlineUsers } from '@/lib/hooks/useOnlineUsers';
 import GiftIcon from '@/components/GiftIcon';
 import { GlobalOnlineUsersPopup } from '@/components/GlobalOnlineUsersPopup';
-import { Home, Users2, FileText } from 'lucide-react';
-
 const DASHBOARD_FOOTER_LINKS = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Messages', href: '/dashboard/messages' },
@@ -99,6 +97,11 @@ const PAGES_WITH_OWN_HEADER = new Set([
   '/dashboard/messages',
   '/dashboard/connections',
   '/dashboard/ai',
+  '/dashboard/english-hub',
+  '/dashboard/live-streaming',
+  '/dashboard/temple-trips',
+  '/dashboard/notifications',
+  '/dashboard/super-admin',
 ]);
 
 const PAGES_WITH_OWN_HEADER_PREFIXES = [

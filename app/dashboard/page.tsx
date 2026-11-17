@@ -59,7 +59,6 @@ import {
   findInStudentsShape,
 } from '@/lib/social/patchHelpers';
 import { SocialActions } from '@/components/social/SocialActions';
-import { compareSuperadminWithImageFirst } from '@/lib/social/ranking';
 import { getResponseError, isRecord } from './response-guards';
 import MediaPostInteractions from './gallery/components/MediaPostInteractions';
 
@@ -338,7 +337,8 @@ const getTrendingRoleLabel = (role?: string | null) => {
   const roleLabels: Record<string, string> = {
     admin: 'Manager',
     super_admin: 'Director',
-    dev: 'Developer',
+    superadmin: 'Director',
+    dev: 'Selfless Support',
     student: 'Student',
     teacher: 'Tutor',
   };
@@ -1935,9 +1935,14 @@ export default function DashboardPage() {
 
   const getRoleLabel = (role?: string | null) => {
     if (!role) return '';
-    if (role === 'admin') return 'Manager';
-    if (role === 'super_admin') return 'Director';
-    return role.replace(/_/g, ' ');
+    const roleLabels: Record<string, string> = {
+      admin: 'Manager',
+      super_admin: 'Director',
+      superadmin: 'Director',
+      teacher: 'Tutor',
+      dev: 'Selfless Support',
+    };
+    return roleLabels[role.toLowerCase()] ?? role.replace(/_/g, ' ');
   };
 
   const greeting = getGreeting();

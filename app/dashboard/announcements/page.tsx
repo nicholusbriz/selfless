@@ -23,6 +23,7 @@ import {
 } from '@tanstack/react-query';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { isJsonObject } from '@/lib/api-response';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import { AnnouncementComments } from './components/AnnouncementComments';
 
 interface Announcement {
@@ -37,6 +38,11 @@ interface Announcement {
     firstName: string;
     lastName: string;
     profileImageUrl: string | null;
+    hasVerifiedBadge: boolean;
+    techCenter: {
+      id: string;
+      name: string;
+    } | null;
     role: {
       name: string;
       displayName: string;
@@ -618,8 +624,22 @@ export default function AnnouncementsPage() {
                           {announcement.author.firstName}{' '}
                           {announcement.author.lastName}
                         </span>
+                        {announcement.author.hasVerifiedBadge && (
+                          <VerifiedBadge className="h-3.5 w-3.5" />
+                        )}
                         <span className="hidden text-[#D1D5DB] sm:inline">·</span>
                         <span>{getRoleLabel(announcement.author.role)}</span>
+                        {announcement.author.role.name === 'super_admin' &&
+                          announcement.author.techCenter && (
+                            <>
+                              <span className="hidden text-[#D1D5DB] sm:inline">
+                                ·
+                              </span>
+                              <span>
+                                {announcement.author.techCenter.name}
+                              </span>
+                            </>
+                          )}
                         {announcement.deadline && (
                           <>
                             <span className="hidden text-[#D1D5DB] sm:inline">

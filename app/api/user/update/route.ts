@@ -2,11 +2,11 @@
 /**
  * USER UPDATE API ROUTE
  * 
- * Updates user profile information (name, email, profile image, location, social links, etc.).
+ * Updates user profile information (email, profile image, location, social links, etc.).
  * Requires authentication via NextAuth session.
  * 
  * Endpoint: POST /api/user/update
- * Request Body: { firstName?: string, lastName?: string, email?: string, profileImageUrl?: string, 
+ * Request Body: { email?: string, profileImageUrl?: string, 
  *                phoneNumber?: string, country?: string, city?: string, town?: string, street?: string,
  *                generalCourse?: string, linkedinUrl?: string, githubUrl?: string, projectUrls?: string[] }
  * Response: { user: AuthUser }
@@ -32,8 +32,6 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await parseJsonBody(req, {
-      firstName: optional(isString),
-      lastName: optional(isString),
       email: optional(isString),
       profileImageUrl: optional(nullable(isString)),
       phoneNumber: optional(nullable(isString)),
@@ -49,9 +47,7 @@ export async function POST(req: NextRequest) {
       gender: optional(nullable(isString)),
     });
     if (!body) return invalidJsonBodyResponse();
-    const { 
-      firstName, 
-      lastName, 
+    const {
       email, 
       profileImageUrl,
       phoneNumber,
@@ -70,8 +66,6 @@ export async function POST(req: NextRequest) {
     // Build update object with only provided fields
     const updateData: Prisma.UserUpdateInput = {};
     
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (lastName !== undefined) updateData.lastName = lastName;
     if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
     if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
     if (country !== undefined) updateData.country = country;
@@ -129,8 +123,6 @@ export async function POST(req: NextRequest) {
         entityType: 'user',
         entityId: user.id,
         details: {
-          ...(firstName !== undefined && { firstName }),
-          ...(lastName !== undefined && { lastName }),
           ...(email !== undefined && email !== user.email && { email }),
           ...(profileImageUrl !== undefined && { profileImageUrl }),
           ...(phoneNumber !== undefined && { phoneNumber }),

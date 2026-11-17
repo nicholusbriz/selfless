@@ -39,7 +39,7 @@ const roleDisplayName = (roleName?: string | null) => {
   if (normalizedRole === 'teacher') return 'Tutor';
   if (normalizedRole === 'admin') return 'Manager';
   if (normalizedRole === 'superadmin' || normalizedRole === 'super_admin') return 'Director';
-  if (normalizedRole === 'dev') return 'Developer';
+  if (normalizedRole === 'dev') return 'Selfless Support';
 
   return normalizedRole.replace('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 };
@@ -764,7 +764,7 @@ export default function AdminUsersPage() {
                                             : 'border-gray-300 bg-white text-gray-700 hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700'
                                         } disabled:cursor-not-allowed disabled:opacity-50`}
                                       >
-                                        {role.name === 'teacher' ? 'Tutor' : role.name === 'admin' ? 'Manager' : role.name === 'superadmin' || role.name === 'super_admin' ? 'Director' : role.displayName || role.name}
+                                        {roleDisplayName(role.name)}
                                       </button>
                                     ))}
                                   </div>

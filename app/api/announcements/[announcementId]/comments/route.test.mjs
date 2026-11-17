@@ -6,6 +6,7 @@ const load = createRequire(import.meta.url);
 let created;
 let parentLookup;
 let parentExists;
+let requestedPreviousCenterIds;
 
 function stubModule(path, exports) {
   const id = load.resolve(path);
@@ -35,7 +36,21 @@ stubModule('@/lib/prisma/client', {
       },
       create: async ({ data }) => {
         created = data;
-        return { id: 'comment-id', ...data };
+        return {
+          id: 'comment-id',
+          ...data,
+          author: {
+            role: { name: 'super_admin', displayName: 'Director' },
+            techCenter: null,
+            previousTechCenterId: 'previous-center-id',
+          },
+        };
+      },
+    },
+    techCenter: {
+      findMany: async ({ where }) => {
+        requestedPreviousCenterIds = where.id.in;
+        return [{ id: 'previous-center-id', name: 'Previous Center' }];
       },
     },
   },
@@ -48,6 +63,7 @@ beforeEach(() => {
   created = null;
   parentLookup = null;
   parentExists = true;
+  requestedPreviousCenterIds = null;
 });
 
 function post(body) {
@@ -69,6 +85,8 @@ test('creates top-level comments with a null or omitted parent', async () => {
       content: 'Hello',
     });
     assert.equal(parentLookup, null);
+    assert.deepEqual(requestedPreviousCenterIds, ['previous-center-id']);
+    assert.equal((await response.json()).comment.author.techCenter.name, 'Previous Center');
   }
 });
 
