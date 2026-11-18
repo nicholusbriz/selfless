@@ -15,6 +15,7 @@ interface VideoPlayerProps {
   poster?: string;
   className?: string;
   autoplay?: boolean;
+  loop?: boolean;
   title?: string;
   description?: string;
   onEnded?: () => void;
@@ -64,6 +65,8 @@ export function VideoPlayer({
   description,
   onEnded,
   playRef,
+  autoplay = false,
+  loop = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +98,15 @@ export function VideoPlayer({
   }, [playRef]);
 
   useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
+
+  /* ── autoplay on mount ── */
+  useEffect(() => {
+    if (autoplay && videoRef.current) {
+      VideoManager.getInstance().requestPlay(instanceId.current);
+      videoRef.current.play().catch((e) => console.warn("Autoplay failed:", e));
+      setIsPlaying(true);
+    }
+  }, [autoplay]);
 
   /* ── helpers ── */
   const formatTime = useCallback((t: number) => {
@@ -240,6 +252,7 @@ export function VideoPlayer({
           className="w-full aspect-video object-contain"
           onClick={togglePlay}
           playsInline
+          loop={loop}
         />
 
         {/* Buffering spinner */}
