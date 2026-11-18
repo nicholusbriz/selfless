@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     if (!body) return invalidJsonBodyResponse();
     const { techCenterId } = body;
 
-    const result = await invalidateUserSessions(prisma, techCenterId);
+    const result = await invalidateUserSessions(prisma, techCenterId ?? null);
 
     return NextResponse.json({
       success: true,
