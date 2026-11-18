@@ -165,15 +165,24 @@ export async function sendPasswordResetEmail({
   expiryDate,
 }: SendPasswordResetEmailParams) {
   try {
+    if (!resend) {
+      return {
+        success: false,
+        skipped: true,
+        reason: 'not_configured',
+        error: 'Resend is not configured',
+      };
+    }
+
     // Check Resend daily quota before sending
     const stats = await getResendStats();
 
     if (stats && stats.dailyRemaining <= 0) {
-      console.warn('Resend daily limit reached. Skipping password reset email to:', to);
       return {
         success: false,
         error: 'Daily email limit reached. Email not sent.',
         skipped: true,
+        reason: 'daily_limit',
       };
     }
 
@@ -193,13 +202,20 @@ export async function sendPasswordResetEmail({
 
     if (result.success) {
       // Track successful email send
-      await trackEmailSent(to, 'password_reset', 'resend');
+      try {
+        await trackEmailSent(to, 'password_reset', 'resend');
+      } catch (error) {
+        console.error('Failed to track accepted password reset email:', error);
+      }
     }
 
     return result;
   } catch (error) {
     console.error('Send password reset email error:', error);
-    return { success: false, error: 'Failed to send email' };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown email error',
+    };
   }
 }
 

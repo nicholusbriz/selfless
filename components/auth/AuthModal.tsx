@@ -221,13 +221,11 @@ function ResetCodeNote() {
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[#12203B]">
-            Reset code sent to your email
+            Reset code sent
           </p>
 
           <p className="text-xs text-[#4B564C] leading-5 mt-1.5">
-            A new reset token has been generated for your account.
-            The 6-digit reset code has been sent to your email address.
-            Please check your inbox and use the code to reset your password.
+            Your reset code has been sent to your email inbox.
           </p>
         </div>
       </div>
@@ -1006,7 +1004,7 @@ function ForgotPasswordForm({
 
       if (response.ok) {
         setSuccess(
-          'Reset code requested. A new reset token has been generated for your account. Please contact the administrator and let them know that you have requested a new token so they can send you the reset code immediately.'
+          'Your reset code has been sent to your email inbox.'
         );
 
         setTimeout(() => {
@@ -1305,10 +1303,7 @@ function ForgotPasswordForm({
                     <strong className="block mb-0.5">
                       Reset code sent
                     </strong>
-                    A new reset token has been generated
-                    for your account. The 6-digit code has been
-                    sent to your email address. Please check your
-                    inbox and use the code to reset your password.
+                    Your reset code has been sent to your email inbox.
                   </span>
                 </FeedbackMessage>
               )}

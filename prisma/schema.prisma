@@ -128,11 +128,8 @@ model User {
   gender            String? // "male", "female", "other"
 
   // Password Reset
-  resetToken              String?
-  resetTokenExpiry        DateTime?
-  passwordResetRequest1At DateTime?
-  passwordResetRequest2At DateTime?
-  passwordResetRequest3At DateTime?
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   // Tracking
   lastLoginAt      DateTime?

@@ -746,6 +746,17 @@ export default function GalleryPage() {
                     </p>
                   )}
                 </div>
+                {currentUser && featuredVideo.approvalStatus === 'APPROVED' && (
+                  <MediaPostInteractions
+                    mediaId={featuredVideo.id}
+                    currentUser={{
+                      id: currentUser.id,
+                      firstName: currentUser.firstName,
+                      lastName: currentUser.lastName,
+                      profileImageUrl: currentUser.profileImageUrl,
+                    }}
+                  />
+                )}
               </div>
             ) : null}
             </div>
