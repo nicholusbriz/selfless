@@ -2014,22 +2014,111 @@ export default function DashboardPage() {
         {/* ============================================================
             HERO — full featured with globe, status bar, clock, stats
         ============================================================ */}
-        <header className="relative overflow-hidden bg-[#1A2B4C] text-white">
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1B33]/70 via-[#1A2B4C]/55 to-[#0F1B33]/75" />
+        <header className="relative overflow-hidden text-white" style={{
+          background: 'linear-gradient(135deg, #0a1f1a 0%, #1a4d3a 15%, #2d6b52 30%, #0f2b1f 45%, #1a3a2e 60%, #0d2416 75%, #1b4a35 90%, #0a1f1a 100%)'
+        }}>
+          {/* Vibrant Christmas ornament pattern background */}
+          <div className="absolute inset-0 opacity-35" style={{
+            backgroundImage: `
+              radial-gradient(circle at 15% 20%, rgba(220, 20, 60, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 85% 15%, rgba(255, 215, 0, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 90% 70%, rgba(220, 20, 60, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 50% 30%, rgba(192, 192, 192, 0.4) 2px, transparent 2px),
+              radial-gradient(circle at 30% 50%, rgba(255, 215, 0, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 70% 90%, rgba(220, 20, 60, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 10% 60%, rgba(192, 192, 192, 0.4) 2px, transparent 2px),
+              radial-gradient(circle at 75% 45%, rgba(255, 215, 0, 0.5) 3px, transparent 3px),
+              radial-gradient(circle at 40% 70%, rgba(220, 20, 60, 0.5) 3px, transparent 3px)
+            `,
+            backgroundSize: '200px 150px, 250px 180px, 220px 160px, 240px 170px, 180px 140px, 210px 155px, 230px 165px, 190px 150px, 260px 190px, 200px 160px'
+          }} />
+
+          {/* Holly and festive elements scattered background */}
+          <div className="absolute inset-0 opacity-25" style={{
+            backgroundImage: `
+              repeating-linear-gradient(
+                90deg,
+                transparent 0px,
+                transparent 100px,
+                rgba(220, 20, 60, 0.3) 100px,
+                rgba(220, 20, 60, 0.3) 101px
+              ),
+              repeating-linear-gradient(
+                0deg,
+                transparent 0px,
+                transparent 80px,
+                rgba(34, 139, 34, 0.3) 80px,
+                rgba(34, 139, 34, 0.3) 81px
+              )
+            `
+          }} />
+
+          {/* Snowfall effect */}
+          <div className="absolute top-0 left-0 w-full h-full opacity-15">
+            <div className="absolute w-2 h-2 bg-white rounded-full" style={{ top: '10%', left: '5%', animation: 'fall 8s infinite' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '15%', left: '15%', animation: 'fall 10s infinite 2s' }}></div>
+            <div className="absolute w-2 h-2 bg-white rounded-full" style={{ top: '20%', left: '25%', animation: 'fall 12s infinite 1s' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '10%', left: '35%', animation: 'fall 11s infinite 3s' }}></div>
+            <div className="absolute w-2 h-2 bg-white rounded-full" style={{ top: '15%', left: '45%', animation: 'fall 9s infinite 1.5s' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '20%', left: '55%', animation: 'fall 13s infinite 2.5s' }}></div>
+            <div className="absolute w-2 h-2 bg-white rounded-full" style={{ top: '10%', left: '65%', animation: 'fall 10s infinite' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '15%', left: '75%', animation: 'fall 11s infinite 1.5s' }}></div>
+            <div className="absolute w-2 h-2 bg-white rounded-full" style={{ top: '20%', left: '85%', animation: 'fall 12s infinite 2s' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-white rounded-full" style={{ top: '10%', left: '95%', animation: 'fall 9s infinite 3s' }}></div>
+          </div>
+
+          {/* Large festive Christmas Trees - Multiple positioned around */}
+          <div className="absolute top-8 left-12 text-7xl opacity-30 animate-bounce" style={{ animationDuration: '3s' }}>🎄</div>
+          <div className="absolute top-6 left-56 text-6xl opacity-25 animate-bounce" style={{ animationDuration: '3.5s' }}>🎄</div>
+          <div className="absolute top-20 right-32 text-7xl opacity-28 animate-bounce" style={{ animationDuration: '2.8s' }}>🎄</div>
+          <div className="absolute top-12 right-56 text-5xl opacity-20 animate-bounce" style={{ animationDuration: '3.2s' }}>🎄</div>
+          <div className="absolute bottom-16 left-20 text-7xl opacity-30 animate-bounce" style={{ animationDuration: '3.3s' }}>🎄</div>
+          <div className="absolute bottom-20 left-1/3 text-6xl opacity-25 animate-bounce" style={{ animationDuration: '2.9s' }}>🎄</div>
+          <div className="absolute bottom-20 right-16 text-7xl opacity-28 animate-bounce" style={{ animationDuration: '2.5s' }}>🎄</div>
+          <div className="absolute bottom-10 right-1/3 text-6xl opacity-22 animate-bounce" style={{ animationDuration: '3.4s' }}>🎄</div>
+
+          {/* Snowmen and Santa - positioned around */}
+          <div className="absolute top-20 left-1/4 text-6xl opacity-25" style={{ animation: 'pulse 4s infinite' }}>⛄</div>
+          <div className="absolute bottom-24 left-1/2 text-6xl opacity-28" style={{ animation: 'pulse 4.5s infinite' }}>⛄</div>
+          <div className="absolute top-24 right-1/4 text-6xl opacity-26" style={{ animation: 'bounce 2.5s infinite' }}>🎅</div>
+
+          {/* Stars and other decorations */}
+          <div className="absolute top-12 right-20 text-5xl opacity-25" style={{ animation: 'pulse 3s infinite' }}>⭐</div>
+          <div className="absolute top-1/3 left-1/4 text-5xl opacity-20">🎁</div>
+          <div className="absolute top-1/4 right-1/4 text-4xl opacity-18">🔔</div>
+          <div className="absolute bottom-1/3 right-1/3 text-4xl opacity-18">❄️</div>
+          <div className="absolute top-2/3 left-1/5 text-4xl opacity-15">🔴</div>
+          <div className="absolute top-1/2 right-1/5 text-4xl opacity-15">🟢</div>
 
           {/* Spinning globe accents — kept, subtler */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
           >
-            <div className="absolute -right-28 -top-28 h-[520px] w-[520px] opacity-60">
+            <div className="absolute -right-28 -top-28 h-[520px] w-[520px] opacity-35">
               <SpinningGlobe />
             </div>
-            <div className="absolute -bottom-32 -left-24 h-[460px] w-[460px] opacity-40">
+            <div className="absolute -bottom-32 -left-24 h-[460px] w-[460px] opacity-20">
               <SpinningGlobe />
             </div>
           </div>
+
+          <style>{`
+            @keyframes fall {
+              0% {
+                transform: translateY(-100vh) translateX(0);
+                opacity: 0.8;
+              }
+              90% {
+                opacity: 0.8;
+              }
+              100% {
+                transform: translateY(100vh) translateX(100px);
+                opacity: 0;
+              }
+            }
+          `}</style>
 
           <div className="relative z-10">
             {/* Status Bar — kept, tightened */}
@@ -2104,7 +2193,10 @@ export default function DashboardPage() {
                           <VerifiedBadge className="h-5 w-5 shrink-0" />
                         )}
                       </h1>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                      <p className="mt-2 text-[13px] font-semibold tracking-wide text-[#E6C779]">
+                        🎄 Happy Christmas Season! 🎄
+                      </p>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                         <span className="inline-flex items-center gap-1 text-[#D4A84B]">
                           <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#C59B4C]" />
                           <span className="uppercase tracking-wide">Active</span>
