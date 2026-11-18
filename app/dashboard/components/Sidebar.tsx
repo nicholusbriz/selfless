@@ -328,7 +328,7 @@ const sharedNavigation: NavSection[] = [
       },
       {
         id: 'it-support',
-        label: 'Meet IT Support Team',
+        label: 'IT Support',
         path: '/dashboard/support',
         icon: <LifeBuoy className={iconClass} />,
         roles: ALL_ROLES,
@@ -341,7 +341,7 @@ const adminNavigation: NavSection = {
   id: 'administration',
   label: 'Administration',
   items: [
-    { id: 'admin-dashboard', label: 'Admin', path: '/dashboard/admin', icon: <Shield className={iconClass} />, roles: ['admin'] },
+    { id: 'admin-dashboard', label: 'Join Requests', path: '/dashboard/admin', icon: <Shield className={iconClass} />, roles: ['admin'] },
     { id: 'manage-users', label: 'Users', path: '/dashboard/admin/users', icon: <Users className={iconClass} />, roles: ['admin'] },
     { id: 'manage-teachers', label: 'Tutors', path: '/dashboard/admin/teachers', icon: <UserCog className={iconClass} />, roles: ['admin'] },
     { id: 'assign-grades', label: 'Assign Grades', path: '/dashboard/teacher/grades', icon: <Award className={iconClass} />, roles: ['admin'] },
@@ -369,7 +369,7 @@ const superAdminNavigation: NavSection = {
   items: [
     { id: 'manage-grades', label: 'Manage Grades', path: '/dashboard/manage-grades', icon: <Award className={iconClass} />, roles: ['dev', 'super_admin'] },
     { id: 'course-units', label: 'Course Units', path: '/dashboard/course-units', icon: <BookMarked className={iconClass} />, roles: ['super_admin'] },
-    { id: 'super-admin-dashboard', label: 'Overview', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['super_admin'] },
+    { id: 'super-admin-dashboard', label: 'Join Requests', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['super_admin'] },
     { id: 'trivia-tracking', label: 'Trivia Tracking', path: '/dashboard/admin/trivia', icon: <Trophy className={iconClass} />, roles: ['dev', 'super_admin'] },
     { id: 'english-class', label: 'English Class', path: '/dashboard/dev/english-hub', icon: <BookOpen className={iconClass} />, roles: ['dev', 'super_admin'] },
     { id: 'cleaning-management', label: 'Cleaning Management', path: '/dashboard/dev/cleaning', icon: <Settings className={iconClass} />, roles: ['super_admin'] },
@@ -385,7 +385,7 @@ const devNavigation: NavSection = {
   items: [
     { id: 'dev-dashboard', label: 'Dev Dashboard', path: '/dashboard/dev', icon: <Code className={iconClass} />, roles: ['dev'] },
     { id: 'dev-cleaning', label: 'Cleaning Management', path: '/dashboard/dev/cleaning', icon: <Settings className={iconClass} />, roles: ['dev', 'super_admin'] },
-    { id: 'super-admin-overview', label: 'System Overview', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['dev'] },
+    { id: 'super-admin-overview', label: 'Join Requests', path: '/dashboard/super-admin', icon: <Shield className={iconClass} />, roles: ['dev'] },
     { id: 'trivia-tracking', label: 'Trivia Tracking', path: '/dashboard/admin/trivia', icon: <Trophy className={iconClass} />, roles: ['dev', 'super_admin'] },
     { id: 'email-settings', label: 'Send Emails', path: '/dashboard/super-admin/email', icon: <Mail className={iconClass} />, roles: ['dev'] },
     { id: 'all-centers', label: 'Tech Centers', path: '/dashboard/super-admin/centers', icon: <School className={iconClass} />, roles: ['dev'] },

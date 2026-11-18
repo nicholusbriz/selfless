@@ -1,97 +1,144 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Check,
-  Copy,
-  Headphones,
-  Plus,
+  CheckCircle2,
+  Clock3,
+  LifeBuoy,
+  LoaderCircle,
+  MessageSquareText,
+  MoreVertical,
+  Send,
   ShieldCheck,
   Trash2,
-  X,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getResponseError, isRecord } from '../response-guards';
 
-interface SupportResource {
+type SupportCategory = 'ISSUE' | 'FEATURE_REQUEST';
+type SupportStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
+
+interface SupportRequest {
   id: string;
-  title: string;
-  link: string;
-  description: string;
+  userId: string;
+  category: SupportCategory;
+  subject: string;
+  message: string;
+  status: SupportStatus;
   createdAt: string;
+  updatedAt: string;
+  user?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
 
 interface SupportQueryData {
-  resources: SupportResource[];
+  requests: SupportRequest[];
   canManage: boolean;
 }
 
-function isSupportResource(value: unknown): value is SupportResource {
+const CATEGORIES: Record<SupportCategory, string> = {
+  ISSUE: 'Report an issue',
+  FEATURE_REQUEST: 'Request a feature',
+};
+
+const STATUSES: Record<SupportStatus, string> = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In progress',
+  RESOLVED: 'Resolved',
+};
+
+const INITIAL_FORM = {
+  category: 'ISSUE' as SupportCategory,
+  subject: '',
+  message: '',
+};
+
+function isSupportRequest(value: unknown): value is SupportRequest {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
-    typeof value.title === 'string' &&
-    typeof value.link === 'string' &&
-    typeof value.description === 'string' &&
-    typeof value.createdAt === 'string'
+    typeof value.userId === 'string' &&
+    (value.category === 'ISSUE' || value.category === 'FEATURE_REQUEST') &&
+    typeof value.subject === 'string' &&
+    typeof value.message === 'string' &&
+    (value.status === 'OPEN' ||
+      value.status === 'IN_PROGRESS' ||
+      value.status === 'RESOLVED') &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string' &&
+    (value.user === undefined ||
+      (isRecord(value.user) &&
+        typeof value.user.firstName === 'string' &&
+        typeof value.user.lastName === 'string' &&
+        typeof value.user.email === 'string'))
   );
 }
 
-const INITIAL_FORM = {
-  title: '',
-  link: '',
-  description: '',
-};
-
-function SupportResourceSkeleton() {
-  return (
-    <div className="animate-pulse border-b border-[#E3E5E0] py-5 first:border-t">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="h-5 w-48 rounded bg-[#E5E7E3]" />
-          <div className="mt-3 h-4 w-full max-w-xl rounded bg-[#ECEDE9]" />
-          <div className="mt-2 h-4 w-3/4 max-w-lg rounded bg-[#ECEDE9]" />
-        </div>
-
-        <div className="h-8 w-8 rounded bg-[#ECEDE9]" />
-      </div>
-
-      <div className="mt-4 h-10 w-full rounded-lg bg-[#F0F1EE]" />
-    </div>
-  );
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
 
 export default function SupportPage() {
   const { isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [formError, setFormError] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false); // <-- NEW
+  const [formSuccess, setFormSuccess] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const menu = document.getElementById(
+        `support-report-options-${openMenuId}`,
+      );
+      if (event.target instanceof Node && !menu?.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenMenuId(null);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [openMenuId]);
 
   const { data, isLoading, error } = useQuery<SupportQueryData>({
-    queryKey: ['support-resources'],
+    queryKey: ['support-requests'],
     queryFn: async () => {
       const response = await fetch('/api/support');
+      const result: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error('Failed to load support resources');
+        throw new Error(getResponseError(result, 'Failed to load reports'));
       }
 
-      const data: unknown = await response.json();
       if (
-        !isRecord(data) ||
-        !Array.isArray(data.resources) ||
-        typeof data.canManage !== 'boolean'
+        !isRecord(result) ||
+        !Array.isArray(result.requests) ||
+        typeof result.canManage !== 'boolean'
       ) {
-        throw new Error('Invalid support resources response');
+        throw new Error('The server returned an invalid reports response');
       }
+
       return {
-        resources: data.resources.filter(isSupportResource),
-        canManage: data.canManage,
+        requests: result.requests.filter(isSupportRequest),
+        canManage: result.canManage,
       };
     },
     enabled: !authLoading,
@@ -104,455 +151,389 @@ export default function SupportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const result: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          getResponseError(result, 'Failed to add support resource'),
-        );
+        throw new Error(getResponseError(result, 'Could not submit your report'));
       }
-
-      return result;
     },
     onSuccess: () => {
       setFormData(INITIAL_FORM);
       setFormError('');
-      setShowForm(false); // <-- hide form on success
-
-      queryClient.invalidateQueries({
-        queryKey: ['support-resources'],
-      });
+      setFormSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ['support-requests'] });
     },
     onError: (mutationError: Error) => {
       setFormError(mutationError.message);
+      setFormSuccess(false);
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: SupportStatus;
+    }) => {
+      const response = await fetch(`/api/support/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const result: unknown = await response.json();
+
+      if (!response.ok) {
+        throw new Error(getResponseError(result, 'Could not update report'));
+      }
+    },
+    onSuccess: () => {
+      setStatusError('');
+      queryClient.invalidateQueries({ queryKey: ['support-requests'] });
+    },
+    onError: (mutationError: Error) => {
+      setStatusError(mutationError.message);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (resourceId: string) => {
-      const response = await fetch(`/api/support/${resourceId}`, {
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/support/${id}`, {
         method: 'DELETE',
       });
+      const result: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error('Failed to delete support resource');
+        throw new Error(getResponseError(result, 'Could not delete report'));
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['support-resources'],
-      });
+      setStatusError('');
+      queryClient.invalidateQueries({ queryKey: ['support-requests'] });
+    },
+    onError: (mutationError: Error) => {
+      setStatusError(mutationError.message);
     },
   });
 
-  const handleCopy = async (id: string, link: string) => {
-    try {
-      await navigator.clipboard.writeText(link);
-
-      setCopiedId(id);
-
-      setTimeout(() => {
-        setCopiedId((current) => (current === id ? null : current));
-      }, 2000);
-    } catch {
-      // Ignore clipboard failures.
-    }
-  };
-
-  const handleCancelForm = () => {
-    setFormData(INITIAL_FORM);
-    setFormError('');
-    setShowForm(false);
-  };
-
-  const resources = data?.resources ?? [];
+  const requests = data?.requests ?? [];
 
   return (
     <main className="min-h-screen bg-[#F3F4F1] text-[#12203B]">
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-
-        {/* ============================================================
-            HERO
-        ============================================================ */}
-        <section className="relative isolate overflow-hidden rounded-xl bg-[#12203B] shadow-sm">
-          <video
-            className="absolute inset-0 z-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls
-            preload="metadata"
-            aria-label="IT support video"
-          >
-            <source src="/support.mp4" type="video/mp4" />
-          </video>
-
-          {/* Controlled overlay for readability */}
-          <div className="pointer-events-none absolute inset-0 z-10 bg-[#07111D]/60" />
-          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-[#07111D]/85 via-[#07111D]/55 to-[#07111D]/25" />
-
-          <div className="relative z-20 flex min-h-[270px] items-end px-5 py-7 sm:min-h-[310px] sm:px-8 sm:py-9 lg:px-10">
-            <div className="max-w-2xl">
-              <div className="mb-5 inline-flex items-center gap-2 border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
-                <Headphones className="h-3.5 w-3.5 text-[#E8A33D]" />
-                IT Help Desk
-              </div>
-
-              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-                Need technical help?
-              </h1>
-
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
-                Use the support resources below to report an issue, find
-                guidance, or get assistance with the systems you use for your
-                studies.
-              </p>
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+        <section className="relative overflow-hidden bg-[#12203B] px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+          <div className="absolute -right-10 -top-20 h-64 w-64 rounded-full border border-white/10" />
+          <div className="absolute -right-2 -top-12 h-48 w-48 rounded-full border border-white/10" />
+          <div className="relative max-w-2xl">
+            <div className="mb-5 inline-flex items-center gap-2 border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white">
+              <LifeBuoy className="h-4 w-4 text-[#E8A33D]" />
+              IT Support
             </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              How can we help?
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/75 sm:text-base">
+              Report a problem or suggest a feature. Your reports are visible
+              to you and the support team.
+            </p>
           </div>
         </section>
 
-        {/* ============================================================
-            INTRODUCTION
-        ============================================================ */}
-        <section className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8495]">
-              Support centre
-            </p>
+        <section className="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          <div className="border border-[#E0E2DD] bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#F5F1E8] text-[#9A702D]">
+                <MessageSquareText className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold">Send a report</h2>
+                <p className="mt-1 text-sm leading-5 text-[#667085]">
+                  Include enough detail for the team to understand what you need.
+                </p>
+              </div>
+            </div>
 
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#12203B] sm:text-3xl">
-              IT support and useful resources
-            </h2>
+            <form
+              className="mt-5 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setFormError('');
+                setFormSuccess(false);
+                createMutation.mutate();
+              }}
+            >
+              <label className="block text-sm font-medium text-[#25344D]">
+                What would you like to do?
+                <select
+                  value={formData.category}
+                  onChange={(event) => {
+                    setFormData({
+                      ...formData,
+                      category: event.target.value as SupportCategory,
+                    });
+                    setFormSuccess(false);
+                  }}
+                  className="mt-1.5 block w-full border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm text-[#12203B] outline-none focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/15"
+                >
+                  <option value="ISSUE">Report an issue</option>
+                  <option value="FEATURE_REQUEST">Request a feature</option>
+                </select>
+              </label>
 
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#596579] sm:text-base">
-              Find the support services and guidance provided for students and
-              staff. When reporting a problem, provide enough detail for the
-              support team to understand what is happening and assist you
-              efficiently.
-            </p>
+              <label className="block text-sm font-medium text-[#25344D]">
+                Subject
+                <input
+                  required
+                  maxLength={120}
+                  value={formData.subject}
+                  onChange={(event) => {
+                    setFormData({ ...formData, subject: event.target.value });
+                    setFormSuccess(false);
+                  }}
+                  placeholder="A short summary"
+                  className="mt-1.5 block w-full border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm text-[#12203B] outline-none placeholder:text-[#9A9F98] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/15"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-[#25344D]">
+                Details
+                <textarea
+                  required
+                  minLength={10}
+                  maxLength={5000}
+                  rows={6}
+                  value={formData.message}
+                  onChange={(event) => {
+                    setFormData({ ...formData, message: event.target.value });
+                    setFormSuccess(false);
+                  }}
+                  placeholder="Describe the issue or feature you would like to see."
+                  className="mt-1.5 block w-full resize-y border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm leading-6 text-[#12203B] outline-none placeholder:text-[#9A9F98] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#B98A3E]/15"
+                />
+                <span className="mt-1 block text-right text-xs font-normal text-[#7A8495]">
+                  {formData.message.length}/5000
+                </span>
+              </label>
+
+              {formError && (
+                <p role="alert" className="border border-[#E7C5BF] bg-[#FCF4F2] px-3 py-2.5 text-sm text-[#8D3E32]">
+                  {formError}
+                </p>
+              )}
+              {formSuccess && (
+                <p role="status" className="border border-[#C7D9C9] bg-[#F1F7F1] px-3 py-2.5 text-sm text-[#365C3D]">
+                  Your report was submitted. You can follow its status below.
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="inline-flex items-center gap-2 bg-[#12203B] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#1B2C49] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {createMutation.isPending ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                {createMutation.isPending ? 'Submitting…' : 'Submit report'}
+              </button>
+            </form>
           </div>
 
           <aside className="border-l-2 border-[#B98A3E] pl-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7A8495]">
-              Before contacting support
-            </p>
-
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-[#55705B]" />
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7A8495]">
+                Your privacy
+              </p>
+            </div>
             <p className="mt-2 text-sm leading-6 text-[#596579]">
-              Have your name, the affected service, and a brief description of
-              the problem ready.
+              Your reports are visible only to you and the support team.
+              Do not include passwords, verification codes, or other sensitive
+              account details.
             </p>
           </aside>
         </section>
 
-        {/* ============================================================
-            SUPPORT RESOURCES
-        ============================================================ */}
-        <section className="mt-9">
+        <section className="mt-10">
           <div className="flex flex-col gap-2 border-b border-[#D9DCD6] pb-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8495]">
-                Resources
+                {data?.canManage ? 'Support inbox' : 'Your activity'}
               </p>
-
-              <h2 className="mt-1 text-xl font-semibold tracking-tight text-[#12203B] sm:text-2xl">
-                Support resources
+              <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+                {data?.canManage ? 'User reports' : 'My reports'}
               </h2>
             </div>
-
-            {!isLoading && !error && resources.length > 0 && (
+            {!isLoading && !error && (
               <p className="text-xs text-[#7A8495]">
-                {resources.length}{' '}
-                {resources.length === 1 ? 'resource' : 'resources'} available
+                {requests.length} {requests.length === 1 ? 'report' : 'reports'}
               </p>
             )}
           </div>
 
+          {statusError && (
+            <p role="alert" className="mt-4 border border-[#E7C5BF] bg-[#FCF4F2] px-4 py-3 text-sm text-[#8D3E32]">
+              {statusError}
+            </p>
+          )}
+
           {error && (
-            <div
-              role="alert"
-              className="mt-5 border border-[#E7C5BF] bg-[#FCF4F2] px-4 py-3 text-sm text-[#8D3E32]"
-            >
-              We could not load the support resources. Please try again later.
-            </div>
+            <p role="alert" className="mt-4 border border-[#E7C5BF] bg-[#FCF4F2] px-4 py-3 text-sm text-[#8D3E32]">
+              {error instanceof Error ? error.message : 'Could not load reports.'}
+            </p>
           )}
 
           {isLoading && (
-            <div>
-              <SupportResourceSkeleton />
-              <SupportResourceSkeleton />
-              <SupportResourceSkeleton />
+            <div className="mt-5 space-y-3" aria-label="Loading reports">
+              <div className="h-28 animate-pulse bg-white" />
+              <div className="h-28 animate-pulse bg-white" />
             </div>
           )}
 
-          {!isLoading && !error && resources.length === 0 && (
+          {!isLoading && !error && requests.length === 0 && (
             <div className="mt-5 border border-dashed border-[#D3D6D0] bg-white px-5 py-8">
               <p className="text-sm font-medium text-[#25344D]">
-                No support resources are currently available.
+                {data?.canManage
+                  ? 'There are no user reports yet.'
+                  : 'You have not submitted a report yet.'}
               </p>
-
               <p className="mt-1 text-sm leading-6 text-[#70786F]">
-                Please check again later or contact your designated support
-                team if you need immediate assistance.
+                Reports you submit will appear here with their latest status.
               </p>
             </div>
           )}
 
-          {!isLoading && !error && resources.length > 0 && (
-            <div className="mt-1">
-              {resources.map((resource) => {
-                const isCopied = copiedId === resource.id;
+          <div className="mt-4 space-y-3">
+            {requests.map((request) => (
+              <article
+                key={request.id}
+                className="border border-[#E0E2DD] bg-white p-4 shadow-sm sm:p-5"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-[#8B641F]">
+                        {CATEGORIES[request.category]}
+                      </span>
+                      <span className="text-xs text-[#9A9F98]">·</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-[#667085]">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        {formatDate(request.createdAt)}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 break-words text-base font-semibold text-[#12203B]">
+                      {request.subject}
+                    </h3>
+                    {data?.canManage && request.user && (
+                      <p className="mt-1 text-xs text-[#667085]">
+                        {request.user.firstName} {request.user.lastName} ·{' '}
+                        {request.user.email}
+                      </p>
+                    )}
+                  </div>
 
-                return (
-                  <article
-                    key={resource.id}
-                    className="group border-b border-[#E0E2DD] py-5 first:border-t"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="hidden h-9 w-9 shrink-0 items-center justify-center bg-[#F0F1ED] text-[#55705B] sm:flex">
-                        <Headphones className="h-4 w-4" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="text-base font-semibold text-[#12203B] sm:text-lg">
-                              {resource.title}
-                            </h3>
-
-                            {resource.description && (
-                              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-[#626B64]">
-                                {resource.description}
-                              </p>
-                            )}
-                          </div>
-
-                          {data?.canManage && (
+                  {data?.canManage ? (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <label className="text-xs font-medium text-[#596579]">
+                        Status
+                        <select
+                          value={request.status}
+                          onChange={(event) => {
+                            setStatusError('');
+                            statusMutation.mutate({
+                              id: request.id,
+                              status: event.target.value as SupportStatus,
+                            });
+                          }}
+                          disabled={statusMutation.isPending}
+                          aria-label={`Status for ${request.subject}`}
+                          className="ml-2 border border-[#CDD1CB] bg-white px-2 py-1.5 text-xs text-[#25344D] outline-none focus:border-[#B98A3E] disabled:opacity-60"
+                        >
+                          {Object.entries(STATUSES).map(([status, label]) => (
+                            <option key={status} value={status}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div
+                        id={`support-report-options-${request.id}`}
+                        className="relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMenuId((current) =>
+                              current === request.id ? null : request.id,
+                            )
+                          }
+                          aria-label={`More options for ${request.subject}`}
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === request.id}
+                          className="inline-flex h-8 w-8 items-center justify-center text-[#596579] hover:bg-[#F3F4F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E]"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                        {openMenuId === request.id && (
+                          <div
+                            role="menu"
+                            className="absolute right-0 top-full z-10 mt-1 min-w-36 border border-[#E0E2DD] bg-white p-1 shadow-lg"
+                          >
                             <button
                               type="button"
-                              title="Delete support resource"
-                              aria-label={`Delete ${resource.title}`}
+                              role="menuitem"
                               onClick={() => {
+                                setOpenMenuId(null);
                                 if (
                                   window.confirm(
-                                    'Delete this support resource?'
+                                    `Delete "${request.subject}"? This cannot be undone.`,
                                   )
                                 ) {
-                                  deleteMutation.mutate(resource.id);
+                                  setStatusError('');
+                                  deleteMutation.mutate(request.id);
                                 }
                               }}
                               disabled={deleteMutation.isPending}
-                              className="shrink-0 rounded-md p-2 text-[#8A9088] transition-colors hover:bg-[#FCF4F2] hover:text-[#A4462F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-50"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-[#8D3E32] hover:bg-[#FCF4F2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {deleteMutation.isPending ? (
+                                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                              Delete report
                             </button>
-                          )}
-                        </div>
-
-                        <div className="mt-4 flex min-w-0 items-center gap-2">
-                          <div className="min-w-0 flex-1 border border-[#D9DCD6] bg-[#F7F8F5] px-3 py-2.5">
-                            <code className="block truncate font-mono text-xs text-[#435066]">
-                              {resource.link}
-                            </code>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopy(resource.id, resource.link)
-                            }
-                            title={
-                              isCopied ? 'Link copied' : 'Copy support link'
-                            }
-                            aria-label={
-                              isCopied
-                                ? 'Link copied'
-                                : `Copy link for ${resource.title}`
-                            }
-                            className={`inline-flex h-10 shrink-0 items-center gap-1.5 border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 ${
-                              isCopied
-                                ? 'border-[#55705B] bg-[#55705B] text-white'
-                                : 'border-[#CDD1CB] bg-white text-[#25344D] hover:border-[#B98A3E] hover:text-[#8B641F]'
-                            }`}
-                          >
-                            {isCopied ? (
-                              <>
-                                <Check className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">
-                                  Copied
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">
-                                  Copy
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* ============================================================
-            ADMIN RESOURCE MANAGEMENT
-        ============================================================ */}
-        {data?.canManage && (
-          <section className="mt-10 border-t border-[#D9DCD6] pt-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7A8495]">
-                  Administration
-                </p>
-
-                <h2 className="mt-1 text-xl font-semibold tracking-tight text-[#12203B]">
-                  Manage support resources
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-[#667085]">
-                  Add a trusted support resource that should be available to
-                  users across the dashboard.
-                </p>
-              </div>
-
-              {/* Toggle button – only shown when form is hidden */}
-              {!showForm && (
-                <button
-                  type="button"
-                  onClick={() => setShowForm(true)}
-                  className="inline-flex shrink-0 items-center gap-2 bg-[#12203B] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#1B2C49] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add resource
-                </button>
-              )}
-            </div>
-
-            {/* Form – only shown when toggled open */}
-            {showForm && (
-              <form
-                className="mt-6 grid max-w-4xl gap-5 rounded-lg border border-[#D9DCD6] bg-white p-5 sm:p-6"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  setFormError('');
-                  createMutation.mutate();
-                }}
-              >
-                <div className="grid gap-5 md:grid-cols-2">
-                  <label className="text-sm font-medium text-[#25344D]">
-                    Resource name
-                    <input
-                      required
-                      value={formData.title}
-                      onChange={(event) =>
-                        setFormData({
-                          ...formData,
-                          title: event.target.value,
-                        })
-                      }
-                      className="mt-2 block w-full border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm font-normal text-[#12203B] outline-none transition-colors placeholder:text-[#9A9F98] focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
-                      placeholder="e.g. Student IT Help Desk"
-                    />
-                  </label>
-
-                  <label className="text-sm font-medium text-[#25344D]">
-                    Resource link
-                    <input
-                      required
-                      type="url"
-                      value={formData.link}
-                      onChange={(event) =>
-                        setFormData({
-                          ...formData,
-                          link: event.target.value,
-                        })
-                      }
-                      className="mt-2 block w-full border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm font-normal text-[#12203B] outline-none transition-colors placeholder:text-[#9A9F98] focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
-                      placeholder="https://example.com"
-                    />
-                  </label>
+                  ) : (
+                    <span
+                      className={`inline-flex w-fit shrink-0 items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
+                        request.status === 'RESOLVED'
+                          ? 'bg-[#EEF5EF] text-[#365C3D]'
+                          : request.status === 'IN_PROGRESS'
+                            ? 'bg-[#F5F1E8] text-[#8B641F]'
+                            : 'bg-[#EEF1F5] text-[#435066]'
+                      }`}
+                    >
+                      {request.status === 'RESOLVED' ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Clock3 className="h-3.5 w-3.5" />
+                      )}
+                      {STATUSES[request.status]}
+                    </span>
+                  )}
                 </div>
-
-                <label className="text-sm font-medium text-[#25344D]">
-                  Description
-                  <textarea
-                    required
-                    rows={3}
-                    value={formData.description}
-                    onChange={(event) =>
-                      setFormData({
-                        ...formData,
-                        description: event.target.value,
-                      })
-                    }
-                    className="mt-2 block w-full resize-y border border-[#CDD1CB] bg-white px-3 py-2.5 text-sm font-normal text-[#12203B] outline-none transition-colors placeholder:text-[#9A9F98] focus:border-[#55705B] focus:ring-2 focus:ring-[#55705B]/10"
-                    placeholder="Briefly explain what users can do or find through this resource."
-                  />
-                </label>
-
-                {formError && (
-                  <div
-                    role="alert"
-                    className="border border-[#E7C5BF] bg-[#FCF4F2] px-4 py-3 text-sm text-[#8D3E32]"
-                  >
-                    {formError}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending}
-                    className="inline-flex items-center gap-2 bg-[#12203B] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#1B2C49] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Plus className="h-4 w-4" />
-                    {createMutation.isPending
-                      ? 'Adding resource...'
-                      : 'Add resource'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCancelForm}
-                    disabled={createMutation.isPending}
-                    className="inline-flex items-center gap-2 border border-[#CDD1CB] bg-white px-4 py-2.5 text-sm font-medium text-[#25344D] transition-colors hover:border-[#B98A3E] hover:text-[#8B641F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B98A3E] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <X className="h-4 w-4" />
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </section>
-        )}
-
-        {/* ============================================================
-            SECURITY NOTICE
-        ============================================================ */}
-        <section className="mt-9 border-t border-[#D9DCD6] pt-6 pb-5">
-          <div className="flex gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#55705B]" />
-
-            <div>
-              <p className="text-sm font-semibold text-[#25344D]">
-                Keep your account secure
-              </p>
-
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-[#667085]">
-                Never share your password, verification codes, or other
-                account credentials with anyone, including support staff.
-                When reporting an issue, provide your name and a clear
-                description of the problem.
-              </p>
-            </div>
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-[#596579]">
+                  {request.message}
+                </p>
+              </article>
+            ))}
           </div>
         </section>
       </div>

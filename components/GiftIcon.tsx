@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Gift } from 'lucide-react';
 import TriviaModal from './TriviaModal';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getApiErrorMessage, isJsonObject } from '@/lib/api-response';
+import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 import type { TriviaQuestion } from './TriviaModal';
 
 const MAX_LEVEL = 10;
@@ -35,19 +36,22 @@ function readDailyGames(value: unknown): DailyGames | null {
 export default function GiftIcon() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [startNextLevelImmediately, setStartNextLevelImmediately] = useState(false);
   const [questions, setQuestions] = useState<TriviaQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('Getting your game ready…');
   const [questionLoadError, setQuestionLoadError] = useState<string | null>(null);
   const [userTotalPoints, setUserTotalPoints] = useState(0);
   const [currentLevel, setCurrentLevel] = useState(1);
   const [levelUnlocked, setLevelUnlocked] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
   const [triviaLockedUntil, setTriviaLockedUntil] = useState<string | null>(null);
-  const [dailyHeartsRemaining, setDailyHeartsRemaining] = useState(3);
+  const [dailyHeartsRemaining, setDailyHeartsRemaining] = useState(MAX_DAILY_HEARTS);
   const [dailyGames, setDailyGames] = useState<DailyGames | null>(null);
 
   const fetchQuestions = useCallback(async (level: number) => {
     setIsLoading(true);
+    setLoadingMessage('Loading your questions…');
     setQuestionLoadError(null);
     try {
       const response = await fetch(`/api/trivia/questions?count=10&level=${level}`);
@@ -109,7 +113,7 @@ export default function GiftIcon() {
       const data: unknown = await response.json();
 
       if (!isJsonObject(data) || data.success !== true) {
-        return { level: null, lockedUntil: null, heartsRemaining: 3, gamesLimited: false };
+        return { level: null, lockedUntil: null, heartsRemaining: MAX_DAILY_HEARTS, gamesLimited: false };
       }
 
       if (typeof data.triviaPoints === 'number') {
@@ -125,7 +129,7 @@ export default function GiftIcon() {
       const heartsRemaining =
         typeof data.dailyHeartsRemaining === 'number'
           ? data.dailyHeartsRemaining
-          : 3;
+          : MAX_DAILY_HEARTS;
       setDailyHeartsRemaining(heartsRemaining);
       const games = readDailyGames(data.dailyGames);
       if (games) setDailyGames(games);
@@ -139,27 +143,20 @@ export default function GiftIcon() {
       return { level: null, lockedUntil, heartsRemaining, gamesLimited };
     } catch (error) {
       console.error('Error fetching user trivia points:', error);
-      return { level: null, lockedUntil: null, heartsRemaining: 3, gamesLimited: false };
+      return { level: null, lockedUntil: null, heartsRemaining: MAX_DAILY_HEARTS, gamesLimited: false };
     }
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const status = await fetchUserPoints();
-      if (!status.lockedUntil && !status.gamesLimited) {
-        await fetchQuestions(status.level ?? 1);
-      } else {
-        setIsLoading(false);
-      }
-    })();
-  }, [fetchUserPoints, fetchQuestions]);
-
   const handleOpen = async () => {
+    setStartNextLevelImmediately(false);
     setLevelUnlocked(false);
     setIsModalOpen(true);
     setQuestions([]);
     setQuestionLoadError(null);
+    setTriviaLockedUntil(null);
+    setDailyGames(null);
     setIsLoading(true);
+    setLoadingMessage('Checking your level and daily hearts…');
 
     const status = await fetchUserPoints();
     if (!status.lockedUntil && !status.gamesLimited) {
@@ -171,6 +168,7 @@ export default function GiftIcon() {
 
   const handleClose = () => {
     setIsModalOpen(false);
+    setStartNextLevelImmediately(false);
     setLevelUnlocked(false);
   };
 
@@ -206,19 +204,30 @@ export default function GiftIcon() {
       throw new Error(getApiErrorMessage(data, 'Failed to save trivia results'));
     }
 
+    if (
+      typeof data.currentLevel !== 'number' ||
+      typeof data.newLevel !== 'number' ||
+      typeof data.levelUnlocked !== 'boolean'
+    ) {
+      throw new Error('The saved result did not include confirmed level information.');
+    }
+
     if (data.levelUnlocked === true) {
       setLevelUnlocked(true);
-      setNewLevel(
-        typeof data.newLevel === 'number' ? data.newLevel : currentLevel + 1,
-      );
+      setNewLevel(data.newLevel);
     } else {
       setLevelUnlocked(false);
-      setNewLevel(currentLevel);
+      setNewLevel(data.currentLevel);
     }
 
     const games = readDailyGames(data.dailyGames);
     if (games) setDailyGames(games);
     await fetchUserPoints();
+    return {
+      currentLevel: data.currentLevel,
+      newLevel: data.newLevel,
+      levelUnlocked: data.levelUnlocked,
+    };
   };
 
   const handleQuestionFailed = useCallback(async (questionId: string, failureId: string) => {
@@ -249,26 +258,21 @@ export default function GiftIcon() {
   }, []);
 
   const handleHeartsChanged = useCallback(async () => {
+    const wasLocked = Boolean(
+      triviaLockedUntil && Date.parse(triviaLockedUntil) > Date.now(),
+    ) || dailyHeartsRemaining === 0;
     const status = await fetchUserPoints();
-    if (!status.lockedUntil && !status.gamesLimited) {
+    if (wasLocked && !status.lockedUntil && status.heartsRemaining > 0 && !status.gamesLimited) {
       await fetchQuestions(status.level ?? 1);
     }
-  }, [fetchUserPoints, fetchQuestions]);
+  }, [dailyHeartsRemaining, fetchQuestions, fetchUserPoints, triviaLockedUntil]);
 
   const handleContinueToNextLevel = async () => {
     const nextLevel = newLevel;
-    
-    // Close and immediately re-open to force TriviaModal to reset its state
-    setIsModalOpen(false);
-    
-    setTimeout(async () => {
-      setLevelUnlocked(false);
-      setIsModalOpen(true);
-      setQuestions([]); // Triggers the skeleton loader
-      
-      await fetchQuestions(nextLevel);
-      setCurrentLevel(nextLevel); // Update UI badges
-    }, 50);
+    setStartNextLevelImmediately(true);
+    setCurrentLevel(nextLevel);
+    setLevelUnlocked(false);
+    await fetchQuestions(nextLevel);
   };
 
   if (!user) return null;
@@ -298,8 +302,10 @@ export default function GiftIcon() {
           isOpen={isModalOpen}
           onClose={handleClose}
           onContinue={handleContinueToNextLevel}
+          startImmediately={startNextLevelImmediately}
           questions={questions}
           isLoading={isLoading}
+          loadingMessage={loadingMessage}
           questionLoadError={questionLoadError}
           onRetryQuestions={() => fetchQuestions(currentLevel)}
           userTotalPoints={userTotalPoints}

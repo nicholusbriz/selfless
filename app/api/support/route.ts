@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { SupportRequestCategory } from '@prisma/client';
 
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
@@ -9,7 +10,7 @@ import {
   parseJsonBody,
 } from '@/app/api/_lib/request-validation';
 
-const MANAGER_ROLES = new Set(['admin', 'super_admin', 'dev']);
+const MANAGER_ROLES = new Set(['super_admin', 'dev']);
 
 async function getSessionUser() {
   const session = await getServerSession(authOptions);
@@ -35,18 +36,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const resources = await prisma.supportResource.findMany({
+    const canManage = MANAGER_ROLES.has(user.role?.name ?? '');
+    const requests = await prisma.supportRequest.findMany({
+      where: canManage ? undefined : { userId: user.id },
       orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
     });
 
-    return NextResponse.json({
-      resources,
-      canManage: MANAGER_ROLES.has(user.role?.name ?? ''),
-    });
+    return NextResponse.json({ requests, canManage });
   } catch (error) {
-    console.error('Error fetching support resources:', error);
+    console.error('Error fetching IT support reports:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch support resources' },
+      { error: 'Failed to load support reports' },
       { status: 500 },
     );
   }
@@ -60,58 +69,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!MANAGER_ROLES.has(user.role?.name ?? '')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const body = await parseJsonBody(request, {
-      title: isString,
-      link: isString,
-      description: isString,
+      category: isString,
+      subject: isString,
+      message: isString,
     });
     if (!body) return invalidJsonBodyResponse();
-    const title = body.title.trim();
-    const link = body.link.trim();
-    const description = body.description.trim();
 
-    if (!title || !link || !description) {
+    const category =
+      body.category === 'ISSUE'
+        ? SupportRequestCategory.ISSUE
+        : body.category === 'FEATURE_REQUEST'
+          ? SupportRequestCategory.FEATURE_REQUEST
+          : null;
+    const subject = body.subject.trim();
+    const message = body.message.trim();
+
+    if (!category || !subject || subject.length > 120) {
       return NextResponse.json(
-        { error: 'Title, link, and description are required' },
+        { error: 'Choose a valid report type and enter a subject of 1–120 characters' },
         { status: 400 },
       );
     }
 
-    let parsedLink: URL;
-    try {
-      parsedLink = new URL(link);
-    } catch {
+    if (message.length < 10 || message.length > 5000) {
       return NextResponse.json(
-        { error: 'Link must be a valid URL' },
+        { error: 'Report details must be between 10 and 5000 characters' },
         { status: 400 },
       );
     }
 
-    if (!['http:', 'https:'].includes(parsedLink.protocol)) {
-      return NextResponse.json(
-        { error: 'Link must use http or https' },
-        { status: 400 },
-      );
-    }
-
-    const resource = await prisma.supportResource.create({
+    const supportRequest = await prisma.supportRequest.create({
       data: {
-        title,
-        link: parsedLink.toString(),
-        description,
-        createdById: user.id,
+        userId: user.id,
+        category,
+        subject,
+        message,
       },
     });
 
-    return NextResponse.json({ resource }, { status: 201 });
+    return NextResponse.json({ request: supportRequest }, { status: 201 });
   } catch (error) {
-    console.error('Error creating support resource:', error);
+    console.error('Error submitting IT support report:', error);
     return NextResponse.json(
-      { error: 'Failed to create support resource' },
+      { error: 'Failed to submit your report' },
       { status: 500 },
     );
   }

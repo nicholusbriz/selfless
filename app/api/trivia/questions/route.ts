@@ -15,6 +15,7 @@ import {
   getNextUtcTriviaReset,
   isCurrentUtcTriviaDay,
 } from '@/lib/trivia/daily-lock';
+import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,17 +30,19 @@ export async function GET(request: NextRequest) {
       },
     });
     const heartsRemaining = isCurrentUtcTriviaDay(account?.triviaHeartsDate ?? null)
-      ? account?.triviaHeartsRemaining ?? 3
-      : 3;
+      ? account?.triviaHeartsRemaining ?? MAX_DAILY_HEARTS
+      : MAX_DAILY_HEARTS;
     const triviaLockedUntil =
-      getActiveTriviaLock(account?.triviaLockedUntil ?? null) ??
+      (isCurrentUtcTriviaDay(account?.triviaHeartsDate ?? null)
+        ? getActiveTriviaLock(account?.triviaLockedUntil ?? null, now)
+        : null) ??
       (heartsRemaining === 0 ? getNextUtcTriviaReset() : null);
 
     if (triviaLockedUntil) {
       return NextResponse.json(
         {
           success: false,
-          error: 'You have used all three hearts for today.',
+          error: `You have used all ${MAX_DAILY_HEARTS} hearts for today.`,
           triviaLockedUntil: triviaLockedUntil.toISOString(),
           dailyHeartsRemaining: 0,
         },

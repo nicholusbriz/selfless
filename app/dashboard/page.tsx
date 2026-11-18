@@ -1646,7 +1646,9 @@ function TechCenterActivity({
     queryKey: ['tech-center', 'activity', techCenterId, isSuperAdminOrDev],
     queryFn: async () => {
       if (isSuperAdminOrDev) {
-        const res = await fetch('/api/admin/activity-logs?limit=all');
+        const res = await fetch(
+          '/api/admin/activity-logs?limit=20&scope=tech-center',
+        );
         if (!res.ok) throw new Error('Failed to fetch all activities');
         const json: unknown = await res.json();
         if (!isRecord(json) || !Array.isArray(json.logs)) return [];

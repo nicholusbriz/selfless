@@ -166,9 +166,6 @@ export default function DashboardLayout({
   }, []);
 
   const userRole = user?.role || 'student';
-  const isAiPage =
-    pathname === '/dashboard/ai' || pathname.startsWith('/dashboard/ai/');
-
   const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
 
   const { data: postCount } = useQuery<number>({
@@ -376,16 +373,14 @@ export default function DashboardLayout({
           </div>
 
           {/* GIFT ICON — top right */}
-          {!isAiPage && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="fixed right-3 top-[68px] z-40 lg:right-4"
-            >
-              <GiftIcon />
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="fixed right-3 top-[68px] z-40 lg:right-4"
+          >
+            <GiftIcon />
+          </motion.div>
 
           {/* ================================================== */}
           {/* BOTTOM NAVIGATION — available at every screen size */}

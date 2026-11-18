@@ -38,6 +38,17 @@ enum CleaningDayStatus {
   FULL
 }
 
+enum SupportRequestCategory {
+  ISSUE
+  FEATURE_REQUEST
+}
+
+enum SupportRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
 enum TeamType {
   FOOTBALL
   VOLLEYBALL
@@ -89,7 +100,7 @@ model User {
   verifiedUsers      User[]    @relation("VerifiedUsers")
 
   // Public verified badge (blue tick) — independent of account approval
-  hasVerifiedBadge   Boolean   @default(false)
+  hasVerifiedBadge Boolean @default(false)
 
   // Rejection tracking (NEW)
   rejectedAt    DateTime?
@@ -114,13 +125,13 @@ model User {
   takesReligion Boolean @default(false)
 
   // Social
-  bio         String?
-  linkedinUrl String?
-  githubUrl   String?
-  projectUrls String[]
-  profileImageUrl String?
+  bio              String?
+  linkedinUrl      String?
+  githubUrl        String?
+  projectUrls      String[]
+  profileImageUrl  String?
   profileImageUrls String[] // Store all profile images (current + previous)
-  chatTheme       String?
+  chatTheme        String?
 
   // Team Preferences
   preferredTeamType TeamType?
@@ -168,11 +179,12 @@ model User {
   authoredAnnouncements Announcement[]        @relation("AnnouncementAuthor")
   announcementComments  AnnouncementComment[] @relation("AnnouncementCommentAuthor")
   mediaLikes            MediaLike[]           @relation("MediaLikeUser")
-  mediaComments         MediaComment[]         @relation("MediaCommentAuthor")
-  mediaSaves            MediaSave[]            @relation("MediaSaveUser")
+  mediaComments         MediaComment[]        @relation("MediaCommentAuthor")
+  mediaSaves            MediaSave[]           @relation("MediaSaveUser")
   notifications         Notification[]
   activityLogs          ActivityLog[]
   pageVisitCounts       UserPageVisitCount[]
+  supportRequests       SupportRequest[]      @relation("SupportRequestAuthor")
 
   // Simple tracking fields
   createdTechCenterIds String[]
@@ -187,15 +199,22 @@ model User {
   triviaPoints Int @default(0)
 
   // Trivia game level progression
-  currentLevel Int @default(1)
-  triviaLockedUntil DateTime?
-  triviaHeartsRemaining Int @default(3)
-  triviaHeartsDate DateTime?
-  triviaFailureIds String[] @default([])
+  currentLevel          Int       @default(1)
+  triviaLockedUntil     DateTime?
+  triviaHeartsRemaining Int       @default(5)
+  triviaHeartsDate      DateTime?
+  triviaFailureIds      String[]  @default([])
   triviaSubmissionToken String?
 
   // Trivia game sessions
   triviaGameSessions TriviaGameSession[]
+
+  // Gift relations
+  giftPurchases    GiftPurchase[]
+  giftsSent        GiftSent[]       @relation("GiftSentSender")
+  giftsReceived    GiftReceived[]   @relation("GiftReceivedRecipient")
+  giftsSentAs      GiftSent[]       @relation("GiftSentRecipient")
+  giftsReceivedAs  GiftReceived[]   @relation("GiftReceivedSender")
 
   // Social Relations
   followers            Follow[]      @relation("UserFollowers")
@@ -596,18 +615,21 @@ model AnnouncementComment {
   @@map("announcement_comments")
 }
 
-// IT SUPPORT RESOURCES
-model SupportResource {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  link        String
-  description String
-  createdById String   @db.ObjectId
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// IT SUPPORT REQUESTS
+model SupportRequest {
+  id        String                 @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String                 @db.ObjectId
+  user      User                   @relation("SupportRequestAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  category  SupportRequestCategory
+  subject   String
+  message   String
+  status    SupportRequestStatus   @default(OPEN)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
 
-  @@index([createdAt])
-  @@map("support_resources")
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("support_requests")
 }
 
 // NOTIFICATIONS
@@ -917,11 +939,11 @@ model Media {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // Owner
-  userId String @db.ObjectId
-  user   User   @relation("UserMedia", fields: [userId], references: [id], onDelete: Cascade)
-  likes  MediaLike[]
+  userId   String         @db.ObjectId
+  user     User           @relation("UserMedia", fields: [userId], references: [id], onDelete: Cascade)
+  likes    MediaLike[]
   comments MediaComment[]
-  saves  MediaSave[]
+  saves    MediaSave[]
 
   // Azure Blob Storage info
   blobName      String // e.g. "6a9814.../7a42dba3-...mp4"
@@ -995,17 +1017,17 @@ model MediaSave {
 }
 
 model MediaComment {
-  id        String          @id @default(auto()) @map("_id") @db.ObjectId
-  mediaId   String          @db.ObjectId
-  media     Media           @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  authorId  String          @db.ObjectId
-  author    User            @relation("MediaCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  parentId  String?         @db.ObjectId
-  parent    MediaComment?   @relation("MediaCommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies   MediaComment[]  @relation("MediaCommentReplies")
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  mediaId   String         @db.ObjectId
+  media     Media          @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  authorId  String         @db.ObjectId
+  author    User           @relation("MediaCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parentId  String?        @db.ObjectId
+  parent    MediaComment?  @relation("MediaCommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies   MediaComment[] @relation("MediaCommentReplies")
   content   String
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@index([mediaId, createdAt])
   @@index([parentId])
@@ -1196,25 +1218,28 @@ model TriviaGameSession {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Game results
-  correct     Int    // Number of correct answers
-  total       Int    // Total questions
-  points      Int    // Points earned in this session
-  streak      Int    // Maximum streak achieved
-  accuracy    Float  // Calculated accuracy percentage
-  level       Int    @default(1) // Level played in this session
+  correct      Int // Number of correct answers
+  total        Int // Total questions
+  points       Int // Points earned in this session
+  streak       Int // Maximum streak achieved
+  accuracy     Float // Calculated accuracy percentage
+  level        Int     @default(1) // Level played in this session
   submissionId String?
 
   // Detailed answers - track which questions were answered
   answers TriviaGameAnswer[]
 
   // Timestamps
-  playedAt DateTime @default(now())
+  playedAt  DateTime @default(now())
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([playedAt])
   @@index([points])
   @@index([level])
+  @@index([userId, submissionId])
+  @@index([userId, playedAt])
+  @@index([userId, level, playedAt])
   @@map("trivia_game_sessions")
 }
 
@@ -1229,23 +1254,23 @@ model TriviaQuestion {
   referenceId String? @unique // Old ID like "g1", "v1", etc.
 
   // Question content
-  question      String   // The question text
+  question      String // The question text
   options       String[] // Array of 4 options
-  correctAnswer Int      // Index of correct answer (0-3)
-  category      String   // 'grammar', 'vocabulary', 'reading', 'idioms', 'common-mistakes'
-  difficulty    String   // 'beginner', 'intermediate', 'advanced'
-  explanation   String?  // Explanation for the correct answer
+  correctAnswer Int // Index of correct answer (0-3)
+  category      String // 'grammar', 'vocabulary', 'reading', 'idioms', 'common-mistakes'
+  difficulty    String // 'beginner', 'intermediate', 'advanced'
+  explanation   String? // Explanation for the correct answer
 
   // Analytics - track performance
-  timesAsked    Int    @default(0) // How many times this question was shown
-  timesCorrect  Int    @default(0) // How many times answered correctly
+  timesAsked       Int    @default(0) // How many times this question was shown
+  timesCorrect     Int    @default(0) // How many times answered correctly
   difficultyRating Float? @default(0.0) // Calculated difficulty based on performance (0-1, higher = harder)
 
   // Metadata
-  isActive    Boolean   @default(true) // Soft delete / retire old questions
-  createdBy   String?   @db.ObjectId // Admin who created this question
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive  Boolean  @default(true) // Soft delete / retire old questions
+  createdBy String?  @db.ObjectId // Admin who created this question
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   answers TriviaGameAnswer[]
@@ -1254,6 +1279,8 @@ model TriviaQuestion {
   @@index([difficulty])
   @@index([isActive])
   @@index([difficultyRating])
+  @@index([isActive, difficulty])
+  @@index([isActive, difficulty, category])
   @@map("trivia_questions")
 }
 
@@ -1261,17 +1288,17 @@ model TriviaQuestion {
 // TRIVIA HEART REQUESTS
 // ============================================
 
-// A player who is out of hearts asks someone they follow to share one.
-// Requests are scoped to a UTC trivia day because hearts reset at UTC midnight.
+// A player asks someone they follow to share one extra heart.
+// The daily request limit and heart balance use UTC trivia days.
 model TriviaHeartRequest {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
-  requesterId String @db.ObjectId
-  donorId     String @db.ObjectId
+  requesterId String    @db.ObjectId
+  donorId     String    @db.ObjectId
   dayStart    DateTime
-  status      String   @default("pending") // "pending", "accepted", "declined"
+  status      String    @default("pending") // "pending", "accepted", "declined"
   respondedAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([requesterId, dayStart])
   @@index([donorId, dayStart, status])
@@ -1286,16 +1313,16 @@ model TriviaGameAnswer {
   id String @id @default(auto()) @map("_id") @db.ObjectId
 
   // Session and question references
-  sessionId    String          @db.ObjectId
-  session      TriviaGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String            @db.ObjectId
+  session   TriviaGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  questionId   String          @db.ObjectId
-  question     TriviaQuestion  @relation(fields: [questionId], references: [id], onDelete: NoAction)
+  questionId String         @db.ObjectId
+  question   TriviaQuestion @relation(fields: [questionId], references: [id], onDelete: NoAction)
 
   // Answer details
-  userAnswer   Int    // Index of the option the user selected
-  isCorrect    Boolean // Whether the answer was correct
-  timeTaken    Int?   // Time taken to answer in seconds (optional)
+  userAnswer Int // Index of the option the user selected
+  isCorrect  Boolean // Whether the answer was correct
+  timeTaken  Int? // Time taken to answer in seconds (optional)
 
   createdAt DateTime @default(now())
 
@@ -1303,4 +1330,78 @@ model TriviaGameAnswer {
   @@index([questionId])
   @@index([isCorrect])
   @@map("trivia_game_answers")
+}
+
+// ============================================
+// GIFT SYSTEM
+// ============================================
+
+model Gift {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  emoji       String
+  cost        Int
+  tier        Int
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  purchases   GiftPurchase[]
+  sent        GiftSent[]
+  received    GiftReceived[]
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("gifts")
+}
+
+model GiftPurchase {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  giftId       String   @db.ObjectId
+  gift         Gift     @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  quantity     Int      @default(1)
+  purchasedAt  DateTime @default(now())
+
+
+  @@index([userId])
+  @@index([giftId])
+  @@map("gift_purchases")
+}
+
+model GiftSent {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId    String   @db.ObjectId
+  sender      User     @relation("GiftSentSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String   @db.ObjectId
+  recipient   User     @relation("GiftSentRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  giftId      String   @db.ObjectId
+  gift        Gift     @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  message     String?
+  sentAt      DateTime @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([giftId])
+  @@index([sentAt])
+  @@map("gifts_sent")
+}
+
+model GiftReceived {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  recipientId String   @db.ObjectId
+  recipient   User     @relation("GiftReceivedRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  senderId    String   @db.ObjectId
+  sender      User     @relation("GiftReceivedSender", fields: [senderId], references: [id], onDelete: Cascade)
+  giftId      String   @db.ObjectId
+  gift        Gift     @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  message     String?
+  receivedAt  DateTime @default(now())
+
+  @@index([recipientId])
+  @@index([senderId])
+  @@index([giftId])
+  @@index([receivedAt])
+  @@map("gifts_received")
 }

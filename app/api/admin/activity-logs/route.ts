@@ -16,15 +16,27 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get('limit') ?? '50';
     const offset = Number(searchParams.get('offset') ?? '0');
     const all = limitParam === 'all';
+    const scope = searchParams.get('scope');
 
     const limit = all ? 10000 : Number(limitParam);
-
-    console.log('Activity logs API - params:', { search, action, limit, offset, all });
 
     const where: any = {};
 
     if (action) {
       where.action = action;
+    }
+
+    if (scope === 'tech-center') {
+      where.action = {
+        in: [
+          'course_submission',
+          'cleaning_registration',
+          'cleaning_day_change',
+          'cleaning_week_created',
+          'cleaning_day_created',
+          'football_team_joined',
+        ],
+      };
     }
 
     if (search) {
@@ -79,8 +91,6 @@ export async function GET(request: NextRequest) {
       action: s.action,
       count: s._count.action,
     }));
-
-    console.log('Activity logs API - Returning:', { logsCount: logs.length, total });
 
     return NextResponse.json({
       logs,
