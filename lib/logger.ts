@@ -240,7 +240,6 @@ export async function logCleaningDayCreation(
 export async function logPasswordResetRequest(
   userId: string,
   email: string,
-  resetToken: string,
   expiresAt: Date,
   techCenterId?: string,
   ipAddress?: string,
@@ -254,7 +253,7 @@ export async function logPasswordResetRequest(
     entityId: userId,
     details: {
       email,
-      resetToken,
+      resetTokenStored: true,
       expiresAt: expiresAt.toISOString(),
       timestamp: new Date().toISOString(),
     },

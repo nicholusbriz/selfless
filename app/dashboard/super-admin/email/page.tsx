@@ -47,8 +47,8 @@ interface EmailUser {
   email: string;
   firstName: string;
   lastName: string;
-  role?: { name: string; displayName: string };
-  techCenter?: { name: string; code: string };
+  role?: { name: string; displayName: string } | null;
+  techCenter?: { name: string; code: string } | null;
 }
 
 interface TechCenter {
@@ -96,10 +96,12 @@ function isEmailUser(value: unknown): value is EmailUser {
     typeof value.firstName === 'string' &&
     typeof value.lastName === 'string' &&
     (value.role === undefined ||
+      value.role === null ||
       (isRecord(value.role) &&
         typeof value.role.name === 'string' &&
         typeof value.role.displayName === 'string')) &&
     (value.techCenter === undefined ||
+      value.techCenter === null ||
       (isRecord(value.techCenter) &&
         typeof value.techCenter.name === 'string' &&
         typeof value.techCenter.code === 'string'))
@@ -183,6 +185,7 @@ export default function EmailPage() {
   const [techCenters, setTechCenters] = useState<TechCenter[]>([]);
   const [selectedTechCenter, setSelectedTechCenter] = useState('');
   const [audienceLoading, setAudienceLoading] = useState(false);
+  const [audienceError, setAudienceError] = useState('');
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   // Gmail filter always on
@@ -241,21 +244,27 @@ export default function EmailPage() {
 
   const loadAudience = useCallback(async (opts: { role?: string; techCenterId?: string }) => {
     setAudienceLoading(true);
+    setAudienceError('');
+    setSelectedUsers([]);
     try {
       const params = new URLSearchParams();
       if (opts.role) params.set('role', opts.role);
       if (opts.techCenterId) params.set('techCenterId', opts.techCenterId);
       const res = await fetch(`/api/admin/email-recipients?${params}`);
       const data: unknown = await res.json();
-      if (res.ok) {
-        setSelectedUsers(
-          isRecord(data) && Array.isArray(data.users)
-            ? data.users.filter(isEmailUser)
-            : [],
-        );
-        setSendResult(null);
+      if (!res.ok) {
+        throw new Error(getResponseError(data, 'Failed to load email recipients'));
       }
-    } catch { /* non-fatal */ }
+      if (!isRecord(data) || !Array.isArray(data.users) || !data.users.every(isEmailUser)) {
+        throw new Error('The server returned an invalid recipient list');
+      }
+      setSelectedUsers(data.users);
+      setSendResult(null);
+    } catch (error) {
+      setAudienceError(
+        error instanceof Error ? error.message : 'Failed to load email recipients',
+      );
+    }
     finally { setAudienceLoading(false); }
   }, []);
 
@@ -263,6 +272,7 @@ export default function EmailPage() {
     if (activePreset === presetId) {
       setActivePreset(null);
       setSelectedUsers([]);
+      setAudienceError('');
       return;
     }
     setActivePreset(presetId);
@@ -633,6 +643,11 @@ export default function EmailPage() {
                         );
                       })}
                     </div>
+                    {audienceError && (
+                      <p role="alert" className="mt-2 text-sm text-red-600">
+                        {audienceError}
+                      </p>
+                    )}
                   </div>
 
                   {/* Tech center filter */}

@@ -60,6 +60,7 @@ import {
 } from "@/hooks/useNotifications";
 import { useUnreadMessageCount } from "@/hooks/useMessages";
 import { type OnlineUser } from "@/lib/hooks/useOnlineUsers";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 /* -------------------------------------------------------------------------- */
 /* COLORS                                                                     */
@@ -379,8 +380,11 @@ function TickerStrip({
                       </span>
 
                       <span className="flex min-w-0 flex-col leading-tight">
-                        <span className="truncate text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight }}>
-                          {name}
+                        <span className="flex min-w-0 items-center gap-1 text-[11px] font-bold sm:text-[12px]" style={{ color: COLORS.brassLight }}>
+                          <span className="truncate">{name}</span>
+                          {onlineUser.hasVerifiedBadge && (
+                            <VerifiedBadge className="h-3 w-3" />
+                          )}
                         </span>
                         <span className="flex items-center gap-1.5 text-[9px] sm:text-[10px]">
                           <span className="font-semibold" style={{ color: "#22C55E" }}>

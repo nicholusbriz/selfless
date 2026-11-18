@@ -564,7 +564,7 @@ function RecentPostsSection() {
           </p>
         </div>
         <span className="shrink-0 rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 text-[11px] font-medium text-[#4B5646]">
-          {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+          {posts.length > 9 ? '9+ posts' : `${posts.length} ${posts.length === 1 ? 'post' : 'posts'}`}
         </span>
       </div>
 

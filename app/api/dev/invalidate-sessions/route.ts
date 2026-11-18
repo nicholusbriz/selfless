@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma/client';
 import { getServerAuthUser } from '@/lib/auth/server';
+import { invalidateUserSessions } from '@/lib/auth/session-invalidation';
 import {
   invalidJsonBodyResponse,
   isString,
@@ -27,40 +28,13 @@ export async function POST(request: Request) {
     if (!body) return invalidJsonBodyResponse();
     const { techCenterId } = body;
 
-    // Invalidate sessions by incrementing tokenVersion
-    let result;
-    if (techCenterId) {
-      // Invalidate sessions for specific tech center
-      result = await prisma.user.updateMany({
-        where: {
-          techCenterId,
-          isActive: true,
-        },
-        data: {
-          tokenVersion: {
-            increment: 1,
-          },
-        },
-      });
-    } else {
-      // Invalidate sessions for all tech centers
-      result = await prisma.user.updateMany({
-        where: {
-          isActive: true,
-        },
-        data: {
-          tokenVersion: {
-            increment: 1,
-          },
-        },
-      });
-    }
+    const result = await invalidateUserSessions(prisma, techCenterId);
 
     return NextResponse.json({
       success: true,
       message: techCenterId
-        ? `Invalidated sessions for ${result.count} users in tech center`
-        : `Invalidated sessions for ${result.count} users across all tech centers`,
+        ? `Invalidated sessions for ${result.count} non-dev users in tech center`
+        : `Invalidated sessions for ${result.count} non-dev users across all tech centers`,
       count: result.count,
     });
   } catch (error) {
