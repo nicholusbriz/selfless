@@ -55,7 +55,7 @@ export default function GiftWallet({ credits }: { credits: number }) {
           <span className="text-sm font-medium">Your Balance</span>
         </div>
         <p className="text-3xl font-bold tabular-nums">{credits.toLocaleString()}</p>
-        <p className="text-xs text-indigo-100 mt-1">credits</p>
+        <p className="text-xs text-indigo-100 mt-1">credits exchanged from points · used to purchase gifts</p>
       </div>
 
       {/* Stats */}
@@ -67,16 +67,15 @@ export default function GiftWallet({ credits }: { credits: number }) {
           </div>
           <p className="text-lg font-bold text-slate-900">{spentOnGifts.toLocaleString()}</p>
           <p className="text-[10px] text-slate-500">
-            ${spentUsd.toFixed(2)} · USh {Math.round(spentUgx).toLocaleString()}
+            credits · ${spentUsd.toFixed(2)} · USh {Math.round(spentUgx).toLocaleString()}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center gap-2 mb-2">
             <History className="h-4 w-4 text-indigo-500" />
-            <span className="text-xs font-semibold text-slate-700">Total Earned</span>
+            <span className="text-xs font-semibold text-slate-700">Total Earned Points</span>
           </div>
           <p className="text-lg font-bold text-slate-900">{totalEarned.toLocaleString()}</p>
-          <p className="text-[10px] text-slate-500">credits</p>
         </div>
       </div>
 
@@ -110,22 +109,24 @@ export default function GiftWallet({ credits }: { credits: number }) {
       {/* Credit value */}
       {(() => {
         const usd = totalEarned / 10;
-        const ugx = usd * 3700;
         return (
           <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 mb-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 mb-2">
-              Credit value · 10 credits = $1
+              Your credits exchanged into US dollars · 10 credits = $1
             </p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-lg font-bold text-slate-900">${usd.toFixed(2)}</p>
                 <p className="text-[10px] text-slate-500">USD</p>
               </div>
-              <div className="h-8 w-px bg-emerald-200" />
-              <div>
-                <p className="text-lg font-bold text-slate-900">USh {Math.round(ugx).toLocaleString()}</p>
-                <p className="text-[10px] text-slate-500">Ugandan Shillings</p>
-              </div>
+              <button
+                type="button"
+                disabled
+                title="Withdrawals are coming soon"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white opacity-50 cursor-not-allowed"
+              >
+                Withdraw
+              </button>
             </div>
           </div>
         );

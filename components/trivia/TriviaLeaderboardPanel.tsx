@@ -167,7 +167,7 @@ export default function TriviaLeaderboardPanel() {
               </div>
               <p className="shrink-0 text-sm font-bold tabular-nums text-rose-600">
                 {entry.points.toLocaleString()}{' '}
-                <span className="text-[10px] font-medium text-slate-400">credits</span>
+                <span className="text-[10px] font-medium text-slate-400">points</span>
               </p>
             </li>
           ))}

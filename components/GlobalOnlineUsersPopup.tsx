@@ -12,6 +12,7 @@ export function GlobalOnlineUsersPopup() {
   const { onlineUsers } = useOnlineUsersContext();
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [onTriviaModal, setOnTriviaModal] = useState(false);
   const displayCount = onlineUsers.length;
   const currentUserId = user?.id;
 
@@ -22,6 +23,14 @@ export function GlobalOnlineUsersPopup() {
     }
     setCurrentIndex((previous) => previous % displayCount);
   }, [displayCount]);
+
+  useEffect(() => {
+    const check = () =>
+      setOnTriviaModal(document.body.dataset.triviaModal === 'open');
+    check();
+    const interval = window.setInterval(check, 800);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (displayCount <= 1) return;
@@ -50,7 +59,7 @@ export function GlobalOnlineUsersPopup() {
   return (
     <div
       className={cn(
-        'fixed z-[100]',
+        'fixed z-[120]',
         // Mobile - pushed further left
         'top-2 left-[35%] -translate-x-1/2 w-auto',
         // Desktop
@@ -64,7 +73,10 @@ export function GlobalOnlineUsersPopup() {
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={{ opacity: 0, x: 8, scale: 0.95 }}
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-start gap-1.5"
+          className={cn(
+            'flex items-start gap-1.5',
+            onTriviaModal && 'rounded-xl bg-white/95 px-2 py-1.5 shadow-lg shadow-black/10 backdrop-blur'
+          )}
         >
           {/* Avatar */}
           <div className="relative shrink-0 mt-0.5">
@@ -100,7 +112,7 @@ export function GlobalOnlineUsersPopup() {
           {/* Text Block - 3 rows max */}
           <div className="min-w-0 flex flex-col leading-tight">
             {/* Row 1: Full Name (no break, no truncate) */}
-            <p className="text-[8px] font-bold text-[#8B6914] whitespace-nowrap">
+            <p className={cn("text-[8px] font-bold whitespace-nowrap", onTriviaModal ? "text-[#12203B]" : "text-[#8B6914]")}>
               {displayName}{onlineUser.hasVerifiedBadge && (<VerifiedBadge className="ml-0.5 inline h-2.5 w-2.5 align-[-1px]" />)}
             </p>
 

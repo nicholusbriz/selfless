@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     const includeAll = searchParams.get('includeAll') === 'true';
     const mine = searchParams.get('mine') === 'true';
     const saved = searchParams.get('saved') === 'true';
+    const featured = searchParams.get('featured') === 'true';
     const countOnly = searchParams.get('countOnly') === 'true';
     const paginationRequested = mine && (
       searchParams.has('limit') || searchParams.has('offset')
@@ -101,6 +102,7 @@ export async function GET(request: Request) {
         isDeleted: false,
         ...(mine ? { userId: user.id } : {}),
         ...(saved ? { id: { in: savedMediaIds } } : {}),
+        ...(featured ? { isFeatured: true } : {}),
         ...(categoryFilter ? { category: categoryFilter } : {}),
         ...(requestedStatus
           ? { approvalStatus: requestedStatus }

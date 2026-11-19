@@ -8,6 +8,7 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  Star,
   Tag,
 } from 'lucide-react';
 import { getApiErrorMessage, isJsonObject, readJsonObject } from '@/lib/api-response';
@@ -22,6 +23,7 @@ interface MediaItem {
   description: string | null;
   category: string | null;
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  isFeatured?: boolean;
   createdAt: string;
 }
 
@@ -39,7 +41,8 @@ function isMediaItem(value: unknown): value is MediaItem {
     (value.approvalStatus === 'PENDING' ||
       value.approvalStatus === 'APPROVED' ||
       value.approvalStatus === 'REJECTED') &&
-    typeof value.createdAt === 'string'
+    typeof value.createdAt === 'string' &&
+    (value.isFeatured === undefined || typeof value.isFeatured === 'boolean')
   );
 }
 
@@ -57,6 +60,7 @@ export default function AzureVideoGallery({
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [featuringId, setFeaturingId] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -103,6 +107,32 @@ export default function AzureVideoGallery({
       controller.abort();
     };
   }, [refreshKey, category, approvalStatus]);
+
+  const handleToggleFeatured = async (item: MediaItem) => {
+    const next = !item.isFeatured;
+    setFeaturingId(item.id);
+    setItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, isFeatured: next } : i)),
+    );
+    try {
+      const res = await fetch(`/api/media/${item.id}/feature`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: next }),
+      });
+      const data = await readJsonObject(res);
+      if (!res.ok || !data.success) {
+        throw new Error(getApiErrorMessage(data, 'Could not update featured'));
+      }
+    } catch (err) {
+      setItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, isFeatured: !next } : i)),
+      );
+      alert(err instanceof Error ? err.message : 'Could not update featured');
+    } finally {
+      setFeaturingId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this post permanently? Its comments and replies will also be deleted.')) return;
@@ -266,6 +296,23 @@ export default function AzureVideoGallery({
                 </span>
               </div>
 
+              <button
+                type="button"
+                onClick={() => handleToggleFeatured(item)}
+                disabled={featuringId === item.id}
+                title={item.isFeatured ? 'Remove from featured' : 'Mark as featured'}
+                aria-label={item.isFeatured ? 'Remove from featured' : 'Mark as featured'}
+                className={`mt-3 mr-3 inline-flex items-center gap-1.5 text-xs font-medium transition disabled:opacity-50 ${
+                  item.isFeatured ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'
+                }`}
+              >
+                {featuringId === item.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Star className={`h-3.5 w-3.5 ${item.isFeatured ? 'fill-current' : ''}`} />
+                )}
+                {item.isFeatured ? 'Featured' : 'Feature'}
+              </button>
               <button
                 type="button"
                 onClick={() => handleDelete(item.id)}
