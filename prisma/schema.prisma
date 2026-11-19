@@ -968,8 +968,9 @@ model Media {
   approvedBy     User?     @relation("MediaApprovals", fields: [approvedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   // Status
-  isActive  Boolean @default(true)
-  isDeleted Boolean @default(false)
+  isActive   Boolean @default(true)
+  isDeleted  Boolean @default(false)
+  isFeatured Boolean @default(false)
 
   // Usage tracking
   viewCount Int @default(0)

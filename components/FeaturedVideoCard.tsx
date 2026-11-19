@@ -3,20 +3,77 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pause, Play, Maximize2, Volume2, VolumeX, X } from 'lucide-react';
+import { Pause, Play, Maximize2, Volume2, VolumeX, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const DISMISS_KEY = 'featured-video-dismissed-session';
+
+interface FeaturedVideo {
+  id: string;
+  publicUrl: string;
+  title: string | null;
+}
 
 export function FeaturedVideoCard() {
   const pathname = usePathname();
   const videoRef = useRef<HTMLVideoElement>(null);
   const fsVideoRef = useRef<HTMLVideoElement>(null);
   const isInitialMount = useRef(true);
+  const [videos, setVideos] = useState<FeaturedVideo[]>([]);
+  const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dismissed, setDismissed] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const current = videos[index % Math.max(videos.length, 1)];
+
+  // Load featured videos (dashboard + gallery categories)
+  useEffect(() => {
+    if (pathname !== '/dashboard') return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [dashRes, galRes] = await Promise.all([
+          fetch('/api/media/list?category=dashboard&featured=true', { cache: 'no-store' }),
+          fetch('/api/media/list?category=gallery&featured=true', { cache: 'no-store' }),
+        ]);
+        const dash: any = await dashRes.json();
+        const gal: any = await galRes.json();
+        const items: FeaturedVideo[] = [];
+        for (const data of [dash, gal]) {
+          if (data?.success && Array.isArray(data.items)) {
+            for (const item of data.items) {
+              if (
+                typeof item?.id === 'string' &&
+                typeof item?.publicUrl === 'string' &&
+                typeof item?.contentType === 'string' &&
+                item.contentType.startsWith('video/')
+              ) {
+                items.push({
+                  id: item.id,
+                  publicUrl: item.publicUrl,
+                  title: typeof item.title === 'string' ? item.title : null,
+                });
+              }
+            }
+          }
+        }
+        if (!cancelled) {
+          setVideos(items);
+          setLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setLoaded(true);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   // Mount: autoplay unmuted attempt, replay timer, modal watcher
   useEffect(() => {
@@ -33,11 +90,11 @@ export function FeaturedVideoCard() {
       });
     }
 
-    // Replay every 2 minutes on dashboard
     const replay = window.setInterval(() => {
       if (pathname !== '/dashboard') return;
       sessionStorage.removeItem(DISMISS_KEY);
       setDismissed(false);
+      setIndex(0);
       const v = videoRef.current;
       if (v) {
         v.currentTime = 0;
@@ -45,7 +102,6 @@ export function FeaturedVideoCard() {
       }
     }, 120000);
 
-    // Hide while trivia modal is open
     const checkModal = window.setInterval(() => {
       setModalOpen(document.body.dataset.triviaModal === 'open');
     }, 800);
@@ -70,6 +126,12 @@ export function FeaturedVideoCard() {
     }
   }, [pathname]);
 
+  // Reset playback state when the video changes
+  useEffect(() => {
+    setIsPlaying(true);
+    setVideoReady(false);
+  }, [current?.id]);
+
   // Sync fullscreen position once when it opens
   useEffect(() => {
     if (isFullscreen && fsVideoRef.current && videoRef.current) {
@@ -77,6 +139,9 @@ export function FeaturedVideoCard() {
       fsVideoRef.current.muted = videoRef.current.muted;
     }
   }, [isFullscreen]);
+
+  const goNext = () => setIndex((i) => i + 1);
+  const goPrev = () => setIndex((i) => (i - 1 + videos.length) % Math.max(videos.length, 1));
 
   const togglePlay = () => {
     const video = videoRef.current;
@@ -119,32 +184,51 @@ export function FeaturedVideoCard() {
     }
   };
 
-  if (dismissed || modalOpen || pathname !== '/dashboard') return null;
+  if (dismissed || modalOpen || pathname !== '/dashboard' || (loaded && videos.length === 0)) return null;
 
   return (
     <>
-      {/* Floating card */}
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 24, delay: 0.6 }}
-        className="fixed bottom-24 right-3 z-[90] w-[85vw] max-w-xs touch-none select-none overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/40 sm:bottom-28 sm:right-6 sm:w-96 sm:max-w-none"
+        className="fixed bottom-24 right-3 z-[90] w-[92vw] max-w-md touch-none select-none overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl shadow-black/40 sm:bottom-28 sm:right-6 sm:w-[26rem] sm:max-w-none lg:w-[30rem]"
       >
         <div className="relative aspect-video w-full bg-black">
+          {!current ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+            </div>
+          ) : (
+          <>
           <video
+            key={current.id}
             ref={videoRef}
-            src="/xmas.mp4"
+            src={current.publicUrl}
             autoPlay
             muted={isMuted}
-            loop
             playsInline
             className="h-full w-full object-cover"
             onClick={togglePlay}
+            onEnded={goNext}
+            onCanPlay={() => setVideoReady(true)}
+            onLoadedData={() => setVideoReady(true)}
           />
-          {/* Top bar: title + dismiss */}
+          {!videoReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+            </div>
+          )}
+          </>
+          )}
+          {current && (
+          <>
           <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/70 to-transparent px-2.5 pb-4 pt-2">
             <p className="truncate text-[10px] font-semibold text-white/90">
-              Christmas message from the First Presidency
+              {current.title || 'Featured video'}
+              <span className="ml-1.5 rounded-full bg-white/15 px-1.5 py-0.5 text-[8px] font-bold text-white/80">
+                {index + 1}/{videos.length}
+              </span>
             </p>
             <button
               type="button"
@@ -155,16 +239,37 @@ export function FeaturedVideoCard() {
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
-          {/* Bottom controls */}
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-2 pt-4">
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-              className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
-            >
-              {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+              >
+                {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              </button>
+              {videos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    aria-label="Previous video"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    aria-label="Next video"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
@@ -184,12 +289,13 @@ export function FeaturedVideoCard() {
               </button>
             </div>
           </div>
+          </>
+          )}
         </div>
       </motion.div>
 
-      {/* Fullscreen overlay */}
       <AnimatePresence>
-        {isFullscreen && (
+        {isFullscreen && current && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -198,13 +304,15 @@ export function FeaturedVideoCard() {
             onClick={closeFullscreen}
           >
             <video
+              key={current.id}
               ref={fsVideoRef}
-              src="/xmas.mp4"
+              src={current.publicUrl}
               autoPlay
               controls
               playsInline
               className="max-h-full max-w-full object-contain"
               onClick={(e) => e.stopPropagation()}
+              onEnded={goNext}
             />
             <button
               type="button"
