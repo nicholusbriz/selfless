@@ -50,7 +50,7 @@ export function GlobalOnlineUsersPopup() {
   return (
     <div
       className={cn(
-        'fixed z-[130]',
+        'fixed z-[100]',
         // Mobile - pushed further left
         'top-2 left-[35%] -translate-x-1/2 w-auto',
         // Desktop
@@ -100,7 +100,7 @@ export function GlobalOnlineUsersPopup() {
           {/* Text Block - 3 rows max */}
           <div className="min-w-0 flex flex-col leading-tight">
             {/* Row 1: Full Name (no break, no truncate) */}
-            <p className="text-[9px] font-bold text-[#8A6A1F] whitespace-nowrap">
+            <p className="text-[8px] font-bold text-[#8B6914] whitespace-nowrap">
               {displayName}{onlineUser.hasVerifiedBadge && (<VerifiedBadge className="ml-0.5 inline h-2.5 w-2.5 align-[-1px]" />)}
             </p>
 
@@ -111,7 +111,7 @@ export function GlobalOnlineUsersPopup() {
 
             {/* Row 3: Tech Center (only if exists) */}
             {hasTechCenter && (
-              <p className="text-[6px] font-semibold text-black whitespace-nowrap">
+              <p className="text-[7px] text-black whitespace-nowrap">
                 {onlineUser.techCenter?.name}
               </p>
             )}
