@@ -75,14 +75,16 @@ export default function TriviaLeaderboardPage() {
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="bg-slate-950 px-6 py-7 text-white sm:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300">
-              <Trophy className="h-6 w-6" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300 sm:h-11 sm:w-11">
+              <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Trivia Leaderboard</h1>
-              <p className="mt-1 text-sm text-slate-300">
-                Top 10 players by total points earned
+            <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
+              <h1 className="truncate text-base font-bold tracking-tight sm:text-2xl">
+                Trivia Leaderboard
+              </h1>
+              <p className="shrink-0 whitespace-nowrap text-[10px] text-slate-300 sm:text-sm">
+                Top 10 players by total points
               </p>
             </div>
           </div>

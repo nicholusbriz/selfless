@@ -29,10 +29,12 @@ test('daily hearts initialize for legacy users, charge once, lock and reset', as
 
         const firstId = randomUUID();
         assert.deepEqual(await recordFailedTriviaQuestion(tx, user.id, firstId, now), {
-          dailyHeartsRemaining: 2,
+          dailyHeartsRemaining: 4,
           triviaLockedUntil: null,
         });
-        assert.equal((await recordFailedTriviaQuestion(tx, user.id, firstId, now)).dailyHeartsRemaining, 2);
+        assert.equal((await recordFailedTriviaQuestion(tx, user.id, firstId, now)).dailyHeartsRemaining, 4);
+        assert.equal((await recordFailedTriviaQuestion(tx, user.id, randomUUID(), now)).dailyHeartsRemaining, 3);
+        assert.equal((await recordFailedTriviaQuestion(tx, user.id, randomUUID(), now)).dailyHeartsRemaining, 2);
         assert.equal((await recordFailedTriviaQuestion(tx, user.id, randomUUID(), now)).dailyHeartsRemaining, 1);
         assert.deepEqual(await recordFailedTriviaQuestion(tx, user.id, randomUUID(), now), {
           dailyHeartsRemaining: 0,
@@ -43,7 +45,7 @@ test('daily hearts initialize for legacy users, charge once, lock and reset', as
         assert.deepEqual(await recordFailedTriviaQuestion(
           tx, user.id, randomUUID(), new Date('2026-11-12T00:00:00.000Z'),
         ), {
-          dailyHeartsRemaining: 2,
+          dailyHeartsRemaining: 4,
           triviaLockedUntil: null,
         });
 

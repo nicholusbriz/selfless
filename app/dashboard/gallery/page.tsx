@@ -616,7 +616,7 @@ export default function GalleryPage() {
           <div
             role="group"
             aria-label="Filter posts"
-            className="flex gap-1 overflow-x-auto rounded-lg border border-[#e2e8f0] bg-white p-1"
+            className="flex gap-1.5 overflow-x-auto rounded-full border border-[#e2e8f0] bg-white p-1.5 shadow-sm"
           >
             {(
               [
@@ -632,10 +632,10 @@ export default function GalleryPage() {
                 type="button"
                 aria-pressed={activeFilter === f}
                 onClick={() => setActiveFilter(f)}
-                className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 ${
                   activeFilter === f
-                    ? 'bg-[#1a365d] text-white'
-                    : 'text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]'
+                    ? 'bg-[#1a365d] text-white shadow-sm'
+                    : 'text-[#64748b] hover:bg-[#f1f5f9] hover:text-[#0f172a]'
                 }`}
               >
                 {label}
@@ -657,7 +657,7 @@ export default function GalleryPage() {
             <button
               type="button"
               onClick={() => setIsCreatePostModalOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1a365d] px-3 text-xs font-semibold text-white transition hover:bg-[#14294a]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#1a365d] px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-[#14294a] active:scale-95"
             >
               <Plus className="h-3.5 w-3.5" />
               Create post
@@ -921,14 +921,7 @@ export default function GalleryPage() {
                                   </span>
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => openFullscreenMedia(item)}
-                                aria-label="View fullscreen"
-                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
-                              >
-                                <Maximize2 className="h-3.5 w-3.5" />
-                              </button>
+
                               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-2 pb-2 pt-8">
                                 <div className="flex items-center gap-2 text-white">
                                   <button
@@ -969,16 +962,9 @@ export default function GalleryPage() {
                                 alt={item.title}
                                 fill
                                 sizes="(max-width: 1024px) 100vw, 60vw"
-                                className="object-cover"
+                                className="object-contain"
                               />
-                              <button
-                                type="button"
-                                onClick={() => openFullscreenMedia(item)}
-                                aria-label="View fullscreen"
-                                className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/60 bg-black/55 text-white shadow-sm backdrop-blur-sm transition hover:bg-black/75"
-                              >
-                                <Maximize2 className="h-3.5 w-3.5" />
-                              </button>
+
                             </div>
                           )}
                         </div>
@@ -1190,13 +1176,13 @@ export default function GalleryPage() {
                         type="button"
                         aria-pressed={isSelected}
                         onClick={() => selectFeaturedVideo(video)}
-                        className={`group flex w-full gap-2.5 rounded-lg p-1.5 text-left transition ${
+                        className={`group flex w-full gap-2 rounded-lg p-1 text-left transition ${
                           isSelected
                             ? 'bg-[#eef2f8] ring-1 ring-[#1a365d]/20'
                             : 'hover:bg-[#f8fafc]'
                         }`}
                       >
-                        <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-black">
+                        <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md bg-black">
                           <video
                             src={video.publicUrl}
                             muted
@@ -1213,8 +1199,11 @@ export default function GalleryPage() {
                             {video.title || 'Untitled video'}
                           </h3>
                           {video.user && (
-                            <p className="mt-1 truncate text-[10px] text-[#64748b] lg:text-[11px]">
+                            <p className="mt-0.5 truncate text-[9px] leading-tight text-[#64748b] lg:text-[10px]">
                               {video.user.firstName} {video.user.lastName}
+                              {video.user.techCenter?.name && (
+                                <span className="text-[#94A3B8]"> · {video.user.techCenter.name}</span>
+                              )}
                             </p>
                           )}
                         </div>

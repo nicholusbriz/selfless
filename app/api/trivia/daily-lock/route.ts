@@ -5,6 +5,36 @@ import { isJsonObject } from '@/lib/api-response';
 import { recordFailedTriviaQuestion } from '@/lib/trivia/daily-hearts-server';
 import { prisma } from '@/lib/prisma/client';
 
+const MAX_WRITE_CONFLICT_ATTEMPTS = 5;
+
+function isPrismaWriteConflict(error: unknown): boolean {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2034'
+  ) {
+    return true;
+  }
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return /write conflict|deadlock|Transaction failed/i.test(msg);
+}
+
+async function retryWriteConflict<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isPrismaWriteConflict(error) || attempt >= MAX_WRITE_CONFLICT_ATTEMPTS) {
+        throw error;
+      }
+
+      const delayMs = 50 * 2 ** (attempt - 1) + Math.floor(Math.random() * 50);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,10 +70,15 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      ...(await recordFailedTriviaQuestion(prisma, session.user.id, body.failureId)),
-    });
+    const failureId = body.failureId;
+    const result = await retryWriteConflict(() =>
+      prisma.$transaction(
+        (tx) => recordFailedTriviaQuestion(tx, session.user.id, failureId),
+        { maxWait: 10000, timeout: 30000 },
+      ),
+    );
+
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
     console.error('Error recording failed trivia question:', error);
     return NextResponse.json(

@@ -458,32 +458,38 @@ export default function MediaPostInteractions({
   return (
     <div className={showCommentInput ? '' : 'border-t border-[#EEF0F4]'}>
       {!showCommentInput && (
-        <div className="flex items-center gap-5 px-5 py-3">
+        <div className="flex items-center gap-1.5 px-3 py-2.5">
           <button
             type="button"
             onClick={() => likeMutation.mutate(!interactions?.isLiked)}
             disabled={!interactions || likeMutation.isPending}
             aria-pressed={interactions?.isLiked ?? false}
-            className={`inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
-              interactions?.isLiked ? 'text-rose-600' : 'text-[#687386] hover:text-rose-600'
+            className={`group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
+              interactions?.isLiked
+                ? 'bg-rose-50 text-rose-600'
+                : 'text-[#687386] hover:bg-rose-50 hover:text-rose-600'
             }`}
           >
             {likeMutation.isPending ? (
-              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Heart className={`h-[18px] w-[18px] ${interactions?.isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`h-4 w-4 transition-transform duration-200 group-active:scale-125 ${interactions?.isLiked ? 'fill-current' : ''}`} />
             )}
-            {interactions?.likeCount ?? '—'}
+            <span className="tabular-nums">{interactions?.likeCount ?? '—'}</span>
             <span className="sr-only">likes</span>
           </button>
           <button
             type="button"
             onClick={() => setCommentsOpen((open) => !open)}
             aria-expanded={commentsOpen}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#687386] transition hover:text-[#1A2B4C]"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 ${
+              commentsOpen
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'text-[#687386] hover:bg-indigo-50 hover:text-indigo-600'
+            }`}
           >
-            <MessageCircle className="h-[18px] w-[18px]" />
-            {interactions?.commentCount ?? (commentsOpen ? comments.length : '—')}
+            <MessageCircle className="h-4 w-4" />
+            <span className="tabular-nums">{interactions?.commentCount ?? (commentsOpen ? comments.length : '—')}</span>
             <span>Comments</span>
           </button>
           <button
@@ -491,16 +497,16 @@ export default function MediaPostInteractions({
             onClick={() => saveMutation.mutate(!interactions?.isSaved)}
             disabled={!interactions || saveMutation.isPending}
             aria-pressed={interactions?.isSaved ?? false}
-            className={`ml-auto inline-flex items-center gap-2 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
+            className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 disabled:cursor-wait disabled:opacity-60 ${
               interactions?.isSaved
-                ? 'text-[#1A2B4C]'
-                : 'text-[#687386] hover:text-[#1A2B4C]'
+                ? 'bg-indigo-50 text-indigo-600'
+                : 'text-[#687386] hover:bg-indigo-50 hover:text-indigo-600'
             }`}
           >
             {saveMutation.isPending ? (
-              <Loader2 className="h-[18px] w-[18px] animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Bookmark className={`h-[18px] w-[18px] ${interactions?.isSaved ? 'fill-current' : ''}`} />
+              <Bookmark className={`h-4 w-4 ${interactions?.isSaved ? 'fill-current' : ''}`} />
             )}
             {interactions?.isSaved ? 'Saved' : 'Save'}
           </button>

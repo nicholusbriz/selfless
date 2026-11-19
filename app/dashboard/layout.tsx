@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BookOpen,
   Code,
+  Gamepad2,
   GraduationCap,
   Images,
   LayoutDashboard,
@@ -166,9 +167,6 @@ export default function DashboardLayout({
   }, []);
 
   const userRole = user?.role || 'student';
-  const isAiPage =
-    pathname === '/dashboard/ai' || pathname.startsWith('/dashboard/ai/');
-
   const { users: onlineUsers, isLoading: isLoadingOnlineUsers } = useOnlineUsers(user);
 
   const { data: postCount } = useQuery<number>({
@@ -259,7 +257,7 @@ export default function DashboardLayout({
   return (
     <>
       <PageTracker />
-      <GlobalOnlineUsersPopup />
+      {!(isMobile && sidebarOpen) && <GlobalOnlineUsersPopup />}
 
       <div className="min-h-screen w-full min-w-0 overflow-x-clip bg-white">
         {/* MOBILE OVERLAY */}
@@ -376,16 +374,14 @@ export default function DashboardLayout({
           </div>
 
           {/* GIFT ICON — top right */}
-          {!isAiPage && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-              className="fixed right-3 top-[68px] z-40 lg:right-4"
-            >
-              <GiftIcon />
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="fixed right-3 top-[68px] z-40 lg:right-4"
+          >
+            <GiftIcon />
+          </motion.div>
 
           {/* ================================================== */}
           {/* BOTTOM NAVIGATION — available at every screen size */}
@@ -417,7 +413,8 @@ export default function DashboardLayout({
                     href="/dashboard"
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
-                  >
+                  >
+
                     <LayoutDashboard
                       aria-hidden="true"
                       className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
@@ -521,6 +518,24 @@ export default function DashboardLayout({
                 );
               })()}
 
+              {/* Trivia — opens trivia modal */}
+              <div className="relative flex flex-1 flex-col items-center justify-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event('open-trivia-modal'))}
+                  aria-label="Open trivia"
+                  className="flex flex-col items-center justify-center transition hover:scale-110 active:scale-95"
+                >
+                  <span className="relative inline-flex">
+                    <Gamepad2 className="h-[22px] w-[22px] text-[#C59B4C] drop-shadow-[0_0_6px_rgba(197,155,76,0.6)]" />
+                    <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-[#C59B4C]" />
+                  </span>
+                </button>
+                <span className="text-[9px] font-semibold leading-none tracking-wide text-white/70">
+                  Trivia
+                </span>
+              </div>
+
               {/* Connections */}
               {(() => {
                 const active =
@@ -531,7 +546,8 @@ export default function DashboardLayout({
                     href="/dashboard/connections"
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
-                  >
+                  >
+
                     <User
                       aria-hidden="true"
                       className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}
@@ -572,7 +588,8 @@ export default function DashboardLayout({
                     href={href}
                     aria-current={active ? 'page' : undefined}
                     className="group relative flex flex-1 flex-col items-center justify-center gap-0.5"
-                  >
+                  >
+
                     <RoleIcon
                       aria-hidden="true"
                       className={cn('h-4 w-4 transition-colors duration-150', active ? 'text-[#C59B4C]' : 'text-white/70 group-hover:text-white')}

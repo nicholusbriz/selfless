@@ -18,10 +18,39 @@ import {
   getNextUtcTriviaReset,
   isCurrentUtcTriviaDay,
 } from '@/lib/trivia/daily-lock';
+import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 
 const POINTS_PER_CORRECT = 10;
 const STREAK_BONUS_PER_POINT = 2;
 const SKIP_PENALTY = 2;
+const MAX_WRITE_CONFLICT_ATTEMPTS = 5;
+
+function isPrismaWriteConflict(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2034'
+  );
+}
+
+async function retryWriteConflict<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (
+        !isPrismaWriteConflict(error) ||
+        attempt >= MAX_WRITE_CONFLICT_ATTEMPTS
+      ) {
+        throw error;
+      }
+
+      const delayMs = 50 * 2 ** (attempt - 1) + Math.floor(Math.random() * 50);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
 
 class DailyTriviaLimitError extends Error {
   constructor(readonly reset: Date) {
@@ -31,7 +60,7 @@ class DailyTriviaLimitError extends Error {
 
 class TriviaHeartsExhaustedError extends Error {
   constructor(readonly reset: Date) {
-    super('You have used all three hearts for today.');
+    super(`You have used all ${MAX_DAILY_HEARTS} hearts for today.`);
   }
 }
 
@@ -149,7 +178,8 @@ export async function POST(request: NextRequest) {
     const points = Math.max(0, basePoints + streakBonus - skipPenalty);
 
     // The user write serializes concurrent submissions before counting sessions.
-    const saved = await prisma.$transaction(async (tx) => {
+    const saved = await retryWriteConflict(() =>
+      prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
         where: { id: userId },
         data: { triviaSubmissionToken: randomUUID() },
@@ -173,7 +203,9 @@ export async function POST(request: NextRequest) {
         return { session: existing, completedToday, reset };
       }
 
-      const storedLock = getActiveTriviaLock(user.triviaLockedUntil, now);
+      const storedLock = isCurrentUtcTriviaDay(user.triviaHeartsDate, now)
+        ? getActiveTriviaLock(user.triviaLockedUntil, now)
+        : null;
       const triviaLockedUntil =
         storedLock ??
         (isCurrentUtcTriviaDay(user.triviaHeartsDate, now) &&
@@ -206,28 +238,14 @@ export async function POST(request: NextRequest) {
           })),
         });
 
-        for (const a of serverAnswers) {
-          if (a.isCorrect) {
-            await tx.triviaQuestion.update({
-              where: { id: a.questionId },
-              data: { timesCorrect: { increment: 1 } },
-            });
-          }
-        }
-
-        const affectedIds = [...new Set(serverAnswers.map((a) => a.questionId))];
-        const refreshed = await tx.triviaQuestion.findMany({
-          where: { id: { in: affectedIds } },
-          select: { id: true, timesAsked: true, timesCorrect: true },
-        });
-
-        for (const q of refreshed) {
-          if (q.timesAsked > 0) {
-            await tx.triviaQuestion.update({
-              where: { id: q.id },
-              data: { difficultyRating: 1 - q.timesCorrect / q.timesAsked },
-            });
-          }
+        const correctlyAnsweredIds = serverAnswers
+          .filter((answer) => answer.isCorrect)
+          .map((answer) => answer.questionId);
+        if (correctlyAnsweredIds.length > 0) {
+          await tx.triviaQuestion.updateMany({
+            where: { id: { in: correctlyAnsweredIds } },
+            data: { timesCorrect: { increment: 1 } },
+          });
         }
       }
 
@@ -238,7 +256,8 @@ export async function POST(request: NextRequest) {
         });
       }
       return { session: gameSession, completedToday: completedToday + 1, reset };
-    }, { timeout: 60000, maxWait: 10000 });
+      }, { timeout: 60000, maxWait: 10000 }),
+    );
 
     const currentLevel = saved.session.level;
     const levelUnlocked =

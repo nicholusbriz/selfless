@@ -8,25 +8,16 @@ import {
   getNextUtcTriviaReset,
   isCurrentUtcTriviaDay,
 } from '@/lib/trivia/daily-lock';
+import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 
 export async function GET() {
   try {
-    // Get authenticated user
     const user = await requireAuth();
-    console.log('Fetching trivia points for user:', user.id);
 
-    // Calculate total points from all trivia game sessions
-    const sessions = await prisma.triviaGameSession.findMany({
+    const points = await prisma.triviaGameSession.aggregate({
       where: { userId: user.id },
-      select: {
-        points: true,
-      },
+      _sum: { points: true },
     });
-
-    console.log('User trivia sessions:', sessions);
-
-    const totalPoints = sessions.reduce((sum, session) => sum + session.points, 0);
-    console.log('Calculated total points:', totalPoints);
 
     // Get user's current level
     const userData = await prisma.user.findUnique({
@@ -36,16 +27,19 @@ export async function GET() {
         triviaLockedUntil: true,
         triviaHeartsRemaining: true,
         triviaHeartsDate: true,
+        triviaPoints: true,
       },
     });
 
     const currentLevel = userData
       ? await getCurrentTriviaLevel(user.id)
       : 1;
-    const storedLock = getActiveTriviaLock(userData?.triviaLockedUntil ?? null);
+    const storedLock = isCurrentUtcTriviaDay(userData?.triviaHeartsDate ?? null)
+      ? getActiveTriviaLock(userData?.triviaLockedUntil ?? null)
+      : null;
     const dailyHeartsRemaining = isCurrentUtcTriviaDay(userData?.triviaHeartsDate ?? null)
-      ? userData?.triviaHeartsRemaining ?? 3
-      : 3;
+      ? userData?.triviaHeartsRemaining ?? MAX_DAILY_HEARTS
+      : MAX_DAILY_HEARTS;
     const triviaLockedUntil =
       storedLock ??
       (dailyHeartsRemaining === 0 ? getNextUtcTriviaReset() : null);
@@ -53,7 +47,8 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      triviaPoints: totalPoints,
+      triviaPoints: points._sum.points ?? 0,
+      credits: (points._sum.points ?? 0) - Math.max(0, userData?.triviaPoints ?? 0),
       currentLevel,
       triviaLockedUntil: triviaLockedUntil?.toISOString() ?? null,
       dailyHeartsRemaining: triviaLockedUntil ? 0 : dailyHeartsRemaining,

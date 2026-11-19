@@ -20,49 +20,60 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
     const where: any = {};
     if (userId) {
       where.userId = userId;
     }
 
-    // Fetch trivia game sessions with user data
-    const [sessions, total] = await Promise.all([
-      prisma.triviaGameSession.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              profileImageUrl: true,
-            },
-          },
-        },
-        orderBy: {
-          playedAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.triviaGameSession.count({ where }),
-    ]);
+    // Group sessions by user: total sessions, total credits, last played
+    const grouped = await prisma.triviaGameSession.groupBy({
+      by: ['userId'],
+      where,
+      _count: { id: true },
+      _sum: { points: true },
+      _max: { playedAt: true },
+      orderBy: { _sum: { points: 'desc' } },
+      skip,
+      take: limit,
+    });
 
-    // Calculate aggregate stats
-    const stats = await prisma.triviaGameSession.aggregate({
-      _count: {
+    const total = await prisma.triviaGameSession.groupBy({
+      by: ['userId'],
+      where,
+    }).then((rows) => rows.length);
+
+    const userIds = grouped.map((row) => row.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
         id: true,
-      },
-      _avg: {
-        accuracy: true,
-        points: true,
-      },
-      _sum: {
-        points: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        profileImageUrl: true,
       },
     });
+    const userById = new Map(users.map((u) => [u.id, u]));
+
+    const sessions = grouped.map((row) => ({
+      id: row.userId,
+      sessions: row._count.id,
+      credits: row._sum.points || 0,
+      lastPlayedAt: row._max.playedAt,
+      user: userById.get(row.userId) ?? {
+        id: row.userId,
+        firstName: 'Unknown',
+        lastName: 'User',
+        email: '',
+        profileImageUrl: null,
+      },
+    }));
+
+    // Global stats across all users
+    const [totalSessions, pointsAgg] = await Promise.all([
+      prisma.triviaGameSession.count({ where }),
+      prisma.triviaGameSession.aggregate({ _sum: { points: true } }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -74,10 +85,8 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
       stats: {
-        totalGames: stats._count.id,
-        averageAccuracy: stats._avg.accuracy ? Math.round(stats._avg.accuracy) : 0,
-        averagePoints: stats._avg.points ? Math.round(stats._avg.points) : 0,
-        totalPointsEarned: stats._sum.points || 0,
+        totalGames: totalSessions,
+        totalPointsEarned: pointsAgg._sum.points || 0,
       },
     });
   } catch (error) {

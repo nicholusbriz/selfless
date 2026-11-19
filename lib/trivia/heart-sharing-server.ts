@@ -2,8 +2,6 @@ import { prisma } from '@/lib/prisma/client';
 import { createNotificationForUser } from '@/lib/notifications';
 import { getUtcTriviaDayStart } from './daily-lock';
 import {
-  canGiveHeart,
-  canRequestHeart,
   getEffectiveHearts,
   MAX_DAILY_HEARTS,
   MAX_DAILY_HEART_REQUESTS,
@@ -40,7 +38,7 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
   const heartsRemaining = getEffectiveHearts(me, now);
 
   const incomingRequests = await prisma.triviaHeartRequest.findMany({
-    where: { donorId: userId, dayStart, status: 'pending' },
+    where: { donorId: userId, status: 'pending' },
     orderBy: { createdAt: 'asc' },
     take: 20,
   });
@@ -76,7 +74,7 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
     requested: boolean;
   }> = [];
 
-  if (canRequestHeart(me, now) && requestsRemaining > 0) {
+  if (requestsRemaining > 0) {
     const [follows, outgoing] = await Promise.all([
       prisma.follow.findMany({
         where: { followerId: userId },
@@ -85,14 +83,17 @@ export async function getHeartSharingState(userId: string, now = new Date()) {
         select: { following: { select: accountSelect } },
       }),
       prisma.triviaHeartRequest.findMany({
-        where: { requesterId: userId, dayStart },
+        where: {
+          requesterId: userId,
+          OR: [{ dayStart }, { status: 'pending' }],
+        },
         select: { donorId: true },
       }),
     ]);
     const requestedIds = new Set(outgoing.map((r) => r.donorId));
     donors = follows
       .map((f) => f.following)
-      .filter((u) => u.isActive && u.status === 'ACTIVE' && canGiveHeart(u, now))
+      .filter((u) => u.isActive && u.status === 'ACTIVE')
       .map((u) => ({
         id: u.id,
         name: fullName(u),
@@ -128,7 +129,11 @@ export async function createHeartRequest(
       select: { id: true },
     }),
     prisma.triviaHeartRequest.findFirst({
-      where: { requesterId, donorId, dayStart },
+      where: {
+        requesterId,
+        donorId,
+        OR: [{ dayStart }, { status: 'pending' }],
+      },
       select: { id: true },
     }),
   ]);
@@ -138,12 +143,6 @@ export async function createHeartRequest(
   }
   if (!follow) {
     throw new HeartShareError('You can only ask people you follow.', 403);
-  }
-  if (!canRequestHeart(requester, now)) {
-    throw new HeartShareError('You still have hearts left today.', 409);
-  }
-  if (!canGiveHeart(donor, now)) {
-    throw new HeartShareError('That player has no spare hearts right now.', 409);
   }
   if (existing) {
     throw new HeartShareError('You already asked this player today.', 409);
@@ -179,7 +178,7 @@ export async function createHeartRequest(
     await createNotificationForUser({
       userId: donorId,
       title: 'Heart request',
-      message: `${fullName(requester)} is out of trivia hearts and asked you for one.`,
+      message: `${fullName(requester)} asked you to share a trivia heart.`,
       type: 'trivia_heart_request',
       link: '/dashboard',
       generatedBy: requesterId,
@@ -202,7 +201,7 @@ export async function respondToHeartRequest(
   const dayStart = getUtcTriviaDayStart(now);
 
   const request = await prisma.triviaHeartRequest.findFirst({
-    where: { id: requestId, donorId, dayStart, status: 'pending' },
+    where: { id: requestId, donorId, status: 'pending' },
   });
   if (!request) {
     throw new HeartShareError('This request is no longer available.', 404);
@@ -218,6 +217,7 @@ export async function respondToHeartRequest(
 
   // Every write is in one transaction: the heart only leaves the giver
   // if it also reaches the requester, and the request can only be claimed once.
+  // An insufficient-heart error rolls back the claim so the request stays pending.
   await prisma.$transaction(async (tx) => {
     const stillFollowing = await tx.follow.findUnique({
       where: {
@@ -249,6 +249,7 @@ export async function respondToHeartRequest(
         triviaHeartsDate: dayStart,
         triviaHeartsRemaining: MAX_DAILY_HEARTS,
         triviaFailureIds: [],
+        triviaLockedUntil: null,
       },
     });
 
@@ -271,16 +272,29 @@ export async function respondToHeartRequest(
       );
     }
 
-    const received = await tx.user.updateMany({
+    const initialized = await tx.user.updateMany({
       where: {
         id: request.requesterId,
-        triviaHeartsDate: dayStart,
-        triviaHeartsRemaining: 0,
+        OR: [{ triviaHeartsDate: null }, { triviaHeartsDate: { not: dayStart } }],
       },
-      data: { triviaHeartsRemaining: 1, triviaLockedUntil: null },
+      data: {
+        triviaHeartsDate: dayStart,
+        triviaHeartsRemaining: MAX_DAILY_HEARTS + 1,
+        triviaFailureIds: [],
+        triviaLockedUntil: null,
+      },
     });
-    if (received.count !== 1) {
-      throw new HeartShareError('This player no longer needs a heart.', 409);
+    if (initialized.count === 0) {
+      const received = await tx.user.updateMany({
+        where: { id: request.requesterId, triviaHeartsDate: dayStart },
+        data: {
+          triviaHeartsRemaining: { increment: 1 },
+          triviaLockedUntil: null,
+        },
+      });
+      if (received.count !== 1) {
+        throw new HeartShareError('Could not add a heart to this player.', 409);
+      }
     }
   }, { timeout: 30000, maxWait: 10000 });
 

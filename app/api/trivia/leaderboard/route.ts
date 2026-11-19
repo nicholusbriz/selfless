@@ -21,6 +21,8 @@ export async function GET() {
         id: true,
         firstName: true,
         lastName: true,
+        profileImageUrl: true,
+        hasVerifiedBadge: true,
       },
     });
     const usersById = new Map(users.map((user) => [user.id, user]));

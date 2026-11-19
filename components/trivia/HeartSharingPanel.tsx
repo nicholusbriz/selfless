@@ -24,10 +24,13 @@ interface HeartState {
 }
 
 interface HeartSharingPanelProps {
-  // "request": shown on the out-of-hearts card. "incoming": banner for givers.
+  // "request": ask a followed player. "incoming": banner for pending requests.
   mode: 'request' | 'incoming';
   // Called in "request" mode once a friend has shared a heart.
   onHeartsChanged?: () => void;
+  onIncomingCountChange?: (count: number) => void;
+  isVisible?: boolean;
+  showEmptyState?: boolean;
 }
 
 const POLL_MS = { request: 10_000, incoming: 30_000 };
@@ -70,16 +73,27 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharingPanelProps) {
+export default function HeartSharingPanel({
+  mode,
+  onHeartsChanged,
+  onIncomingCountChange,
+  isVisible = true,
+  showEmptyState = false,
+}: HeartSharingPanelProps) {
   const [state, setState] = useState<HeartState | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedDonorId, setSelectedDonorId] = useState('');
   const [message, setMessage] = useState<{ text: string; tone: 'ok' | 'error' } | null>(null);
   const onHeartsChangedRef = useRef(onHeartsChanged);
+  const onIncomingCountChangeRef = useRef(onIncomingCountChange);
+  const previousHeartsRef = useRef<number | null>(null);
   useEffect(() => {
     onHeartsChangedRef.current = onHeartsChanged;
   }, [onHeartsChanged]);
+  useEffect(() => {
+    onIncomingCountChangeRef.current = onIncomingCountChange;
+  }, [onIncomingCountChange]);
 
   const load = useCallback(async () => {
     try {
@@ -87,7 +101,12 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
       const next = readState(await response.json());
       if (!next) return;
       setState(next);
-      if (mode === 'request' && next.heartsRemaining > 0) {
+      const previousHearts = previousHeartsRef.current;
+      previousHeartsRef.current = next.heartsRemaining;
+      if (mode === 'incoming') {
+        onIncomingCountChangeRef.current?.(next.incoming.length);
+      }
+      if (mode === 'request' && previousHearts !== null && next.heartsRemaining > previousHearts) {
         onHeartsChangedRef.current?.();
       }
     } catch (error) {
@@ -148,6 +167,7 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
     );
     if (data && action === 'accept') {
       setMessage({ text: `You shared a heart with ${request.requester.name}.`, tone: 'ok' });
+      onHeartsChangedRef.current?.();
     }
   };
 
@@ -163,13 +183,46 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
   );
 
   if (mode === 'incoming') {
-    if (!state || state.incoming.length === 0) return messageEl ? <div className="px-5 pt-3 sm:px-6">{messageEl}</div> : null;
+    if (!isVisible) return null;
+    if (!state || state.incoming.length === 0) {
+      if (!showEmptyState) {
+        return messageEl ? <div className="px-5 pt-3 sm:px-6">{messageEl}</div> : null;
+      }
+
+      return (
+        <section className="rounded-xl bg-rose-50/60 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-bold text-rose-700">
+              <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+              Heart requests
+            </h3>
+            <span className="text-xs font-medium text-slate-600">
+              {state ? `${state.heartsRemaining} hearts` : 'Loading…'}
+            </span>
+          </div>
+          <p className="mt-3 text-sm text-slate-600">
+            {loaded ? 'No pending heart requests right now.' : 'Checking for heart requests…'}
+          </p>
+          {messageEl}
+        </section>
+      );
+    }
     return (
       <div className="border-b border-rose-100 bg-rose-50/60 px-5 py-3 sm:px-6">
-        <p className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
-          <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-          Heart requests
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
+            <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+            Heart requests
+          </p>
+          <span className="text-[11px] font-medium text-slate-600">
+            You have {state.heartsRemaining} {state.heartsRemaining === 1 ? 'heart' : 'hearts'}
+          </span>
+        </div>
+        {state.heartsRemaining < 2 && (
+          <p className="mt-1 text-[11px] text-slate-600">
+            We’ll check today’s hearts when you choose to give one.
+          </p>
+        )}
         <ul className="mt-2 space-y-2">
           {state.incoming.map((request) => (
             <li key={request.id} className="flex items-center gap-2">
@@ -205,7 +258,8 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
     <div className="mt-5 border-t border-slate-100 pt-4 text-left">
       <p className="text-sm font-bold text-slate-900">Ask a friend for a heart</p>
       <p className="mt-0.5 text-xs text-slate-500">
-        People you follow who have a spare heart can share one with you.
+        Ask someone you follow for an extra heart. Each accepted heart lets you play more Trivia,
+        earn more credits, and use them to buy gifts.
       </p>
 
       {!loaded ? (
@@ -256,8 +310,7 @@ export default function HeartSharingPanel({ mode, onHeartsChanged }: HeartSharin
         </>
       ) : (
         <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-500">
-          None of the people you follow have a spare heart right now. Follow more
-          players on the portal, or check back later.
+          No new people are available to request from right now. Pending requests stay until answered.
         </p>
       )}
       {messageEl}

@@ -405,10 +405,10 @@ export default function AdminUsersPage() {
         )}
 
         <div className="mb-5 rounded-2xl border border-[#E7E6E1] bg-white p-3 shadow-[0_1px_2px_rgba(18,32,59,0.03)] sm:p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <div className="flex flex-wrap items-center gap-3">
             <form
               role="search"
-              className="flex min-w-0 basis-full gap-2 xl:flex-1 xl:basis-auto"
+              className="flex min-w-0 basis-full gap-2 sm:flex-1 sm:basis-auto"
               onSubmit={(event) => {
                 event.preventDefault();
                 setSubmittedSearchTerm(searchTerm.trim());
@@ -418,9 +418,8 @@ export default function AdminUsersPage() {
             >
               <div className="relative min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6B7280]" />
-
                 <input
-                  type="search"
+                  type="text"
                   aria-label="Search users by name or email"
                   placeholder="Search by name or email"
                   value={searchTerm}
@@ -432,7 +431,7 @@ export default function AdminUsersPage() {
                       setPage(1);
                     }
                   }}
-                  className={`w-full rounded-xl border border-[#DADCD3] bg-[#F9F9F7] py-2.5 pl-9 text-sm text-[#12203B] outline-none transition placeholder:text-[#6B7280] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#F3E5C3] [&::-webkit-search-cancel-button]:appearance-none ${searchTerm ? 'pr-9' : 'pr-3'}`}
+                  className="w-full rounded-xl border border-[#DADCD3] bg-[#F9F9F7] py-2.5 pl-9 pr-3 text-sm text-[#12203B] outline-none transition placeholder:text-[#6B7280] focus:border-[#B98A3E] focus:ring-2 focus:ring-[#F3E5C3]"
                 />
 
                 {searchTerm && (
@@ -462,7 +461,6 @@ export default function AdminUsersPage() {
                   </>
                 ) : (
                   <>
-                    <Search className="h-4 w-4" />
                     Search
                   </>
                 )}
