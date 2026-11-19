@@ -10,6 +10,7 @@ import {
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { revalidateTag, unstable_cache } from 'next/cache';
 
 async function addPreviousTechCenters<T extends {
   author: {
@@ -56,43 +57,16 @@ async function addPreviousTechCenters<T extends {
 }
 
 // GET - Fetch all active announcements (filtered by user's tech center)
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user with tech center
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        techCenterId: true,
-        role: {
-          select: {
-            name: true,
-            displayName: true
-          }
-        }
-      }
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Filter: Global announcements OR announcements for user's tech center
-    const whereClause = {
-      isActive: true,
-      OR: [
-        { isGlobal: true },
-        { techCenterId: user.techCenterId }
-      ]
-    };
-
+const getAnnouncements = unstable_cache(
+  async (techCenterId: string | null) => {
     const announcements = await prisma.announcement.findMany({
-      where: whereClause,
+      where: {
+        isActive: true,
+        OR: [
+          { isGlobal: true },
+          ...(techCenterId ? [{ techCenterId }] : []),
+        ],
+      },
       include: {
         author: {
           select: {
@@ -128,8 +102,42 @@ export async function GET() {
       }
     });
 
-    const announcementsWithAuthorTechCenter =
-      await addPreviousTechCenters(announcements);
+    return addPreviousTechCenters(announcements);
+  },
+  ['announcements'],
+  { revalidate: 300, tags: ['announcements'] },
+);
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user with tech center
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        techCenterId: true,
+        role: {
+          select: {
+            name: true,
+            displayName: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Filter: Global announcements OR announcements for user's tech center (cached 5 min)
+    const announcementsWithAuthorTechCenter = await getAnnouncements(
+      user.techCenterId ?? null,
+    );
 
     return NextResponse.json({
       announcements: announcementsWithAuthorTechCenter,
@@ -249,6 +257,8 @@ export async function POST(request: NextRequest) {
 
     const [announcementWithAuthorTechCenter] =
       await addPreviousTechCenters([announcement]);
+
+    revalidateTag('announcements', 'max');
 
     return NextResponse.json({
       message: 'Announcement created successfully',

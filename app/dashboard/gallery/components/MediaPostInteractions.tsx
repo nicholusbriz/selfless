@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import {
   AlertCircle,
@@ -86,6 +86,22 @@ export default function MediaPostInteractions({
   const [content, setContent] = useState('');
   const [replyingTo, setReplyingTo] = useState<MediaComment | null>(null);
   const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
+  const commentMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the comment options menu when clicking outside it
+  useEffect(() => {
+    if (!openCommentMenuId) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        commentMenuRef.current &&
+        !commentMenuRef.current.contains(event.target as Node)
+      ) {
+        setOpenCommentMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [openCommentMenuId]);
 
   const interactionsQuery = useQuery<MediaInteractions>({
     queryKey: ['media-interactions', mediaId],
@@ -97,7 +113,7 @@ export default function MediaPostInteractions({
       }
       return result;
     },
-    staleTime: 30 * 1000,
+    staleTime: 120 * 1000,
   });
 
   const commentsQuery = useQuery<MediaComment[]>({
@@ -116,6 +132,7 @@ export default function MediaPostInteractions({
       return responseComments;
     },
     enabled: commentsOpen,
+    staleTime: 120 * 1000,
   });
 
   const likeMutation = useMutation({
@@ -388,7 +405,7 @@ export default function MediaPostInteractions({
               </span>
             </p>
             {comment.author.id === currentUser.id && !comment.pending && (
-              <div className="relative shrink-0">
+              <div ref={commentMenuRef} className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() =>

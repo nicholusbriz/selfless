@@ -61,6 +61,7 @@ import {
 import { SocialActions } from '@/components/social/SocialActions';
 import { getResponseError, isRecord } from './response-guards';
 import MediaPostInteractions from './gallery/components/MediaPostInteractions';
+import { useMediaInteractionsPrefetch } from '@/lib/hooks/useMediaInteractionsPrefetch';
 
 /* ============================================================
    TYPES
@@ -538,6 +539,8 @@ function RecentPostsSection() {
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
+
+  useMediaInteractionsPrefetch(posts.map((p) => p.id));
 
   useEffect(() => {
     if (!selectedMedia) return;

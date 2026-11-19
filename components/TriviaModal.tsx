@@ -370,6 +370,7 @@ export default function TriviaModal({
   }, [activeSection, currentQuestion, handleQuestionFailure]);
 
   // ─── Reset when questions change or modal opens ────────────────
+  const wasOpenRef = useRef(false);
   useEffect(() => {
     if (isOpen) {
       const initialState = makeInitialState(dailyHeartsRef.current);
@@ -378,10 +379,17 @@ export default function TriviaModal({
           ? { ...initialState, hasStarted: true }
           : initialState,
       );
-      setActiveSection('trivia');
+      // Only return to the Trivia tab when the modal (re)opens — not when
+      // questions refetch while the user is on another section.
+      if (!wasOpenRef.current) {
+        setActiveSection('trivia');
+      }
+      wasOpenRef.current = true;
       setCompletedLevel(null);
       setCompletionResult(null);
       submissionIdRef.current = crypto.randomUUID();
+    } else {
+      wasOpenRef.current = false;
     }
   }, [isOpen, questions, startImmediately]); // Reset when new questions arrive
 
