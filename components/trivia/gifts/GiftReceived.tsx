@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Heart, Clock, User } from 'lucide-react';
+import { Heart, Clock } from 'lucide-react';
 
 interface ReceivedGift {
   id: string;
@@ -17,14 +16,12 @@ interface ReceivedGift {
 }
 
 export default function GiftReceived() {
-  const [selectedGift, setSelectedGift] = useState<string | null>(null);
-
   // Fetch received gifts
   const { data: receivedData, isLoading } = useQuery({
     queryKey: ['gift-received'],
     queryFn: async () => {
       const response = await fetch('/api/gifts/received');
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch received gifts');
       }
@@ -49,68 +46,76 @@ export default function GiftReceived() {
   };
 
   return (
-    <div className="p-4 sm:p-5">
+    <div className="p-3 sm:p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Received Gifts</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Gifts from other users</p>
+          <h3 className="text-xs font-bold text-slate-900">Received Gifts</h3>
+          <p className="text-[10px] text-slate-500 mt-0.5">Gifts from other users</p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">
-          <Heart className="h-3.5 w-3.5" />
-          <span className="text-xs font-bold">{receivedGifts.length}</span>
+        <div className="flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-rose-700">
+          <Heart className="h-3 w-3" />
+          <span className="text-[10px] font-bold">{receivedGifts.length}</span>
         </div>
       </div>
 
       {/* Gift List */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <p className="text-sm text-slate-500">Loading gifts...</p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <p className="text-xs text-slate-500">Loading gifts...</p>
         </div>
       ) : receivedGifts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Heart className="h-12 w-12 text-slate-300 mb-3" />
-          <p className="text-sm text-slate-500">No gifts received yet</p>
-          <p className="text-xs text-slate-400 mt-1">When someone sends you a gift, it will appear here</p>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Heart className="h-9 w-9 text-slate-300 mb-2" />
+          <p className="text-xs text-slate-500">No gifts received yet</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">When someone sends you a gift, it will appear here</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {receivedGifts.map((gift) => (
             <div
               key={gift.id}
-              className={`relative rounded-xl border p-3 transition-all hover:shadow-md ${
-                selectedGift === gift.id
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-slate-200 bg-white hover:border-indigo-300'
-              }`}
+              className="rounded-lg border border-slate-200 bg-white p-2.5 transition-all hover:shadow-md hover:border-rose-300"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 {/* Sender Avatar */}
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
-                  {gift.senderName.split(' ').map((n) => n[0]).join('')}
-                </div>
+                {gift.senderProfileImage ? (
+                  <img
+                    src={gift.senderProfileImage}
+                    alt={gift.senderName}
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                    {gift.senderName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
 
                 {/* Gift Content */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{gift.emoji}</span>
-                      <div>
-                        <p className="text-xs font-semibold text-slate-900">{gift.giftName}</p>
-                        <p className="text-[10px] text-slate-500">from {gift.senderName}</p>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold text-slate-900">
+                        You received a gift from {gift.senderName}
+                      </p>
+                      <p className="text-[10px] font-semibold text-indigo-700 mt-0.5">
+                        {gift.giftName}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                      <Clock className="h-3 w-3" />
+                    <div className="flex items-center gap-1 text-[9px] text-slate-400">
+                      <Clock className="h-2.5 w-2.5" />
                       <span>{formatTime(gift.receivedAt)}</span>
                     </div>
                   </div>
                   {gift.message && (
-                    <p className="text-xs text-slate-600 italic bg-slate-50 rounded-lg px-2 py-1 mt-2">
+                    <p className="text-[10px] text-slate-600 italic bg-rose-50/60 rounded-md px-2 py-1 mt-1.5">
                       "{gift.message}"
                     </p>
                   )}
                 </div>
+                <span className="flex w-12 shrink-0 self-stretch items-center justify-center rounded-xl bg-gradient-to-br from-rose-50 to-pink-50 text-2xl">
+                  {gift.emoji}
+                </span>
               </div>
             </div>
           ))}

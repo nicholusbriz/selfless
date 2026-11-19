@@ -7,11 +7,13 @@ import TriviaAccountPanel from './trivia/TriviaAccountPanel';
 import TriviaBottomNavigation, { type TriviaSection } from './trivia/TriviaBottomNavigation';
 import TriviaLeaderboardPanel from './trivia/TriviaLeaderboardPanel';
 import TriviaMoreGamesPanel from './trivia/TriviaMoreGamesPanel';
+import { TriviaUserBadge, TriviaOnlineUsers, WelcomeGamePanel } from './trivia/TriviaScreens';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 import { MIN_ACCURACY_TO_LEVEL_UP } from '@/lib/trivia/levels';
 import {
   X, Clock, Check, XCircle, Star, Trophy,
-  SkipForward, Heart, ArrowRight, Gamepad2, Crown,
+  SkipForward, Heart, ArrowRight, Gamepad2, Crown, RefreshCw, Home,
 } from 'lucide-react';
 
 export interface TriviaQuestion {
@@ -65,66 +67,46 @@ interface TriviaCompletionResult {
   levelUnlocked: boolean;
 }
 
-function HeartRequestsButton({
-  count,
-  active,
-  onClick,
-}: {
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
+function RefreshQuestionsButton({ onRefresh }: { onRefresh: () => void }) {
+  const [spinning, setSpinning] = useState(false);
   return (
     <button
       type="button"
-      onClick={onClick}
-      aria-label={`Heart requests${count > 0 ? `, ${count} pending` : ''}`}
-      aria-pressed={active}
-      title="View heart requests"
-      className={`relative rounded-full p-1.5 transition ${
-        active
-          ? 'bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300'
-          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-      }`}
+      onClick={() => {
+        if (spinning) return;
+        setSpinning(true);
+        onRefresh();
+        window.setTimeout(() => setSpinning(false), 700);
+      }}
+      aria-label="Refresh questions"
+      title="Refresh questions"
+      className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
     >
-      <Heart className="h-4 w-4 fill-current text-red-500" />
-      <span
-        className={`absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-white ${
-          count > 0 ? 'bg-rose-600' : 'bg-slate-400'
-        }`}
-      >
-        {count > 99 ? '99+' : count}
-      </span>
+      <RefreshCw className={`h-4 w-4 ${spinning ? 'animate-spin' : ''}`} />
     </button>
   );
 }
 
-function HeartRequestsMainArea({
-  isOpen,
+function TriviaHeartsPanel({
   onHeartsChanged,
   onIncomingCountChange,
 }: {
-  isOpen: boolean;
   onHeartsChanged: () => void;
   onIncomingCountChange: (count: number) => void;
 }) {
   return (
-    <div
-      className={`absolute inset-x-0 bottom-12 top-16 z-30 overflow-y-auto bg-white p-4 ${
-        isOpen ? '' : 'hidden'
-      }`}
-    >
-      <HeartSharingPanel
-        mode="incoming"
-        isVisible={isOpen}
-        showEmptyState
-        onHeartsChanged={onHeartsChanged}
-        onIncomingCountChange={onIncomingCountChange}
-      />
-      {isOpen && (
+    <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+      <div className="space-y-4 p-4">
+        <HeartSharingPanel
+          mode="incoming"
+          isVisible
+          showEmptyState
+          onHeartsChanged={onHeartsChanged}
+          onIncomingCountChange={onIncomingCountChange}
+        />
         <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-      )}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -221,16 +203,23 @@ export default function TriviaModal({
   onQuestionFailed,
   onComplete,
 }: TriviaModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.dataset.triviaModal = 'open';
+    return () => {
+      delete document.body.dataset.triviaModal;
+    };
+  }, [isOpen]);
   const [gameState, setGameState] = useState<GameState>(() =>
     makeInitialState(dailyHeartsRemaining),
   );
   const [activeSection, setActiveSection] = useState<TriviaSection>('trivia');
-  const [showHeartRequests, setShowHeartRequests] = useState(false);
   const [incomingHeartRequestCount, setIncomingHeartRequestCount] = useState(0);
   const [completedLevel, setCompletedLevel] = useState<number | null>(null);
   const [completionResult, setCompletionResult] =
     useState<TriviaCompletionResult | null>(null);
   const [savingMessageIndex, setSavingMessageIndex] = useState(0);
+  const { user: currentUser } = useAuth();
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isOpenRef = useRef(isOpen);
@@ -390,7 +379,6 @@ export default function TriviaModal({
           : initialState,
       );
       setActiveSection('trivia');
-      setShowHeartRequests(false);
       setCompletedLevel(null);
       setCompletionResult(null);
       submissionIdRef.current = crypto.randomUUID();
@@ -650,13 +638,7 @@ export default function TriviaModal({
 
   const selectSection = useCallback((section: TriviaSection) => {
     setActiveSection(section);
-    setShowHeartRequests(false);
     setGameState((prev) => ({ ...prev, showMoreGames: section === 'more-games' }));
-  }, []);
-  const toggleHeartRequests = useCallback(() => {
-    setActiveSection('trivia');
-    setGameState((prev) => ({ ...prev, showMoreGames: false }));
-    setShowHeartRequests((visible) => !visible);
   }, []);
 
   const calculatePoints = () => {
@@ -677,6 +659,11 @@ export default function TriviaModal({
     totalQuestions === 0 ||
     (!gameState.hasStarted && !gameState.showResult) ||
     gameState.showResult;
+  const isPreGameScreen =
+    reachedGameLimit ||
+    Boolean(dailyLockedUntil) ||
+    totalQuestions === 0 ||
+    (!gameState.hasStarted && !gameState.showResult);
 
   if (activeSection !== 'trivia' && isSpecialTriviaScreen) {
     return (
@@ -688,282 +675,41 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+                <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
+                  {userTotalPoints + gameState.points}
+                </span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-rose-600"
                   aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
+                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}>
+                  <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                  {gameState.dailyHeartsRemaining}
+                </span>
               <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
                 <Clock className="h-3.5 w-3.5" />
                 <span>{gameState.timeLeft}s</span>
               </div>
-              <button
+              <TriviaUserBadge user={currentUser} />
+                <RefreshQuestionsButton onRefresh={onRetryQuestions} />
+<button
                 onClick={onClose}
                 aria-label="Close trivia"
-                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
             </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
           </div>
-          {activeSection === 'leaderboard' ? (
-            <TriviaLeaderboardPanel />
-          ) : activeSection === 'account' ? (
-            <TriviaAccountPanel credits={userTotalPoints + gameState.points} />
-          ) : (
-            <TriviaMoreGamesPanel />
-          )}
-          <TriviaBottomNavigation
-            activeSection={activeSection}
-            onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
-            incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (reachedGameLimit && !gameState.showResult && !gameState.isSubmitting && dailyGames) {
-    const resetTime = new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-      timeZone: 'Africa/Nairobi',
-    }).format(new Date(dailyGames.resetAt));
-
-    return (
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative flex h-[min(620px,85dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-        >
-          <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
-                  aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{gameState.timeLeft}s</span>
-                </div>
-                <button
-                  onClick={onClose}
-                  aria-label="Close trivia"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
-          </div>
-          {activeSection === 'trivia' ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-center sm:px-6">
-              <Clock className="mx-auto h-10 w-10 text-indigo-600" />
-              <h3 className="mt-3 text-lg font-bold text-slate-900">
-                Daily game limit reached
-              </h3>
-              <p className="mt-2 text-sm text-slate-600">
-                You have completed {dailyGames.limit} trivia games today. Come back after the daily reset.
-              </p>
-              <p className="mt-3 text-xs font-semibold text-slate-500">
-                Resets {resetTime} East Africa Time
-              </p>
-              <button
-                type="button"
-                onClick={() => selectSection('leaderboard')}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
-              >
-                <Trophy className="h-4 w-4" />
-                View leaderboard
-              </button>
-            </div>
-          ) : activeSection === 'leaderboard' ? (
-            <TriviaLeaderboardPanel />
-          ) : activeSection === 'account' ? (
-            <TriviaAccountPanel credits={userTotalPoints + gameState.points} />
-          ) : (
-            <TriviaMoreGamesPanel />
-          )}
-          <TriviaBottomNavigation
-            activeSection={activeSection}
-            onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
-            incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (dailyLockedUntil) {
-    const resetTime = new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-      timeZone: 'UTC',
-    }).format(new Date(dailyLockedUntil));
-
-    return (
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative flex h-[min(620px,85dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-        >
-          <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
-                  aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{gameState.timeLeft}s</span>
-                </div>
-                <button
-                  onClick={onClose}
-                  aria-label="Close trivia"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
-          </div>
-          {activeSection === 'trivia' ? (
+          {activeSection === 'hearts' ? (
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
-              <div className="flex items-center justify-between gap-2 mb-4">
-                <h3 className="flex items-center gap-1.5 text-lg font-bold text-rose-700">
-                  <Heart className="h-5 w-5 fill-red-500 text-red-500" />
-                  Out of hearts
-                </h3>
-              </div>
-              <p className="mt-2 text-sm text-slate-600">
-                You used all {MAX_DAILY_HEARTS} hearts today. Ask a friend for a
-                heart, or play again after the daily reset.
-              </p>
-              <p className="mt-3 text-xs font-semibold text-slate-500">
-                Resets {resetTime} UTC
-              </p>
+              <TriviaHeartsPanel onHeartsChanged={onHeartsChanged} onIncomingCountChange={setIncomingHeartRequestCount} />
             </div>
           ) : activeSection === 'leaderboard' ? (
             <TriviaLeaderboardPanel />
-          ) : activeSection === 'account' ? (
+          ) : activeSection === 'gifts' ? (
             <TriviaAccountPanel credits={userTotalPoints + gameState.points} />
           ) : (
             <TriviaMoreGamesPanel />
@@ -971,31 +717,15 @@ export default function TriviaModal({
           <TriviaBottomNavigation
             activeSection={activeSection}
             onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
             incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
+          />
         </motion.div>
       </div>
     );
   }
 
   // ─── LOADING / EMPTY STATE ─────────────────────────────────────
-  if (totalQuestions === 0) {
+  if (isPreGameScreen) {
     return (
       <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
         <motion.div
@@ -1005,259 +735,66 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+                <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
+                  {userTotalPoints + gameState.points}
+                </span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-rose-600"
                   aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
+                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}>
+                  <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                  {gameState.dailyHeartsRemaining}
+                </span>
                 <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
                   <Clock className="h-3.5 w-3.5" />
                   <span>{gameState.timeLeft}s</span>
                 </div>
-                <button
+                <TriviaUserBadge user={currentUser} />
+                                  <RefreshQuestionsButton onRefresh={onRetryQuestions} />
+<button
                   onClick={onClose}
                   aria-label="Close trivia"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p-6 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-              <Gamepad2 className="h-7 w-7" />
-            </span>
-            <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
-              Ready for a challenge?
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Answer questions, build your streak, and earn points. You’ll have{' '}
-              {TIME_PER_QUESTION} seconds and {MAX_ATTEMPTS} attempts for each question.
-            </p>
-            <div
-              className="mt-4 flex min-h-8 items-center justify-center gap-2 text-xs font-semibold text-slate-600"
-              aria-live="polite"
-              aria-label={isLoading ? 'Loading hearts and level' : undefined}
-            >
-              {isLoading ? (
-                <>
-                  <span className="h-7 w-24 animate-pulse rounded-full bg-slate-200" />
-                  <span className="h-7 w-20 animate-pulse rounded-full bg-slate-200" />
-                </>
-              ) : (
-                <>
-                  <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">
-                    {gameState.dailyHeartsRemaining} hearts
-                  </span>
-                  <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-indigo-700">
-                    Level {currentLevel}
-                  </span>
-                </>
-              )}
-              </div>
-            </div>
-            <p
-              className={`mt-4 text-sm ${questionLoadError ? 'text-rose-600' : 'text-slate-500'}`}
-              role={questionLoadError ? 'alert' : 'status'}
-            >
-              {isLoading ? loadingMessage : questionLoadError ?? 'No questions are available right now.'}
-            </p>
-            <div className="mt-4 text-center">
-              <p className="text-xs leading-5 text-slate-900">Read each question carefully before choosing.</p>
-              <p className="text-xs leading-5 text-slate-900">You get {MAX_ATTEMPTS} attempts for each question.</p>
-              <p className="text-xs leading-5 text-slate-900">Correct answers build your streak and earn points.</p>
-              <p className="text-xs leading-5 text-slate-900">You can start as soon as your questions are ready.</p>
-            </div>
-            <button
-              type="button"
-              disabled
-              className="mt-6 inline-flex w-full cursor-wait items-center justify-center gap-2 rounded-lg bg-indigo-600 py-3 text-sm font-bold text-white opacity-70"
-            >
-              {isLoading ? (
-                <>
-                  <Clock className="h-4 w-4 animate-spin" />
-                  Getting game ready…
-                </>
-              ) : (
-                'Start game'
-              )}
-            </button>
-            {!isLoading && (
-              <button
-                onClick={questionLoadError ? onRetryQuestions : onClose}
-                className="mt-2 w-full rounded-lg py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-              >
-                {questionLoadError ? 'Try again' : 'Close'}
-              </button>
-            )}
-          </div>
-          <TriviaBottomNavigation
-            activeSection={activeSection}
-            onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
-            incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!gameState.hasStarted && !gameState.showResult) {
-    return (
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="relative flex h-[min(620px,85dvh)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-        >
-          <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
-              <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
-                  aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
-                  <Clock className="h-3.5 w-3.5" />
-                  <span>{gameState.timeLeft}s</span>
-                </div>
-                <button
-                  onClick={onClose}
-                  aria-label="Close trivia"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="p-6 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-              <Gamepad2 className="h-7 w-7" />
-            </span>
-            <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
-              Ready to play?
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Answer {totalQuestions} questions and earn points. You’ll have{' '}
-              {TIME_PER_QUESTION} seconds and {MAX_ATTEMPTS} attempts for each question.
-            </p>
-            <div className="mt-5 flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
-              <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">
-                {gameState.dailyHeartsRemaining} hearts
-              </span>
-              <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-indigo-700">
-                Level {currentLevel}
-              </span>
-              </div>
-            </div>
-            <button
-              onClick={() =>
+            <WelcomeGamePanel
+              totalQuestions={totalQuestions}
+              currentLevel={currentLevel}
+              dailyHeartsRemaining={gameState.dailyHeartsRemaining}
+              isLoading={isLoading}
+              loadingMessage={loadingMessage}
+              questionLoadError={questionLoadError}
+              returning={gameState.currentQuestionIndex > 0 || gameState.answers.length > 0}
+              heartsLocked={Boolean(dailyLockedUntil) || gameState.dailyHeartsRemaining === 0}
+              onRequestHearts={() => selectSection('hearts')}
+              lockReason={
+                reachedGameLimit
+                  ? 'Daily limit reached — come back tomorrow'
+                  : Boolean(dailyLockedUntil) || gameState.dailyHeartsRemaining === 0
+                    ? 'Out of hearts'
+                    : null
+              }
+              onStart={() =>
                 setGameState((prev) => ({
                   ...prev,
                   hasStarted: true,
                   timeLeft: TIME_PER_QUESTION,
                 }))
               }
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Gamepad2 className="h-4 w-4" />
-              Start game
-            </button>
+            />
           </div>
           <TriviaBottomNavigation
             activeSection={activeSection}
             onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
             incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
+          />
         </motion.div>
       </div>
     );
@@ -1290,49 +827,30 @@ export default function TriviaModal({
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-bold tracking-tight text-slate-900">Results</h2>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+                <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-                  <span className="text-xs font-bold tabular-nums">
-                    {userTotalPoints + gameState.points}
-                  </span>
-                </div>
-                <div
-                  className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
+                  {userTotalPoints + gameState.points}
+                </span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-rose-600"
                   aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-                >
-                  {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                    <Heart
-                      key={heart}
-                      className={`h-3.5 w-3.5 ${
-                        heart < gameState.dailyHeartsRemaining
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-200'
-                      }`}
-                    />
-                  ))}
-                  {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                    <span className="ml-1 text-[10px] font-bold text-red-700">
-                      5+
-                    </span>
-                  )}
-                </div>
+                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}>
+                  <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                  {gameState.dailyHeartsRemaining}
+                </span>
                 <div className={`flex items-center gap-1.5 text-xs font-semibold ${isUrgent ? 'text-rose-600' : 'text-slate-500'}`}>
                   <Clock className="h-3.5 w-3.5" />
                   <span>{gameState.timeLeft}s</span>
                 </div>
-                <button
+              <TriviaUserBadge user={currentUser} />
+<button
                   onClick={onClose}
                   aria-label="Close trivia results"
-                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
-            <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-              New day, new challenge!
-            </p>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-2 overflow-hidden px-4 py-2 sm:px-5">
@@ -1500,24 +1018,8 @@ export default function TriviaModal({
           <TriviaBottomNavigation
             activeSection={activeSection}
             onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
             incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
+          />
         </motion.div>
       </div>
     );
@@ -1544,13 +1046,11 @@ export default function TriviaModal({
 
         <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>
+            <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <div className="relative flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+            <div className="relative flex items-center gap-1 text-xs font-bold text-amber-600">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
-              <span className="text-xs font-bold tabular-nums">
-                {userTotalPoints + gameState.points}
-              </span>
+              {userTotalPoints + gameState.points}
               <AnimatePresence>
                 {gameState.lastPointsEarned > 0 && gameState.feedbackType === 'success' && (
                   <motion.span
@@ -1566,27 +1066,12 @@ export default function TriviaModal({
               </AnimatePresence>
             </div>
 
-            <div
-              className="flex items-center gap-0.5 rounded-full bg-rose-50 px-2.5 py-1.5"
-              aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-              title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
-            >
-              {Array.from({ length: MAX_DAILY_HEARTS }, (_, heart) => (
-                <Heart
-                  key={heart}
-                  className={`h-3.5 w-3.5 ${
-                    heart < gameState.dailyHeartsRemaining
-                      ? 'fill-red-500 text-red-500'
-                      : 'text-red-200'
-                  }`}
-                />
-              ))}
-              {gameState.dailyHeartsRemaining > MAX_DAILY_HEARTS && (
-                <span className="ml-1 text-[10px] font-bold text-red-700">
-                  5+
+            <span className="flex items-center gap-1 text-xs font-semibold text-rose-600"
+                  aria-label={`${gameState.dailyHeartsRemaining} daily hearts remaining`}
+                  title={`${gameState.dailyHeartsRemaining} daily hearts remaining`}>
+                  <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                  {gameState.dailyHeartsRemaining}
                 </span>
-              )}
-            </div>
 
             <div
               className={`flex items-center gap-1.5 text-xs font-semibold ${
@@ -1596,19 +1081,17 @@ export default function TriviaModal({
               <Clock className="h-3.5 w-3.5" />
               <span>{gameState.timeLeft}s</span>
             </div>
-
-            <button
+              <TriviaUserBadge user={currentUser} />
+              <RefreshQuestionsButton onRefresh={onRetryQuestions} />
+<button
               onClick={onClose}
               aria-label="Close trivia"
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
             </div>
           </div>
-          <p className="text-[10px] font-medium italic text-indigo-600 sm:text-xs">
-            New day, new challenge!
-          </p>
           </div>
 
         <AnimatePresence>
@@ -1628,7 +1111,7 @@ export default function TriviaModal({
           )}
         </AnimatePresence>
 
-        {activeSection === 'trivia' && !showHeartRequests && <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-xs font-semibold sm:px-6">
+        {activeSection === 'trivia' && <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-3 text-xs font-semibold sm:px-6">
           <div className="flex items-center gap-1.5 text-slate-500">
             <span>Question</span>
             <span className="font-bold text-slate-700">{gameState.currentQuestionIndex + 1}</span>
@@ -1652,15 +1135,24 @@ export default function TriviaModal({
           </div>
         </div>}
 
-        <HeartRequestsMainArea
-          isOpen={showHeartRequests}
-          onHeartsChanged={onHeartsChanged}
-          onIncomingCountChange={setIncomingHeartRequestCount}
-        />
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-5 sm:px-6">
           <AnimatePresence mode="wait">
-            {showHeartRequests ? null : activeSection === 'leaderboard' ? (
+            {activeSection === 'hearts' ? (
+              <motion.div
+                key="hearts-panel"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                <TriviaHeartsPanel
+                  onHeartsChanged={onHeartsChanged}
+                  onIncomingCountChange={setIncomingHeartRequestCount}
+                />
+              </motion.div>
+            ) : activeSection === 'leaderboard' ? (
               <motion.div
                 key="leaderboard-panel"
                 initial={{ opacity: 0, x: 20 }}
@@ -1671,9 +1163,9 @@ export default function TriviaModal({
               >
                 <TriviaLeaderboardPanel />
               </motion.div>
-            ) : activeSection === 'account' ? (
+            ) : activeSection === 'gifts' ? (
               <motion.div
-                key="account-panel"
+                key="gifts-panel"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
@@ -1890,25 +1382,10 @@ export default function TriviaModal({
 
           <TriviaBottomNavigation
             activeSection={activeSection}
-            onSelect={selectSection}
-            dailyHeartsRemaining={gameState.dailyHeartsRemaining}
-            showHeartRequests={showHeartRequests}
-            onToggleHeartRequests={toggleHeartRequests}
+            onSelect={(section) => section === 'trivia' ? setGameState((prev) => ({ ...prev, hasStarted: false })) : selectSection(section)}
             incomingHeartRequestCount={incomingHeartRequestCount}
-            onHeartsChanged={onHeartsChanged}
-            onIncomingCountChange={setIncomingHeartRequestCount}
-          >
-            <HeartSharingPanel
-              mode="incoming"
-              isVisible={showHeartRequests}
-              showEmptyState
-              onHeartsChanged={onHeartsChanged}
-              onIncomingCountChange={setIncomingHeartRequestCount}
-            />
-            {showHeartRequests && (
-              <HeartSharingPanel mode="request" onHeartsChanged={onHeartsChanged} />
-            )}
-          </TriviaBottomNavigation>
+            triviaLabel="Home"
+          />
         </div>
       </motion.div>
     </div>

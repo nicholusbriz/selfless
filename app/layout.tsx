@@ -7,6 +7,7 @@ import PWAInstall from '@/components/PWAInstall';
 import { ActivityTracker } from '@/components/ActivityTracker';
 import { SessionValidator } from '@/components/SessionValidator';
 import { OnlineUsersProviderWrapper } from '@/components/OnlineUsersProviderWrapper';
+import { FeaturedVideoCard } from '@/components/FeaturedVideoCard';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -366,6 +367,7 @@ export default function RootLayout({
             <OnlineUsersProviderWrapper>
               <main className="flex-1">
                 {children}
+                  <FeaturedVideoCard />
               </main>
             </OnlineUsersProviderWrapper>
           </Providers>

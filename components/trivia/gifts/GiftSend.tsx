@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Send, Mail } from 'lucide-react';
+import { Gift, Send, Mail } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface ConnectionUser {
   id: string;
   name: string;
   profileImage: string | null;
+  hasVerifiedBadge?: boolean;
 }
 
 interface OwnedGift {
@@ -17,6 +19,8 @@ interface OwnedGift {
   giftName: string;
   emoji: string;
   quantity: number;
+  cost: number;
+  description?: string | null;
 }
 
 // Shape returned by /api/social/connections/[userId]
@@ -25,16 +29,30 @@ interface ConnectionRow {
   firstName: string;
   lastName: string;
   profileImageUrl: string | null;
+  hasVerifiedBadge?: boolean;
 }
 
 export default function GiftSend() {
   const { user: currentUser } = useAuth();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [selectedGift, setSelectedGift] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [message, setMessage] = useState('Here is a gift for you!');
   const [activeFilter, setActiveFilter] = useState<'all' | 'following' | 'followers'>('all');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  };
 
   // Fetch people the current user follows
   const { data: followingData } = useQuery({
@@ -44,7 +62,7 @@ export default function GiftSend() {
       const response = await fetch(
         `/api/social/connections/${currentUser!.id}?type=following&limit=100`,
       );
-      const result = await response.json();
+      const result: any = await response.json();
       return (result.connections ?? []) as ConnectionRow[];
     },
   });
@@ -54,7 +72,7 @@ export default function GiftSend() {
     queryKey: ['gift-send-followers'],
     queryFn: async () => {
       const response = await fetch('/api/social/followers?limit=100');
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch followers');
       }
@@ -67,7 +85,7 @@ export default function GiftSend() {
     queryKey: ['gift-inventory'],
     queryFn: async () => {
       const response = await fetch('/api/gifts/inventory');
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch inventory');
       }
@@ -94,13 +112,16 @@ export default function GiftSend() {
           message: message || null,
         }),
       });
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to send gift');
       }
       return result;
     },
     onSuccess: () => {
+      const sentGift = inventoryData?.find((g) => g.id === selectedGift);
+      const sentName = allUsers.find((u) => u.id === selectedUser)?.name ?? 'your friend';
+      showToast(`🎁 ${sentGift?.giftName ?? 'Gift'} sent to ${sentName}!`);
       // Invalidate inventory and received gifts queries
       queryClient.invalidateQueries({ queryKey: ['gift-inventory'] });
       queryClient.invalidateQueries({ queryKey: ['gift-received'] });
@@ -116,6 +137,7 @@ export default function GiftSend() {
     id: u.id,
     name: `${u.firstName} ${u.lastName}`.trim(),
     profileImage: u.profileImageUrl,
+    hasVerifiedBadge: u.hasVerifiedBadge,
   }));
   const followerUsers: ConnectionUser[] = followersData ?? [];
 
@@ -137,9 +159,7 @@ export default function GiftSend() {
         ? followingUsers.map((u) => ({ ...u, type: 'following' as const }))
         : followerUsers.map((u) => ({ ...u, type: 'follower' as const }));
 
-  const filteredUsers = availableUsers.filter((u) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredUsers = availableUsers;
 
   const inventory = inventoryData || [];
   const filteredInventory = inventory.filter((item) => item.quantity > 0);
@@ -148,135 +168,127 @@ export default function GiftSend() {
 
   return (
     <div className="p-4 sm:p-5">
-      {/* Search Users */}
-      <div className="mb-4">
-        <h3 className="text-sm font-bold text-slate-900 mb-2">Send to</h3>
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mb-2">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'all'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setActiveFilter('following')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'following'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-          >
-            Following
-          </button>
-          <button
-            onClick={() => setActiveFilter('followers')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'followers'
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-          >
-            Followers
-          </button>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
-      </div>
-
-      {/* User List */}
-      <div className="mb-4 max-h-32 overflow-y-auto">
-        {filteredUsers.length === 0 ? (
-          <p className="text-xs text-slate-500 text-center py-4">
-            {followingData || followersData ? 'No users found' : 'Loading users...'}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {filteredUsers.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => setSelectedUser(user.id)}
-                className={`flex items-center gap-2 w-full rounded-lg border p-2 text-left transition ${selectedUser === user.id
-                  ? 'border-indigo-500 bg-indigo-50'
-                  : 'border-slate-200 bg-white hover:border-indigo-300'
-                  }`}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
-                  {user.name.split(' ').map((n) => n[0]).join('')}
-                </div>
-                <span className="text-xs font-medium text-slate-900">{user.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Gift Selection */}
       <div className="mb-4">
-        <h3 className="text-sm font-bold text-slate-900 mb-2">Select Gift</h3>
+        <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[8px] font-bold text-white">1</span>
+          Select a gift
+        </p>
         {inventoryLoading ? (
           <p className="text-xs text-slate-500">Loading gifts...</p>
         ) : (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {filteredInventory.map((item) => (
-              <button
+              <div
                 key={item.id}
-                onClick={() => setSelectedGift(item.id)}
-                disabled={item.quantity === 0}
-                className={`relative rounded-lg border p-2 text-center transition-all hover:scale-105 ${selectedGift === item.id
-                  ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500'
+                className={`relative w-[110px] shrink-0 overflow-hidden rounded-lg border p-2 text-center transition-all ${selectedGift === item.id
+                  ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 scale-[1.02]'
                   : item.quantity === 0
-                    ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
-                    : 'border-slate-200 bg-white hover:border-indigo-300'
+                    ? 'border-slate-100 bg-slate-50 opacity-50'
+                    : 'border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md'
                   }`}
               >
-                <div className="text-2xl mb-1">{item.emoji}</div>
-                <p className="text-[10px] font-semibold text-slate-900">{item.giftName}</p>
-                <p className="text-[9px] text-slate-500">x{item.quantity}</p>
-              </button>
+                <button
+                  onClick={() => item.quantity > 0 && setSelectedGift(item.id)}
+                  disabled={item.quantity === 0}
+                  className="w-full"
+                >
+                  <div className="text-xl mb-1">{item.emoji}</div>
+                  <p className="text-[10px] font-bold text-slate-900 leading-tight">{item.giftName}</p>
+                  {item.description && (
+                    <p className="mt-0.5 text-[8px] leading-snug text-slate-500 line-clamp-1">{item.description}</p>
+                  )}
+                  <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-1.5 py-0.5 text-[8px] font-bold text-indigo-700">
+                    <Gift className="h-2.5 w-2.5" />
+                    {item.quantity} owned
+                  </span>
+                </button>
+              </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Message Input */}
-      <div className="mb-4">
-        <h3 className="text-sm font-bold text-slate-900 mb-2">Message (optional)</h3>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Add a personal message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          />
-        </div>
+      {/* Filter tabs on top */}
+      <div className="mb-3 flex gap-2">
+        <button
+          onClick={() => setActiveFilter('all')}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'all'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setActiveFilter('following')}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'following'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+        >
+          Following
+        </button>
+        <button
+          onClick={() => setActiveFilter('followers')}
+          className={`px-3 py-1 rounded-full text-xs font-semibold transition ${activeFilter === 'followers'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+        >
+          Followers
+        </button>
       </div>
 
-      {/* Send Button */}
-      <button
-        disabled={!canSend || sendMutation.isPending}
-        onClick={() => sendMutation.mutate()}
-        className={`w-full flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition ${canSend && !sendMutation.isPending
-          ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-          }`}
-      >
-        <Send className="h-4 w-4" />
-        {sendMutation.isPending ? 'Sending...' : 'Send Gift'}
-      </button>
+      {/* Choose a friend + dropdown in one row */}
+      <div className="mb-4 flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-slate-700">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[8px] font-bold text-white">2</span>
+          Send it to
+        </span>
+        <select
+          value={selectedUser ?? ''}
+          onChange={(e) => setSelectedUser(e.target.value || null)}
+          className="min-w-0 flex-1 appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-900 shadow-sm transition focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        >
+          <option value="" disabled>
+            {filteredUsers.length > 0 ? 'Choose who to send to' : 'No users available'}
+          </option>
+          {filteredUsers.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name}
+              {user.hasVerifiedBadge ? ' ✓' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Composer - expands when a user is selected */}
+      {selectedUser && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/60 p-2.5">
+          <div className="relative min-w-0 flex-1">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Write a message..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+          <button
+            disabled={!canSend || sendMutation.isPending}
+            onClick={() => sendMutation.mutate()}
+            className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${canSend && !sendMutation.isPending
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+          >
+            <Send className="h-3.5 w-3.5" />
+            {sendMutation.isPending ? 'Sending...' : 'Send'}
+          </button>
+        </div>
+      )}
 
       {/* Selection Summary */}
       {(selectedUser || selectedGift) && (
@@ -296,6 +308,17 @@ export default function GiftSend() {
             )}
           </p>
         </div>
+      )}
+
+      {/* Send toast */}
+      {toast && (
+        <button
+          type="button"
+          onClick={() => setToast(null)}
+          className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-slate-800"
+        >
+          {toast} Tap to dismiss
+        </button>
       )}
     </div>
   );

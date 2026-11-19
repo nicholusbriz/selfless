@@ -1109,24 +1109,9 @@ function MediaLibrary() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const featuredChristmasVideo: MediaItem = {
-    id: 'featured-christmas-2024',
-    publicUrl: '/xmas.mp4',
-    blobName: 'xmas.mp4',
-    contentType: 'video/mp4',
-    size: 0,
-    title: 'Christmas message from the First Presidency',
-    description: null,
-    category: 'featured',
-    approvalStatus: 'APPROVED',
-    createdAt: new Date().toISOString(),
-    loop: true,
-  };
-
   const videos = useMemo(
     () => {
-      const fetchedVideos = items.filter((item) => item.contentType.startsWith('video/'));
-      return [featuredChristmasVideo, ...fetchedVideos];
+      return items.filter((item) => item.contentType.startsWith('video/'));
     },
     [items],
   );
@@ -1186,7 +1171,7 @@ function MediaLibrary() {
             description={current.description || undefined}
             className="w-full"
             playRef={videoPlayerRef}
-            autoplay={currentIndex === 0}
+            autoplay={false}
             loop={current.loop || false}
             onEnded={() => {
               if (videos.length > 1) goNext();

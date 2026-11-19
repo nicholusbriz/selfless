@@ -157,7 +157,7 @@ export default function TriviaLeaderboardPanel() {
                     firstName={entry.user.firstName}
                     lastName={entry.user.lastName}
                     hasVerifiedBadge={entry.user.hasVerifiedBadge}
-                    className="max-w-full"
+                    className="max-w-full whitespace-normal break-words"
                     badgeClassName="h-3.5 w-3.5"
                   />
                 </p>
@@ -165,9 +165,9 @@ export default function TriviaLeaderboardPanel() {
                   {entry.gamesPlayed} {entry.gamesPlayed === 1 ? 'game' : 'games'}
                 </p>
               </div>
-              <p className="shrink-0 text-sm font-bold tabular-nums text-slate-900">
+              <p className="shrink-0 text-sm font-bold tabular-nums text-rose-600">
                 {entry.points.toLocaleString()}{' '}
-                <span className="text-xs font-medium text-slate-500">pts</span>
+                <span className="text-[10px] font-medium text-slate-400">credits</span>
               </p>
             </li>
           ))}

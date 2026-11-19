@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Gift } from 'lucide-react';
 import TriviaModal from './TriviaModal';
@@ -116,7 +116,9 @@ export default function GiftIcon() {
         return { level: null, lockedUntil: null, heartsRemaining: MAX_DAILY_HEARTS, gamesLimited: false };
       }
 
-      if (typeof data.triviaPoints === 'number') {
+      if (typeof data.credits === 'number') {
+        setUserTotalPoints(data.credits);
+      } else if (typeof data.triviaPoints === 'number') {
         setUserTotalPoints(data.triviaPoints);
       }
 
@@ -145,6 +147,22 @@ export default function GiftIcon() {
       console.error('Error fetching user trivia points:', error);
       return { level: null, lockedUntil: null, heartsRemaining: MAX_DAILY_HEARTS, gamesLimited: false };
     }
+  }, []);
+
+  // Refresh displayed credits after a gift purchase
+  useEffect(() => {
+    const refresh = () => { void fetchUserPoints(); };
+    window.addEventListener('trivia-credits-changed', refresh);
+    return () => window.removeEventListener('trivia-credits-changed', refresh);
+  }, [fetchUserPoints]);
+
+
+  // Allow other components (e.g. bottom nav) to open the trivia modal
+  useEffect(() => {
+    const open = () => { void handleOpen(); };
+    window.addEventListener('open-trivia-modal', open);
+    return () => window.removeEventListener('open-trivia-modal', open);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleOpen = async () => {

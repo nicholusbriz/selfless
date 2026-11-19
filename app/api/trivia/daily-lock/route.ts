@@ -8,12 +8,16 @@ import { prisma } from '@/lib/prisma/client';
 const MAX_WRITE_CONFLICT_ATTEMPTS = 5;
 
 function isPrismaWriteConflict(error: unknown): boolean {
-  return (
+  if (
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
     error.code === 'P2034'
-  );
+  ) {
+    return true;
+  }
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return /write conflict|deadlock|Transaction failed/i.test(msg);
 }
 
 async function retryWriteConflict<T>(operation: () => Promise<T>): Promise<T> {

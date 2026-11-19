@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Gift {
@@ -26,16 +26,38 @@ const tierColors = {
   4: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
+const PURCHASE_STEPS = [
+  'Reserving credits…',
+  'Updating your balance…',
+  'Adding to your inventory…',
+  'Wrapping it up…',
+];
+
 export default function GiftCatalog({ credits }: { credits: number }) {
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
+  const [purchaseStep, setPurchaseStep] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  };
 
   // Fetch gift catalog
   const { data: catalogData, isLoading } = useQuery({
     queryKey: ['gift-catalog'],
     queryFn: async () => {
       const response = await fetch('/api/gifts/catalog');
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch catalog');
       }
@@ -51,19 +73,36 @@ export default function GiftCatalog({ credits }: { credits: number }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ giftId }),
       });
-      const result = await response.json();
+      const result: any = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Failed to purchase gift');
       }
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_data, giftId) => {
+      const gift = catalogData?.find((g) => g.id === giftId);
+      showToast(`🎁 ${gift?.name ?? 'Gift'} added to your inventory!`);
       // Invalidate inventory query
       queryClient.invalidateQueries({ queryKey: ['gift-inventory'] });
       // Also invalidate credits to update balance
       queryClient.invalidateQueries({ queryKey: ['user-points'] });
+      window.dispatchEvent(new Event('trivia-credits-changed'));
+    },
+    onSettled: () => {
+      setPurchaseStep(0);
     },
   });
+
+  useEffect(() => {
+    if (!purchaseMutation.isPending) {
+      setPurchaseStep(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setPurchaseStep((prev) => (prev + 1) % PURCHASE_STEPS.length);
+    }, 900);
+    return () => clearInterval(interval);
+  }, [purchaseMutation.isPending]);
 
   const gifts = catalogData || [];
   const filteredGifts = selectedTier 
@@ -110,7 +149,7 @@ export default function GiftCatalog({ credits }: { credits: number }) {
       </div>
 
       {/* Gift Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
         {filteredGifts.map((gift) => (
           <div
             key={gift.id}
@@ -134,11 +173,22 @@ export default function GiftCatalog({ credits }: { credits: number }) {
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {purchaseMutation.isPending ? 'Purchasing...' : credits >= gift.cost ? 'Purchase' : 'Not enough'}
+              {purchaseMutation.isPending ? PURCHASE_STEPS[purchaseStep] : credits >= gift.cost ? 'Purchase' : 'Not enough'}
             </button>
           </div>
         ))}
       </div>
+
+      {/* Purchase toast */}
+      {toast && (
+        <button
+          type="button"
+          onClick={() => setToast(null)}
+          className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-slate-800"
+        >
+          {toast} Tap to dismiss
+        </button>
+      )}
     </div>
   );
 }

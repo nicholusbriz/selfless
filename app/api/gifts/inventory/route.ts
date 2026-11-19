@@ -27,6 +27,8 @@ export async function GET() {
       giftName: item.gift.name,
       emoji: item.gift.emoji,
       quantity: item.quantity,
+      cost: item.gift.cost,
+      description: item.gift.description,
       purchasedAt: item.purchasedAt.toISOString(),
     }));
 

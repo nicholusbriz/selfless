@@ -27,6 +27,7 @@ export async function GET() {
         triviaLockedUntil: true,
         triviaHeartsRemaining: true,
         triviaHeartsDate: true,
+        triviaPoints: true,
       },
     });
 
@@ -47,6 +48,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       triviaPoints: points._sum.points ?? 0,
+      credits: (points._sum.points ?? 0) - Math.max(0, userData?.triviaPoints ?? 0),
       currentLevel,
       triviaLockedUntil: triviaLockedUntil?.toISOString() ?? null,
       dailyHeartsRemaining: triviaLockedUntil ? 0 : dailyHeartsRemaining,

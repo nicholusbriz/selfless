@@ -20,12 +20,9 @@ import {
 
 interface TriviaSession {
   id: string;
-  correct: number;
-  total: number;
-  points: number;
-  streak: number;
-  accuracy: number;
-  playedAt: string;
+  sessions: number;
+  credits: number;
+  lastPlayedAt: string | null;
   user: {
     id: string;
     firstName: string;
@@ -37,8 +34,6 @@ interface TriviaSession {
 
 interface TriviaStats {
   totalGames: number;
-  averageAccuracy: number;
-  averagePoints: number;
   totalPointsEarned: number;
 }
 
@@ -171,7 +166,7 @@ export default function TriviaTrackingPage() {
               <div className="h-4 w-64 animate-pulse rounded bg-gray-200" />
             </div>
           </div>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-32 animate-pulse rounded-xl bg-gray-100" />
             ))}
@@ -244,7 +239,7 @@ export default function TriviaTrackingPage() {
         </div>
 
         {stats && (
-          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
             <div className="rounded-xl border border-[#E7E6E1] bg-white p-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F3E5C3] text-[#B98A3E]">
@@ -257,29 +252,6 @@ export default function TriviaTrackingPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#E7E6E1] bg-white p-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#E8F5E9] text-[#2F6B45]">
-                  <Target className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-[#6B7280]">Avg Accuracy</p>
-                  <p className="text-lg font-bold text-[#12203B]">{stats.averageAccuracy}%</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-[#E7E6E1] bg-white p-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFF3E0] text-[#B98A3E]">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-[#6B7280]">Avg Points</p>
-                  <p className="text-lg font-bold text-[#12203B]">{stats.averagePoints}</p>
-                </div>
-              </div>
-            </div>
 
             <div className="rounded-xl border border-[#E7E6E1] bg-white p-4 shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
               <div className="flex items-center gap-3">
@@ -364,90 +336,29 @@ export default function TriviaTrackingPage() {
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-[#E7E6E1] bg-white shadow-[0_1px_2px_rgba(18,32,59,0.03)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#E7E6E1] bg-[#F8F7F3]">
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Player
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Score
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Accuracy
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Streak
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Points
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                        Played At
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sessions.map((session) => (
-                      <tr
-                        key={session.id}
-                        className="border-b border-[#E7E6E1] transition hover:bg-[#F9F9F7]"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <UserAvatar user={session.user} />
-                            <div>
-                              <p className="text-sm font-semibold text-[#12203B]">
-                                {session.user.firstName} {session.user.lastName}
-                              </p>
-                              <p className="text-xs text-[#6B7280]">
-                                {session.user.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Target className="h-4 w-4 text-[#B98A3E]" />
-                            <span className="text-sm font-semibold text-[#12203B]">
-                              {session.correct}/{session.total}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center rounded-full bg-[#E8F5E9] px-2.5 py-1 text-xs font-semibold text-[#2F6B45]">
-                            {Math.round(session.accuracy)}%
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <TrendingUp className="h-4 w-4 text-[#B98A3E]" />
-                            <span className="text-sm font-semibold text-[#12203B]">
-                              {session.streak}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Trophy className="h-4 w-4 text-[#B98A3E]" />
-                            <span className="text-sm font-bold text-[#12203B]">
-                              +{session.points}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5 text-xs text-[#6B7280]">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <span>{formatDate(session.playedAt)}</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="rounded-2xl border border-[#E7E6E1] bg-white shadow-[0_1px_2px_rgba(18,32,59,0.03)]">
+              <ul className="divide-y divide-[#E7E6E1]">
+                {sessions.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-[#F9F9F7]"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <UserAvatar user={row.user} />
+                      <p className="text-sm font-semibold text-[#12203B]">
+                        {row.user.firstName} {row.user.lastName}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-[#6B7280]">
+                      <div className="flex items-center gap-3">
+                        <span>{row.sessions} session{row.sessions === 1 ? '' : 's'}</span>
+                        <span className="font-semibold text-[#12203B]">{row.credits.toLocaleString()} credits</span>
+                      </div>
+                      <span>{row.lastPlayedAt ? formatDate(row.lastPlayedAt) : '—'}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             {totalPages > 1 && (

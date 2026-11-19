@@ -22,9 +22,17 @@ interface OnlineUser {
 interface OnlineUsersProps {
   onlineUsers: OnlineUser[];
   currentUserId?: string;
+  currentUser?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    fullName?: string | null;
+    image?: string | null;
+    hasVerifiedBadge?: boolean | null;
+    techCenter?: { id: string; name: string } | null;
+  } | null;
 }
 
-export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
+export function OnlineUsers({ onlineUsers, currentUserId, currentUser }: OnlineUsersProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Ensure current user is included in the online users list
@@ -32,12 +40,12 @@ export function OnlineUsers({ onlineUsers, currentUserId }: OnlineUsersProps) {
     ? [
         {
           userId: currentUserId,
-          firstName: 'You',
-          lastName: '',
-          fullName: 'You',
-          image: null,
-          hasVerifiedBadge: false,
-          techCenter: null,
+          firstName: currentUser?.firstName || 'You',
+          lastName: currentUser?.lastName || '',
+          fullName: currentUser?.fullName || undefined,
+          image: currentUser?.image ?? null,
+          hasVerifiedBadge: currentUser?.hasVerifiedBadge ?? false,
+          techCenter: currentUser?.techCenter ?? null,
           connectedAt: new Date().toISOString(),
         },
         ...onlineUsers,

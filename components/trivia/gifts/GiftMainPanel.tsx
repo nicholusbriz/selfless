@@ -5,19 +5,21 @@ import { motion } from 'framer-motion';
 import { Gift, ShoppingBag, Send, Inbox, Wallet } from 'lucide-react';
 import GiftCatalog from './GiftCatalog';
 import GiftSend from './GiftSend';
+import GiftSent from './GiftSent';
 import GiftReceived from './GiftReceived';
 import GiftWallet from './GiftWallet';
 
-type GiftTab = 'received' | 'buy' | 'send' | 'wallet';
+type GiftTab = 'received' | 'buy' | 'send' | 'sent' | 'wallet';
 
 export default function GiftMainPanel({ credits }: { credits: number }) {
-  const [activeTab, setActiveTab] = useState<GiftTab>('received');
+  const [activeTab, setActiveTab] = useState<GiftTab>('buy');
 
   const tabs = [
-    { id: 'received' as GiftTab, label: 'Received', icon: Inbox },
     { id: 'buy' as GiftTab, label: 'Buy', icon: ShoppingBag },
+    { id: 'received' as GiftTab, label: 'Received', icon: Inbox },
     { id: 'send' as GiftTab, label: 'Send', icon: Send },
-    { id: 'wallet' as GiftTab, label: 'Wallet', icon: Wallet },
+    { id: 'sent' as GiftTab, label: 'Sent', icon: Gift },
+    { id: 'wallet' as GiftTab, label: 'My Account', icon: Wallet },
   ];
 
   return (
@@ -29,14 +31,14 @@ export default function GiftMainPanel({ credits }: { credits: number }) {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`relative flex-1 flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold transition-all duration-200 ${
+            className={`relative flex-1 flex items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-semibold whitespace-nowrap transition-all duration-200 ${
               activeTab === tab.id
                 ? 'text-indigo-600'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-white'
             }`}
           >
-            <tab.icon className="h-4 w-4" />
-            <span>{tab.label}</span>
+            <tab.icon className="h-3.5 w-3.5" />
+            <span className="whitespace-nowrap">{tab.label}</span>
             {activeTab === tab.id && (
               <motion.div
                 layoutId="activeTab"
@@ -55,6 +57,7 @@ export default function GiftMainPanel({ credits }: { credits: number }) {
         {activeTab === 'received' && <GiftReceived />}
         {activeTab === 'buy' && <GiftCatalog credits={credits} />}
         {activeTab === 'send' && <GiftSend />}
+        {activeTab === 'sent' && <GiftSent />}
         {activeTab === 'wallet' && <GiftWallet credits={credits} />}
       </div>
     </div>

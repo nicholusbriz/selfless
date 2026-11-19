@@ -6,8 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    const body = await request.json();
-    const { giftId } = body;
+    const body = (await request.json().catch(() => null)) as { giftId?: unknown } | null;
+    const giftId = typeof body?.giftId === 'string' ? body.giftId : null;
 
     if (!giftId) {
       return NextResponse.json(
@@ -28,11 +28,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user's credits
-    const currentUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { triviaPoints: true },
-    });
+    // Credits = total points earned from trivia sessions minus credits already
+    // spent. `user.triviaPoints` is used as the spent-credits ledger since
+    // earned points are derived from TriviaGameSession records.
+    const [earned, currentUser] = await Promise.all([
+      prisma.triviaGameSession.aggregate({
+        where: { userId: user.id },
+        _sum: { points: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { triviaPoints: true },
+      }),
+    ]);
 
     if (!currentUser) {
       return NextResponse.json(
@@ -41,30 +49,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (currentUser.triviaPoints < gift.cost) {
+    const credits = (earned._sum.points ?? 0) - Math.max(0, currentUser.triviaPoints);
+
+    if (credits < gift.cost) {
       return NextResponse.json(
         { success: false, error: 'Not enough credits' },
         { status: 400 }
       );
     }
 
+    // Check if user already has this gift
+    const existingPurchase = await prisma.giftPurchase.findFirst({
+      where: {
+        userId: user.id,
+        giftId,
+      },
+    });
+
     // Use transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
-      // Deduct credits
+      // Record credits spent
       await tx.user.update({
         where: { id: user.id },
         data: {
           triviaPoints: {
-            decrement: gift.cost,
+            set: Math.max(0, currentUser.triviaPoints) + gift.cost,
           },
-        },
-      });
-
-      // Check if user already has this gift
-      const existingPurchase = await tx.giftPurchase.findFirst({
-        where: {
-          userId: user.id,
-          giftId,
         },
       });
 
@@ -90,6 +100,9 @@ export async function POST(request: NextRequest) {
       }
 
       return { success: true };
+    }, {
+      timeout: 20000,
+      maxWait: 10000,
     });
 
     return NextResponse.json(result);

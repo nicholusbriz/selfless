@@ -20,6 +20,7 @@ export async function GET(request: Request) {
             firstName: true,
             lastName: true,
             profileImageUrl: true,
+            hasVerifiedBadge: true,
           },
         },
       },
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
       id: r.follower.id,
       name: `${r.follower.firstName} ${r.follower.lastName}`.trim(),
       profileImage: r.follower.profileImageUrl,
+      hasVerifiedBadge: r.follower.hasVerifiedBadge,
     }));
 
     return NextResponse.json({ success: true, followers });
