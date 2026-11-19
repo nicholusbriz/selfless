@@ -289,7 +289,7 @@ export default function TopNav({
           <div className="hidden h-5 w-px shrink-0 bg-[#E5E7EB] lg:block" />
 
           {/* Breadcrumb */}
-          {pageInfo.title && (
+          {pageInfo.title && pageInfo.section !== pageInfo.title && (
             <div className="hidden min-w-0 items-center gap-1.5 sm:flex">
               {pageInfo.section && (
                 <>

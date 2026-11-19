@@ -218,7 +218,7 @@ export default function GiftSend() {
             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
         >
-          All
+          All <span className="ml-1 opacity-70">{allUsers.length}</span>
         </button>
         <button
           onClick={() => setActiveFilter('following')}
@@ -227,7 +227,7 @@ export default function GiftSend() {
             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
         >
-          Following
+          Following <span className="ml-1 opacity-70">{followingUsers.length}</span>
         </button>
         <button
           onClick={() => setActiveFilter('followers')}
@@ -236,7 +236,7 @@ export default function GiftSend() {
             : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
         >
-          Followers
+          Followers <span className="ml-1 opacity-70">{followerUsers.length}</span>
         </button>
       </div>
 
