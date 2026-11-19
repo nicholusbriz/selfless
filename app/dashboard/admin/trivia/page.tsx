@@ -32,6 +32,25 @@ interface TriviaSession {
   };
 }
 
+interface GiftActivityRow {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profileImageUrl?: string | null;
+  };
+  purchases: number;
+  creditsSpent: number;
+  sentCount: number;
+  recipients: string[];
+  lastActivity: string;
+}
+
+interface GiftTransactionsResponse {
+  success: boolean;
+  activity: GiftActivityRow[];
+}
+
 interface TriviaStats {
   totalGames: number;
   totalPointsEarned: number;
@@ -95,6 +114,21 @@ export default function TriviaTrackingPage() {
   const [data, setData] = useState<TriviaSessionsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [gifts, setGifts] = useState<GiftTransactionsResponse | null>(null);
+
+  const fetchGifts = async () => {
+    try {
+      const response = await fetch('/api/admin/gift-transactions?limit=50');
+      if (!response.ok) return;
+      const result = (await response.json()) as GiftTransactionsResponse;
+      if (result.success && Array.isArray(result.activity)) setGifts(result);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchGifts();
+  }, []);
 
   const fetchSessions = async () => {
     setIsLoading(true);
@@ -387,6 +421,47 @@ export default function TriviaTrackingPage() {
               </div>
             )}
           </>
+        )}
+
+        {gifts && gifts.activity && gifts.activity.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-3 text-lg font-bold text-[#12203B]">Gift Activity</h2>
+            <ul>
+              {gifts.activity.map((row) => (
+                <li
+                  key={row.user.id}
+                  className="flex items-start justify-between gap-3 py-3"
+                >
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <UserAvatar user={row.user as TriviaSession['user']} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-[#12203B]">
+                        {row.user.firstName} {row.user.lastName}
+                      </p>
+                      <p className="text-xs text-[#6B7280]">
+                        {row.purchases} gift{row.purchases === 1 ? '' : 's'} purchased
+                        {row.creditsSpent > 0 && ` · ${row.creditsSpent.toLocaleString()} credits`}
+                      </p>
+                      {row.recipients.length > 0 && (
+                        <p className="mt-0.5 break-words text-xs text-[#6B7280]">
+                          Gifted to:{' '}
+                          {row.recipients.map((name, i) => (
+                            <span key={name} className="whitespace-nowrap">
+                              {i > 0 && ', '}{name}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-[#6B7280]">
+                    <span>{row.sentCount} sent</span>
+                    <span>{row.lastActivity ? formatDate(row.lastActivity) : '—'}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
