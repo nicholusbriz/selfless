@@ -63,7 +63,9 @@ export function GlobalOnlineUsersPopup() {
         // Mobile - pushed further left
         'top-2 left-[35%] -translate-x-1/2 w-auto',
         // Desktop
-        'sm:top-3 sm:left-[55%] sm:-translate-x-1/2 sm:w-auto'
+        'sm:top-3 sm:left-[55%] sm:-translate-x-1/2 sm:w-auto',
+        // Centered on top of the trivia modal
+        onTriviaModal && 'left-1/2 top-3 -translate-x-1/2 sm:left-1/2 sm:top-4'
       )}
     >
       <AnimatePresence mode="wait">
@@ -112,7 +114,7 @@ export function GlobalOnlineUsersPopup() {
           {/* Text Block - 3 rows max */}
           <div className="min-w-0 flex flex-col leading-tight">
             {/* Row 1: Full Name (no break, no truncate) */}
-            <p className={cn("text-[8px] font-bold whitespace-nowrap", onTriviaModal ? "text-[#12203B]" : "text-[#8B6914]")}>
+            <p className={cn("text-[8px] font-bold whitespace-nowrap", "text-[#8B6914]")}>
               {displayName}{onlineUser.hasVerifiedBadge && (<VerifiedBadge className="ml-0.5 inline h-2.5 w-2.5 align-[-1px]" />)}
             </p>
 

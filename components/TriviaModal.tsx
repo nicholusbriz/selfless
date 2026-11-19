@@ -223,6 +223,16 @@ export default function TriviaModal({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isOpenRef = useRef(isOpen);
+
+  // Preload the More Games background video as soon as the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    const v = document.createElement('video');
+    v.src = '/games.mp4';
+    v.preload = 'auto';
+    v.muted = true;
+    v.load();
+  }, [isOpen]);
   const gameStateRef = useRef(gameState);
   const dailyHeartsRef = useRef(dailyHeartsRemaining);
   const submissionIdRef = useRef<string | null>(null);

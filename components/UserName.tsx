@@ -16,18 +16,20 @@ export default function UserName({
   hasVerifiedBadge = false,
   className = '',
   badgeClassName = 'h-3.5 w-3.5',
+  allowWrap = false,
 }: {
   firstName?: string | null;
   lastName?: string | null;
   hasVerifiedBadge?: boolean | null;
   className?: string;
   badgeClassName?: string;
+  allowWrap?: boolean;
 }) {
   const name = `${firstName ?? ''} ${lastName ?? ''}`.trim() || 'Unknown';
 
   return (
     <span className={`inline-flex min-w-0 items-center gap-1 ${className}`}>
-      <span className="truncate">{name}</span>
+      <span className={allowWrap ? 'whitespace-normal break-words' : 'truncate'}>{name}</span>
       {hasVerifiedBadge && <VerifiedBadge className={badgeClassName} />}
     </span>
   );
