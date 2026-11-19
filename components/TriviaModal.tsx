@@ -7,7 +7,7 @@ import TriviaAccountPanel from './trivia/TriviaAccountPanel';
 import TriviaBottomNavigation, { type TriviaSection } from './trivia/TriviaBottomNavigation';
 import TriviaLeaderboardPanel from './trivia/TriviaLeaderboardPanel';
 import TriviaMoreGamesPanel from './trivia/TriviaMoreGamesPanel';
-import { TriviaUserBadge, TriviaOnlineUsers, WelcomeGamePanel } from './trivia/TriviaScreens';
+import { TriviaUserBadge, WelcomeGamePanel } from './trivia/TriviaScreens';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 import { MIN_ACCURACY_TO_LEVEL_UP } from '@/lib/trivia/levels';
@@ -675,7 +675,7 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2></div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
@@ -735,7 +735,7 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2></div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
@@ -1046,7 +1046,7 @@ export default function TriviaModal({
 
         <div className="flex shrink-0 flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><TriviaOnlineUsers /></div>
+            <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2></div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="relative flex items-center gap-1 text-xs font-bold text-amber-600">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
