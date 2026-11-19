@@ -152,13 +152,14 @@ export default function TriviaLeaderboardPanel() {
                 imageUrl={entry.user.profileImageUrl}
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-[#8B6914]">
                   <UserName
                     firstName={entry.user.firstName}
                     lastName={entry.user.lastName}
                     hasVerifiedBadge={entry.user.hasVerifiedBadge}
-                    className="max-w-full whitespace-normal break-words"
+                    className="max-w-full"
                     badgeClassName="h-3.5 w-3.5"
+                    allowWrap
                   />
                 </p>
                 <p className="text-[11px] text-slate-500">

@@ -46,7 +46,7 @@ export function TriviaOnlineUsers() {
         )}
       </span>
       <span className="hidden min-w-0 items-center gap-1 sm:flex">
-        <span className="max-w-[90px] truncate text-[9px] font-bold text-slate-700">
+        <span className="max-w-[90px] truncate text-[9px] font-bold text-[#8B6914]">
           {name}
           {current.hasVerifiedBadge && <VerifiedBadge className="ml-0.5 inline h-2.5 w-2.5 align-[-1px]" />}
         </span>
