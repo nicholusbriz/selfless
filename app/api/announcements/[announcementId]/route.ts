@@ -10,6 +10,7 @@ import {
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/nextauth';
 import { prisma } from '@/lib/prisma/client';
+import { revalidateTag } from 'next/cache';
 
 // PUT - Update announcement (owner only)
 export async function PUT(
@@ -105,6 +106,8 @@ export async function PUT(
       }
     });
 
+    revalidateTag('announcements', 'max');
+
     return NextResponse.json({
       message: 'Announcement updated successfully',
       announcement: {
@@ -117,6 +120,7 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Error updating announcement:', error);
+
     return NextResponse.json(
       { error: 'Failed to update announcement' },
       { status: 500 }
@@ -186,11 +190,14 @@ export async function DELETE(
       where: { id: announcementId }
     });
 
+    revalidateTag('announcements', 'max');
+
     return NextResponse.json({
       message: 'Announcement deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting announcement:', error);
+
     return NextResponse.json(
       { error: 'Failed to delete announcement' },
       { status: 500 }

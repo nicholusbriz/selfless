@@ -32,6 +32,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import AzureMediaUpload from '@/components/AzureMediaUpload';
 import MediaPostInteractions from './components/MediaPostInteractions';
+import { useMediaInteractionsPrefetch } from '@/lib/hooks/useMediaInteractionsPrefetch';
 import VerifiedBadge from '@/components/VerifiedBadge';
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -328,6 +329,10 @@ export default function GalleryPage() {
     if (!featuredVideo) return base;
     return base.filter((i) => i.id !== featuredVideo.id);
   }, [activeFilter, myPosts, savedPosts, photos, videos, items, featuredVideo]);
+
+  useMediaInteractionsPrefetch(
+    useMemo(() => visibleItems.map((i) => i.id), [visibleItems]),
+  );
 
   const visibleCount =
     activeFilter === 'mine'

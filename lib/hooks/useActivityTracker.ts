@@ -12,12 +12,22 @@ export function useActivityTracker(enabled = true) {
       }
     };
 
-    // Send heartbeat on mount
-    void sendHeartbeat();
-
-    // Heartbeat on visibility change (user returns to tab)
-    const handleVisibilityChange = () => {
+    // Heartbeat every 60s while the tab is visible
+    const interval = window.setInterval(() => {
       if (document.visibilityState === 'visible') {
+        void sendHeartbeat();
+      }
+    }, 60000);
+
+    // Heartbeat on visibility change (user returns to tab), throttled
+    let lastVisibilityBeat = 0;
+    const handleVisibilityChange = () => {
+      const now = Date.now();
+      if (
+        document.visibilityState === 'visible' &&
+        now - lastVisibilityBeat > 30000
+      ) {
+        lastVisibilityBeat = now;
         void sendHeartbeat();
       }
     };
@@ -25,6 +35,7 @@ export function useActivityTracker(enabled = true) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      window.clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [enabled]);

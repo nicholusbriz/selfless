@@ -147,7 +147,7 @@ export function useUnreadMessageCount() {
     enabled: !!currentUserId,
     staleTime: 30_000,
     gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   });
 
   return unreadCountQuery;
