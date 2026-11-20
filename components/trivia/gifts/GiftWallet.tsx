@@ -106,32 +106,6 @@ export default function GiftWallet({ credits }: { credits: number }) {
         )}
       </div>
 
-      {/* Credit value */}
-      {(() => {
-        const usd = totalEarned / 10;
-        return (
-          <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-600 mb-2">
-              Your credits exchanged into US dollars · 10 credits = $1
-            </p>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-lg font-bold text-slate-900">${usd.toFixed(2)}</p>
-                <p className="text-[10px] text-slate-500">USD</p>
-              </div>
-              <button
-                type="button"
-                disabled
-                title="Withdrawals are coming soon"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white opacity-50 cursor-not-allowed"
-              >
-                Withdraw
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Info */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
         <h3 className="text-xs font-bold text-slate-900 mb-2">How to Earn Credits</h3>

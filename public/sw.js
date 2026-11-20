@@ -1,5 +1,5 @@
 // public/sw.js - Service Worker for PWA (iOS compatible)
-const CACHE_VERSION = "selfless-portal-v6";
+const CACHE_VERSION = "selfless-portal-v7";
 const CACHE_PREFIX = "selfless-portal-";
 
 self.addEventListener("install", (event) => {
