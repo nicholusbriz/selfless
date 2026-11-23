@@ -4,8 +4,8 @@ export const MIN_ACCURACY_TO_LEVEL_UP = 70;
 export function getDifficultyForLevel(
   level: number,
 ): 'beginner' | 'intermediate' | 'advanced' {
-  if (level <= 2) return 'beginner';
-  if (level <= 5) return 'intermediate';
+  if (level <= 4) return 'beginner';
+  if (level <= 7) return 'intermediate';
   return 'advanced';
 }
 

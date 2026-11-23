@@ -1,0 +1,1202 @@
+[
+  {
+    "number": 1,
+    "question": "What is the plural of mouse?",
+    "options": [
+      "Mouses",
+      "Mice",
+      "Mousees",
+      "Meese"
+    ],
+    "correctAnswer": 1,
+    "level": 1
+  },
+  {
+    "number": 2,
+    "question": "Which word is a noun?",
+    "options": [
+      "Quickly",
+      "Beautiful",
+      "Happiness",
+      "Run"
+    ],
+    "correctAnswer": 2,
+    "level": 1
+  },
+  {
+    "number": 3,
+    "question": "What is the opposite of generous?",
+    "options": [
+      "Kind",
+      "Selfish",
+      "Helpful",
+      "Friendly"
+    ],
+    "correctAnswer": 1,
+    "level": 1
+  },
+  {
+    "number": 4,
+    "question": "Which word completes the sentence? “She ___ to school every morning.”",
+    "options": [
+      "Go",
+      "Going",
+      "Goes",
+      "Gone"
+    ],
+    "correctAnswer": 2,
+    "level": 1
+  },
+  {
+    "number": 5,
+    "question": "What is the past tense of teach?",
+    "options": [
+      "Teached",
+      "Teaching",
+      "Taught",
+      "Teaches"
+    ],
+    "correctAnswer": 2,
+    "level": 1
+  },
+  {
+    "number": 6,
+    "question": "Which word is a synonym for tiny?",
+    "options": [
+      "Huge",
+      "Small",
+      "Wide",
+      "Heavy"
+    ],
+    "correctAnswer": 1,
+    "level": 1
+  },
+  {
+    "number": 7,
+    "question": "Which punctuation mark ends an exclamatory sentence?",
+    "options": [
+      "Full stop",
+      "Comma",
+      "Question mark",
+      "Exclamation mark"
+    ],
+    "correctAnswer": 3,
+    "level": 1
+  },
+  {
+    "number": 8,
+    "question": "Which of these is an adjective?",
+    "options": [
+      "Carefully",
+      "Strength",
+      "Bright",
+      "Speak"
+    ],
+    "correctAnswer": 2,
+    "level": 1
+  },
+  {
+    "number": 9,
+    "question": "Choose the correct spelling.",
+    "options": [
+      "Neccessary",
+      "Necesary",
+      "Necessary",
+      "Neccesary"
+    ],
+    "correctAnswer": 2,
+    "level": 1
+  },
+  {
+    "number": 10,
+    "question": "Which word completes the sentence? “The children ___ playing outside.”",
+    "options": [
+      "Is",
+      "Are",
+      "Was",
+      "Be"
+    ],
+    "correctAnswer": 1,
+    "level": 1
+  },
+  {
+    "number": 11,
+    "question": "What does the idiom “a piece of cake” mean?",
+    "options": [
+      "Something very difficult",
+      "Something very easy",
+      "Something expensive",
+      "Something unpleasant"
+    ],
+    "correctAnswer": 1,
+    "level": 2
+  },
+  {
+    "number": 12,
+    "question": "Which word is the opposite of ancient?",
+    "options": [
+      "Old",
+      "Historic",
+      "Modern",
+      "Traditional"
+    ],
+    "correctAnswer": 2,
+    "level": 2
+  },
+  {
+    "number": 13,
+    "question": "Choose the correct article: “He bought ___ umbrella.”",
+    "options": [
+      "A",
+      "An",
+      "The",
+      "No article"
+    ],
+    "correctAnswer": 1,
+    "level": 2
+  },
+  {
+    "number": 14,
+    "question": "Which word is a pronoun?",
+    "options": [
+      "Table",
+      "They",
+      "Beautiful",
+      "Slowly"
+    ],
+    "correctAnswer": 1,
+    "level": 2
+  },
+  {
+    "number": 15,
+    "question": "What is the comparative form of good?",
+    "options": [
+      "Gooder",
+      "More good",
+      "Best",
+      "Better"
+    ],
+    "correctAnswer": 3,
+    "level": 2
+  },
+  {
+    "number": 16,
+    "question": "Which sentence is correctly punctuated?",
+    "options": [
+      "Where are you going.",
+      "Where are you going?",
+      "Where are you going!",
+      "Where, are you going"
+    ],
+    "correctAnswer": 1,
+    "level": 2
+  },
+  {
+    "number": 17,
+    "question": "What is the meaning of fragile?",
+    "options": [
+      "Easily broken",
+      "Very expensive",
+      "Extremely large",
+      "Difficult to find"
+    ],
+    "correctAnswer": 0,
+    "level": 2
+  },
+  {
+    "number": 18,
+    "question": "Which word rhymes with bright?",
+    "options": [
+      "Bread",
+      "Boat",
+      "Flight",
+      "Brought"
+    ],
+    "correctAnswer": 2,
+    "level": 2
+  },
+  {
+    "number": 19,
+    "question": "Choose the correct word: “The dog wagged ___ tail.”",
+    "options": [
+      "It's",
+      "Its",
+      "It",
+      "Itself"
+    ],
+    "correctAnswer": 1,
+    "level": 2
+  },
+  {
+    "number": 20,
+    "question": "Which of these is an adverb?",
+    "options": [
+      "Happy",
+      "Happiness",
+      "Happily",
+      "Happier"
+    ],
+    "correctAnswer": 2,
+    "level": 2
+  },
+  {
+    "number": 21,
+    "question": "What is the opposite of victory?",
+    "options": [
+      "Success",
+      "Achievement",
+      "Defeat",
+      "Celebration"
+    ],
+    "correctAnswer": 2,
+    "level": 3
+  },
+  {
+    "number": 22,
+    "question": "Which word means “to look at something carefully”?",
+    "options": [
+      "Ignore",
+      "Examine",
+      "Forget",
+      "Escape"
+    ],
+    "correctAnswer": 1,
+    "level": 3
+  },
+  {
+    "number": 23,
+    "question": "Choose the correct sentence.",
+    "options": [
+      "Neither of the boys are ready.",
+      "Neither of the boys is ready.",
+      "Neither of the boys were ready.",
+      "Neither boys is ready."
+    ],
+    "correctAnswer": 1,
+    "level": 3
+  },
+  {
+    "number": 24,
+    "question": "What is the plural of foot?",
+    "options": [
+      "Foots",
+      "Feets",
+      "Feet",
+      "Footes"
+    ],
+    "correctAnswer": 2,
+    "level": 3
+  },
+  {
+    "number": 25,
+    "question": "Which word is closest in meaning to brave?",
+    "options": [
+      "Cowardly",
+      "Courageous",
+      "Nervous",
+      "Careless"
+    ],
+    "correctAnswer": 1,
+    "level": 3
+  },
+  {
+    "number": 26,
+    "question": "What does the phrase “once in a blue moon” mean?",
+    "options": [
+      "Every evening",
+      "Very frequently",
+      "Very rarely",
+      "Every month"
+    ],
+    "correctAnswer": 2,
+    "level": 3
+  },
+  {
+    "number": 27,
+    "question": "Which word completes the sentence? “I have lived here ___ 2020.”",
+    "options": [
+      "For",
+      "Since",
+      "During",
+      "From"
+    ],
+    "correctAnswer": 1,
+    "level": 3
+  },
+  {
+    "number": 28,
+    "question": "Identify the verb in this sentence: “The birds flew across the sky.”",
+    "options": [
+      "Birds",
+      "Across",
+      "Sky",
+      "Flew"
+    ],
+    "correctAnswer": 3,
+    "level": 3
+  },
+  {
+    "number": 29,
+    "question": "Which spelling is correct?",
+    "options": [
+      "Priviledge",
+      "Privilege",
+      "Privelege",
+      "Privillage"
+    ],
+    "correctAnswer": 1,
+    "level": 3
+  },
+  {
+    "number": 30,
+    "question": "Which word is the opposite of expand?",
+    "options": [
+      "Increase",
+      "Enlarge",
+      "Contract",
+      "Extend"
+    ],
+    "correctAnswer": 2,
+    "level": 3
+  },
+  {
+    "number": 31,
+    "question": "What does the idiom “break the ice” mean?",
+    "options": [
+      "To damage something",
+      "To start a friendly conversation",
+      "To end a relationship",
+      "To make someone angry"
+    ],
+    "correctAnswer": 1,
+    "level": 4
+  },
+  {
+    "number": 32,
+    "question": "Which word is a conjunction?",
+    "options": [
+      "Although",
+      "Beautiful",
+      "Quickly",
+      "Garden"
+    ],
+    "correctAnswer": 0,
+    "level": 4
+  },
+  {
+    "number": 33,
+    "question": "Choose the correct sentence.",
+    "options": [
+      "She don't like coffee.",
+      "She doesn't likes coffee.",
+      "She doesn't like coffee.",
+      "She not like coffee."
+    ],
+    "correctAnswer": 2,
+    "level": 4
+  },
+  {
+    "number": 34,
+    "question": "What is the superlative form of far?",
+    "options": [
+      "Farer",
+      "Farthest",
+      "More far",
+      "Most farer"
+    ],
+    "correctAnswer": 1,
+    "level": 4
+  },
+  {
+    "number": 35,
+    "question": "Which word means “a person who writes poems”?",
+    "options": [
+      "Novelist",
+      "Journalist",
+      "Poet",
+      "Editor"
+    ],
+    "correctAnswer": 2,
+    "level": 4
+  },
+  {
+    "number": 36,
+    "question": "What is the opposite of optimistic?",
+    "options": [
+      "Hopeful",
+      "Positive",
+      "Cheerful",
+      "Pessimistic"
+    ],
+    "correctAnswer": 3,
+    "level": 4
+  },
+  {
+    "number": 37,
+    "question": "Which sentence uses the apostrophe correctly?",
+    "options": [
+      "The girls bag is red.",
+      "The girl's bag is red.",
+      "The girls's bag is red.",
+      "The girl bag's is red."
+    ],
+    "correctAnswer": 1,
+    "level": 4
+  },
+  {
+    "number": 38,
+    "question": "What does imitate mean?",
+    "options": [
+      "To copy",
+      "To destroy",
+      "To criticize",
+      "To avoid"
+    ],
+    "correctAnswer": 0,
+    "level": 4
+  },
+  {
+    "number": 39,
+    "question": "Choose the correct word: “If I ___ rich, I would travel the world.”",
+    "options": [
+      "Am",
+      "Was",
+      "Were",
+      "Be"
+    ],
+    "correctAnswer": 2,
+    "level": 4
+  },
+  {
+    "number": 40,
+    "question": "Which of these is an example of a compound word?",
+    "options": [
+      "Beautiful",
+      "Notebook",
+      "Running",
+      "Quickly"
+    ],
+    "correctAnswer": 1,
+    "level": 4
+  },
+  {
+    "number": 41,
+    "question": "What does ambiguous mean?",
+    "options": [
+      "Extremely clear",
+      "Having more than one possible meaning",
+      "Completely false",
+      "Easy to understand"
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 42,
+    "question": "Which sentence uses the subjunctive mood correctly?",
+    "options": [
+      "I suggest that he is present.",
+      "I suggest that he be present.",
+      "I suggest that he was present.",
+      "I suggest that he being present."
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 43,
+    "question": "What is the meaning of meticulous?",
+    "options": [
+      "Careless",
+      "Extremely careful and precise",
+      "Very impatient",
+      "Easily distracted"
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 44,
+    "question": "Choose the correct word: “The committee ___ reached its decision.”",
+    "options": [
+      "Have",
+      "Has",
+      "Are",
+      "Were"
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 45,
+    "question": "Which literary device is used in “The wind whispered through the trees”?",
+    "options": [
+      "Hyperbole",
+      "Personification",
+      "Simile",
+      "Irony"
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 46,
+    "question": "What is the opposite of scarce?",
+    "options": [
+      "Rare",
+      "Limited",
+      "Abundant",
+      "Insufficient"
+    ],
+    "correctAnswer": 2,
+    "level": 5
+  },
+  {
+    "number": 47,
+    "question": "Which sentence contains a dangling modifier?",
+    "options": [
+      "Walking through the park, I saw a beautiful bird.",
+      "Walking through the park, the flowers looked beautiful.",
+      "I saw a beautiful bird while walking through the park.",
+      "The flowers looked beautiful in the park."
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 48,
+    "question": "What does contemplate mean?",
+    "options": [
+      "To think deeply",
+      "To argue loudly",
+      "To act quickly",
+      "To forget completely"
+    ],
+    "correctAnswer": 0,
+    "level": 5
+  },
+  {
+    "number": 49,
+    "question": "Which word best completes the sentence? “Her explanation was so ___ that everyone understood.”",
+    "options": [
+      "Obscure",
+      "Coherent",
+      "Vague",
+      "Confusing"
+    ],
+    "correctAnswer": 1,
+    "level": 5
+  },
+  {
+    "number": 50,
+    "question": "Which of these is a correctly formed passive sentence?",
+    "options": [
+      "The chef prepared the meal.",
+      "The meal prepared the chef.",
+      "The meal was prepared by the chef.",
+      "The chef was preparing by the meal."
+    ],
+    "correctAnswer": 2,
+    "level": 5
+  },
+  {
+    "number": 51,
+    "question": "What does ephemeral mean?",
+    "options": [
+      "Lasting forever",
+      "Lasting for a short time",
+      "Extremely valuable",
+      "Difficult to understand"
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 52,
+    "question": "Which sentence correctly uses a semicolon?",
+    "options": [
+      "I was tired; I went to bed early.",
+      "I was tired; because I worked late.",
+      "I; was tired and went to bed.",
+      "I was; tired, I went to bed early."
+    ],
+    "correctAnswer": 0,
+    "level": 6
+  },
+  {
+    "number": 53,
+    "question": "What is the meaning of benevolent?",
+    "options": [
+      "Cruel",
+      "Selfish",
+      "Kind and generous",
+      "Dishonest"
+    ],
+    "correctAnswer": 2,
+    "level": 6
+  },
+  {
+    "number": 54,
+    "question": "Which word is an antonym of reluctant?",
+    "options": [
+      "Hesitant",
+      "Unwilling",
+      "Eager",
+      "Doubtful"
+    ],
+    "correctAnswer": 2,
+    "level": 6
+  },
+  {
+    "number": 55,
+    "question": "Identify the literary device: “Her voice was music to his ears.”",
+    "options": [
+      "Metaphor",
+      "Alliteration",
+      "Onomatopoeia",
+      "Oxymoron"
+    ],
+    "correctAnswer": 0,
+    "level": 6
+  },
+  {
+    "number": 56,
+    "question": "Choose the correct sentence.",
+    "options": [
+      "Each of the students have a book.",
+      "Each of the students has a book.",
+      "Each students has a book.",
+      "Each of students have a book."
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 57,
+    "question": "What does obsolete mean?",
+    "options": [
+      "Newly invented",
+      "No longer in use",
+      "Very popular",
+      "Highly advanced"
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 58,
+    "question": "Which word completes the sentence? “The evidence was ___ to the investigation.”",
+    "options": [
+      "Irrelevant",
+      "Relevant",
+      "Unrelated",
+      "Unnecessary"
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 59,
+    "question": "What is the name for a word that imitates a sound, such as “buzz” or “clang”?",
+    "options": [
+      "Metaphor",
+      "Onomatopoeia",
+      "Euphemism",
+      "Irony"
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 60,
+    "question": "Which sentence correctly uses whom?",
+    "options": [
+      "Whom is coming to the party?",
+      "Whom did you invite?",
+      "Whom wrote this letter?",
+      "Whom is responsible?"
+    ],
+    "correctAnswer": 1,
+    "level": 6
+  },
+  {
+    "number": 61,
+    "question": "What does pragmatic mean?",
+    "options": [
+      "Impractical and unrealistic",
+      "Focused on practical solutions",
+      "Emotionally unstable",
+      "Highly imaginative"
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 62,
+    "question": "Which sentence contains a metaphor?",
+    "options": [
+      "He runs like the wind.",
+      "The classroom was a zoo.",
+      "She is as gentle as a lamb.",
+      "The stars shone like diamonds."
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 63,
+    "question": "What is the meaning of diligent?",
+    "options": [
+      "Lazy",
+      "Hardworking and careful",
+      "Forgetful",
+      "Impatient"
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 64,
+    "question": "Which sentence demonstrates correct subject-verb agreement?",
+    "options": [
+      "The list of items are on the table.",
+      "The list of items is on the table.",
+      "The list of items were on the table.",
+      "The list of items be on the table."
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 65,
+    "question": "What does candid mean?",
+    "options": [
+      "Honest and straightforward",
+      "Secretive and dishonest",
+      "Uncertain and confused",
+      "Polite but insincere"
+    ],
+    "correctAnswer": 0,
+    "level": 7
+  },
+  {
+    "number": 66,
+    "question": "Which phrase is an example of an oxymoron?",
+    "options": [
+      "Deafening silence",
+      "A bright light",
+      "A beautiful flower",
+      "A loud announcement"
+    ],
+    "correctAnswer": 0,
+    "level": 7
+  },
+  {
+    "number": 67,
+    "question": "What is the meaning of alleviate?",
+    "options": [
+      "To worsen",
+      "To reduce or relieve",
+      "To increase",
+      "To ignore"
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 68,
+    "question": "Choose the correctly punctuated sentence.",
+    "options": [
+      "My brother who lives in Nairobi is a doctor.",
+      "My brother, who lives in Nairobi, is a doctor.",
+      "My brother who lives, in Nairobi is a doctor.",
+      "My brother, who lives in Nairobi is a doctor."
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 69,
+    "question": "Which word means “to make something less severe”?",
+    "options": [
+      "Intensify",
+      "Exaggerate",
+      "Mitigate",
+      "Complicate"
+    ],
+    "correctAnswer": 2,
+    "level": 7
+  },
+  {
+    "number": 70,
+    "question": "What is a euphemism?",
+    "options": [
+      "A deliberately exaggerated statement",
+      "A mild expression used instead of a harsh one",
+      "A word that imitates a sound",
+      "A comparison using “like” or “as”"
+    ],
+    "correctAnswer": 1,
+    "level": 7
+  },
+  {
+    "number": 71,
+    "question": "What does perspicacious mean?",
+    "options": [
+      "Easily confused",
+      "Having keen insight and understanding",
+      "Extremely stubborn",
+      "Lacking knowledge"
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 72,
+    "question": "Which sentence correctly uses the past perfect tense?",
+    "options": [
+      "She had finished before the guests arrived.",
+      "She has finished before the guests arrived.",
+      "She finishes before the guests arrived.",
+      "She was finish before the guests arrived."
+    ],
+    "correctAnswer": 0,
+    "level": 8
+  },
+  {
+    "number": 73,
+    "question": "What is the meaning of incongruous?",
+    "options": [
+      "Completely appropriate",
+      "Out of place or inconsistent",
+      "Highly predictable",
+      "Perfectly balanced"
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 74,
+    "question": "Which literary device is used in “The pen is mightier than the sword”?",
+    "options": [
+      "Alliteration",
+      "Metonymy",
+      "Onomatopoeia",
+      "Personification"
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 75,
+    "question": "What does recalcitrant mean?",
+    "options": [
+      "Obedient",
+      "Easily persuaded",
+      "Stubbornly resistant to authority",
+      "Extremely generous"
+    ],
+    "correctAnswer": 2,
+    "level": 8
+  },
+  {
+    "number": 76,
+    "question": "Which sentence correctly uses a restrictive clause?",
+    "options": [
+      "My car, which is blue, needs repairs.",
+      "Students who study regularly often perform well.",
+      "My sister, who lives nearby, is visiting.",
+      "The building, which is old, will be renovated."
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 77,
+    "question": "What does equivocal mean?",
+    "options": [
+      "Certain and definite",
+      "Open to multiple interpretations",
+      "Completely truthful",
+      "Easily measurable"
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 78,
+    "question": "Which word best describes a statement that contradicts itself?",
+    "options": [
+      "Paradoxical",
+      "Predictable",
+      "Conventional",
+      "Literal"
+    ],
+    "correctAnswer": 0,
+    "level": 8
+  },
+  {
+    "number": 79,
+    "question": "What is the meaning of ubiquitous?",
+    "options": [
+      "Rarely encountered",
+      "Present everywhere",
+      "Difficult to locate",
+      "Temporarily available"
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 80,
+    "question": "Which sentence uses the subjunctive correctly?",
+    "options": [
+      "If I was you, I would apologize.",
+      "If I were you, I would apologize.",
+      "If I am you, I would apologize.",
+      "If I be you, I would apologize."
+    ],
+    "correctAnswer": 1,
+    "level": 8
+  },
+  {
+    "number": 81,
+    "question": "What does obfuscate mean?",
+    "options": [
+      "To clarify",
+      "To make something unclear or confusing",
+      "To simplify",
+      "To prove beyond doubt"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 82,
+    "question": "Which literary device is used when a writer refers to a famous person, event, or work indirectly?",
+    "options": [
+      "Allusion",
+      "Hyperbole",
+      "Allegory",
+      "Parody"
+    ],
+    "correctAnswer": 0,
+    "level": 9
+  },
+  {
+    "number": 83,
+    "question": "What is the meaning of magnanimous?",
+    "options": [
+      "Easily offended",
+      "Generous and forgiving",
+      "Extremely ambitious",
+      "Secretive and cautious"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 84,
+    "question": "Which sentence contains a correctly placed nonrestrictive clause?",
+    "options": [
+      "The teacher who won the award, is retiring.",
+      "The teacher, who won the award, is retiring.",
+      "The teacher who, won the award is retiring.",
+      "The teacher, who won the award is, retiring."
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 85,
+    "question": "What does intransigent mean?",
+    "options": [
+      "Willing to compromise",
+      "Unwilling to change one's views",
+      "Easily influenced",
+      "Open-minded"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 86,
+    "question": "Which word describes a person who speaks several languages?",
+    "options": [
+      "Linguist",
+      "Polyglot",
+      "Translator",
+      "Orator"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 87,
+    "question": "What is the meaning of superfluous?",
+    "options": [
+      "Essential",
+      "Unnecessary or excessive",
+      "Limited",
+      "Insufficient"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 88,
+    "question": "Which literary technique gives hints about events that will happen later in a story?",
+    "options": [
+      "Flashback",
+      "Foreshadowing",
+      "Satire",
+      "Symbolism"
+    ],
+    "correctAnswer": 1,
+    "level": 9
+  },
+  {
+    "number": 89,
+    "question": "What does fastidious mean?",
+    "options": [
+      "Very attentive to detail",
+      "Unconcerned about quality",
+      "Easily satisfied",
+      "Frequently distracted"
+    ],
+    "correctAnswer": 0,
+    "level": 9
+  },
+  {
+    "number": 90,
+    "question": "Which sentence correctly uses a conditional structure?",
+    "options": [
+      "Had I known, I would have acted differently.",
+      "Had I knew, I would act differently.",
+      "If I would have known, I acted differently.",
+      "If I had knew, I would have acted differently."
+    ],
+    "correctAnswer": 0,
+    "level": 9
+  },
+  {
+    "number": 91,
+    "question": "What does sesquipedalian describe?",
+    "options": [
+      "Someone who avoids speaking",
+      "Someone who uses long words",
+      "Someone who speaks very quietly",
+      "Someone who writes poetry"
+    ],
+    "correctAnswer": 1,
+    "level": 10
+  },
+  {
+    "number": 92,
+    "question": "Which term describes the deliberate understatement of something, often for emphasis?",
+    "options": [
+      "Hyperbole",
+      "Litotes",
+      "Allegory",
+      "Irony"
+    ],
+    "correctAnswer": 1,
+    "level": 10
+  },
+  {
+    "number": 93,
+    "question": "What is the meaning of ineffable?",
+    "options": [
+      "Impossible to describe adequately in words",
+      "Easy to explain",
+      "Completely ordinary",
+      "Difficult to remember"
+    ],
+    "correctAnswer": 0,
+    "level": 10
+  },
+  {
+    "number": 94,
+    "question": "Which literary device involves a character speaking their thoughts aloud while alone on stage?",
+    "options": [
+      "Dialogue",
+      "Soliloquy",
+      "Aside",
+      "Monologue"
+    ],
+    "correctAnswer": 1,
+    "level": 10
+  },
+  {
+    "number": 95,
+    "question": "What does pusillanimous mean?",
+    "options": [
+      "Courageous",
+      "Generous",
+      "Cowardly or lacking courage",
+      "Intelligent"
+    ],
+    "correctAnswer": 2,
+    "level": 10
+  },
+  {
+    "number": 96,
+    "question": "Which sentence demonstrates correct parallel structure?",
+    "options": [
+      "She enjoys reading, swimming, and to dance.",
+      "She enjoys to read, swimming, and dancing.",
+      "She enjoys reading, swimming, and dancing.",
+      "She enjoys reading, to swim, and dance."
+    ],
+    "correctAnswer": 2,
+    "level": 10
+  },
+  {
+    "number": 97,
+    "question": "What is the meaning of anachronism?",
+    "options": [
+      "An event that happens repeatedly",
+      "Something placed in the wrong historical period",
+      "A contradiction in an argument",
+      "A story told in reverse order"
+    ],
+    "correctAnswer": 1,
+    "level": 10
+  },
+  {
+    "number": 98,
+    "question": "Which term describes a word or phrase that reads the same backward and forward?",
+    "options": [
+      "Homonym",
+      "Acronym",
+      "Palindrome",
+      "Antonym"
+    ],
+    "correctAnswer": 2,
+    "level": 10
+  },
+  {
+    "number": 99,
+    "question": "What does perfunctory mean?",
+    "options": [
+      "Done with great enthusiasm",
+      "Performed routinely with little care or interest",
+      "Completed with exceptional precision",
+      "Done after careful consideration"
+    ],
+    "correctAnswer": 1,
+    "level": 10
+  },
+  {
+    "number": 100,
+    "question": "Which literary device involves a statement that appears contradictory but reveals a deeper truth?",
+    "options": [
+      "Paradox",
+      "Simile",
+      "Alliteration",
+      "Euphemism"
+    ],
+    "correctAnswer": 0,
+    "level": 10
+  }
+]
