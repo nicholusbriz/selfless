@@ -44,9 +44,10 @@ test('question selection prefers unused questions and falls back when needed', (
 test('difficulty increases as players advance through the levels', () => {
   assert.equal(getDifficultyForLevel(1), 'beginner');
   assert.equal(getDifficultyForLevel(2), 'beginner');
-  assert.equal(getDifficultyForLevel(3), 'intermediate');
+  assert.equal(getDifficultyForLevel(4), 'beginner');
   assert.equal(getDifficultyForLevel(5), 'intermediate');
-  assert.equal(getDifficultyForLevel(6), 'advanced');
+  assert.equal(getDifficultyForLevel(7), 'intermediate');
+  assert.equal(getDifficultyForLevel(8), 'advanced');
   assert.equal(getDifficultyForLevel(MAX_TRIVIA_LEVEL), 'advanced');
 });
 

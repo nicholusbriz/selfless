@@ -153,11 +153,16 @@ Players may complete up to 10 level games per East Africa Time day (UTC+3). A ga
 when its results are saved, including replays; abandoned games do not count. The limit
 resets at midnight EAT. The separate heart reset remains midnight UTC.
 
-Levels 1-2 use beginner questions, levels 3-5 use intermediate questions, and levels 6-10
+Levels 1-4 use beginner questions, levels 5-7 use intermediate questions, and levels 8-10
 use advanced questions. After a player completes Level 10 with at least 70% accuracy,
 their level resets to Level 1 on the next EAT day. The next question set prefers questions
 not used in the player's most recent trivia day. Answer options are randomized for each
 question; the submitted option indexes are mapped back to the stored answer key.
+
+To replace the active database question bank with the attached 100-question set, run
+`npm run trivia:replace` after restoring the project's Prisma 5 dependencies. The script
+archives older questions by marking them inactive, preserving their answer history, and
+upserts the new questions by stable reference ID so it can be rerun safely.
 
 ## Backward Compatibility
 

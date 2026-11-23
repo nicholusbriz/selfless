@@ -10,6 +10,7 @@
     "build": "set NEXT_BUILD_WORKERS=0&& prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "trivia:replace": "node ./prisma/seed-replace-trivia.mjs",
     "postinstall": "prisma generate",
     "test:db": "tsx test-db-connection.ts"
   },
