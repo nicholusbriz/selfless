@@ -76,9 +76,9 @@
     "question": "Which punctuation mark ends an exclamatory sentence?",
     "options": [
       "Full stop",
-      "Comma",
       "Question mark",
-      "Exclamation mark"
+      "Exclamation mark",
+      "Comma"
     ],
     "correctAnswer": 3,
     "level": 1
