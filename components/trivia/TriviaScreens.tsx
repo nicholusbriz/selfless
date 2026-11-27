@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Clock, Crown, Gamepad2, Heart, Star, Trophy, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Crown, Gamepad2, Heart, Star, Trophy, Users, X } from 'lucide-react';
 import TriviaBottomNavigation from './TriviaBottomNavigation';
 import type { TriviaSection } from './TriviaBottomNavigation';
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -159,6 +159,7 @@ interface WelcomeGamePanelProps {
   returning?: boolean;
   heartsLocked?: boolean;
   onRequestHearts?: () => void;
+  onOpenParty?: () => void;
 }
 
 export function WelcomeGamePanel({
@@ -173,6 +174,7 @@ export function WelcomeGamePanel({
   returning = false,
   heartsLocked = false,
   onRequestHearts,
+  onOpenParty,
 }: WelcomeGamePanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -238,6 +240,7 @@ export function WelcomeGamePanel({
                       <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold tabular-nums text-amber-300">
                         <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
                         {entry.points.toLocaleString()}
+                        <span className="font-semibold text-amber-300/80">pts</span>
                       </p>
                     </div>
                   </div>
@@ -299,6 +302,19 @@ export function WelcomeGamePanel({
         </button>
       )}
       </div>
+
+      {onOpenParty && (
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={onOpenParty}
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-400 bg-neutral-900 px-4 py-2 text-[11px] font-bold text-amber-300 shadow-md transition-all duration-200 hover:scale-105 hover:bg-amber-400 hover:text-neutral-900 hover:shadow-lg hover:shadow-amber-400/30 active:scale-95"
+          >
+            <Users className="h-3.5 w-3.5" />
+            End of year party
+          </button>
+        </div>
+      )}
 
       {/* Status */}
       <p
@@ -367,6 +383,7 @@ export function TriviaWelcomeScreen({
           currentLevel={currentLevel}
           dailyHeartsRemaining={dailyHeartsRemaining}
           onStart={onStart}
+          onOpenParty={() => onSelectSection('party')}
         />
         <TriviaScreenNav
           activeSection={activeSection}
