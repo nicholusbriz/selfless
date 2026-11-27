@@ -49,7 +49,14 @@ const getDiscoverStudents = unstable_cache(
 
 export async function GET(request: Request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
+    const roleName = user.role?.name?.toLowerCase();
+    if (roleName !== 'super_admin' && roleName !== 'superadmin') {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 },
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50', 10);

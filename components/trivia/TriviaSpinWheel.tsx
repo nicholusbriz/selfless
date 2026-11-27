@@ -259,13 +259,16 @@ export async function fetchSpinStudents(): Promise<SpinStudent[]> {
 }
 
 export default function TriviaSpinWheel() {
+  const { user } = useAuth();
+  const role = user?.role?.toLowerCase();
+  const isDirector = role === 'super_admin' || role === 'superadmin';
+
   const { data: students = [], isLoading, isError } = useQuery<SpinStudent[]>({
     queryKey: ['trivia-spin-students'],
     queryFn: fetchSpinStudents,
     staleTime: 60 * 1000,
+    enabled: isDirector,
   });
-
-  const { user } = useAuth();
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winners, setWinners] = useState<[SpinStudent, SpinStudent] | null>(null);
@@ -461,6 +464,8 @@ export default function TriviaSpinWheel() {
     };
     requestAnimationFrame(animate);
   };
+
+  if (!isDirector) return null;
 
   if (isLoading) {
     return (

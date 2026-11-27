@@ -223,6 +223,8 @@ export default function TriviaModal({
     useState<TriviaCompletionResult | null>(null);
   const [savingMessageIndex, setSavingMessageIndex] = useState(0);
   const { user: currentUser } = useAuth();
+  const isDirector = currentUser?.role?.toLowerCase() === 'super_admin' ||
+    currentUser?.role?.toLowerCase() === 'superadmin';
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isOpenRef = useRef(isOpen);
@@ -230,13 +232,13 @@ export default function TriviaModal({
 
   // Prefetch party-game users as soon as the modal opens
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !isDirector) return;
     queryClient.prefetchQuery({
       queryKey: ['trivia-spin-students'],
       queryFn: fetchSpinStudents,
       staleTime: 60 * 1000,
     });
-  }, [isOpen, queryClient]);
+  }, [isOpen, isDirector, queryClient]);
 
   // Preload the More Games background video as soon as the modal opens
   useEffect(() => {
@@ -669,9 +671,10 @@ export default function TriviaModal({
   ]);
 
   const selectSection = useCallback((section: TriviaSection) => {
+    if (section === 'party' && !isDirector) return;
     setActiveSection(section);
     setGameState((prev) => ({ ...prev, showMoreGames: section === 'more-games' }));
-  }, []);
+  }, [isDirector]);
 
   const calculatePoints = () => {
     const basePoints = gameState.correct * 10;
@@ -707,7 +710,7 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button></div>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>{isDirector && <button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button>}</div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
@@ -743,7 +746,7 @@ export default function TriviaModal({
             <TriviaLeaderboardPanel />
           ) : activeSection === 'gifts' ? (
             <TriviaAccountPanel credits={userTotalPoints + gameState.points} />
-          ) : activeSection === 'party' ? (
+          ) : activeSection === 'party' && isDirector ? (
             <div className="flex min-h-0 flex-1 flex-col px-5 py-4 sm:px-6">
               <TriviaPartyPanel />
             </div>
@@ -771,7 +774,7 @@ export default function TriviaModal({
         >
           <div className="flex shrink-0 flex-col gap-1 px-5 py-4 sm:px-6">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button></div>
+              <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>{isDirector && <button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button>}</div>
               <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                 <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
                   <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
@@ -810,7 +813,7 @@ export default function TriviaModal({
               returning={gameState.currentQuestionIndex > 0 || gameState.answers.length > 0}
               heartsLocked={Boolean(dailyLockedUntil) || gameState.dailyHeartsRemaining === 0}
               onRequestHearts={() => selectSection('hearts')}
-              onOpenParty={() => selectSection('party')}
+              onOpenParty={isDirector ? () => selectSection('party') : undefined}
               lockReason={
                 reachedGameLimit
                   ? 'Daily limit reached — come back tomorrow'
@@ -1083,7 +1086,7 @@ export default function TriviaModal({
 
         <div className="flex shrink-0 flex-col gap-1 px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2><button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button></div>
+            <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-slate-900">Trivia</h2>{isDirector && <button type="button" onClick={() => selectSection('party')} aria-label="End of year party" title="End of year party" className={`flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition ${activeSection === 'party' ? 'border-amber-400 bg-white text-amber-500' : 'border-amber-400 bg-neutral-900 text-amber-300 hover:bg-black hover:text-amber-200'}`}><PartyPopper className="h-4 w-4" /></button>}</div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="relative flex items-center gap-1 text-xs font-bold text-amber-600">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
@@ -1222,7 +1225,7 @@ export default function TriviaModal({
               >
                 <TriviaMoreGamesPanel />
               </motion.div>
-            ) : activeSection === 'party' ? (
+            ) : activeSection === 'party' && isDirector ? (
               <motion.div
                 key="party-panel"
                 initial={{ opacity: 0, x: 20 }}
