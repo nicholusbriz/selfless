@@ -51,6 +51,7 @@ function getPageInfo(pathname: string, userRole?: string): PageInfo {
     '/dashboard/students': { title: 'Students' },
     '/dashboard/english-hub': { title: 'English Hub', section: 'Workspace' },
     '/dashboard/trivia/leaderboard': { title: 'Trivia Leaderboard', section: 'Community' },
+    '/dashboard/trivia-party': { title: 'End of Year Party', section: 'Community' },
     '/dashboard/courses': { title: 'Courses', section: 'Academics' },
     '/dashboard/course-units': {
       title: 'Course Units',
@@ -112,6 +113,7 @@ const PAGES_WITH_OWN_HEADER = new Set([
   '/dashboard/temple-trips',
   '/dashboard/notifications',
   '/dashboard/super-admin',
+  '/dashboard/trivia-party',
 ]);
 
 const PAGES_WITH_OWN_HEADER_PREFIXES = [

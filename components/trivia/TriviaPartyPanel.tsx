@@ -3,7 +3,11 @@
 import TriviaSpinWheel from './TriviaSpinWheel';
 import { useAuth } from '@/lib/hooks/useAuth';
 
-export default function TriviaPartyPanel() {
+export default function TriviaPartyPanel({
+  showFullPictureCards = false,
+}: {
+  showFullPictureCards?: boolean;
+}) {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase();
   const isDirector = role === 'super_admin' || role === 'superadmin';
@@ -12,7 +16,7 @@ export default function TriviaPartyPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-2">
-      <TriviaSpinWheel />
+      <TriviaSpinWheel showFullPictureCards={showFullPictureCards} />
     </div>
   );
 }
