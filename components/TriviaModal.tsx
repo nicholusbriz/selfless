@@ -10,6 +10,8 @@ import TriviaMoreGamesPanel from './trivia/TriviaMoreGamesPanel';
 import TriviaPartyPanel from './trivia/TriviaPartyPanel';
 import { TriviaUserBadge, WelcomeGamePanel } from './trivia/TriviaScreens';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { fetchSpinStudents } from './trivia/TriviaSpinWheel';
 import { MAX_DAILY_HEARTS } from '@/lib/trivia/heart-sharing';
 import { MIN_ACCURACY_TO_LEVEL_UP } from '@/lib/trivia/levels';
 import {
@@ -224,6 +226,17 @@ export default function TriviaModal({
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isOpenRef = useRef(isOpen);
+  const queryClient = useQueryClient();
+
+  // Prefetch party-game users as soon as the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    queryClient.prefetchQuery({
+      queryKey: ['trivia-spin-students'],
+      queryFn: fetchSpinStudents,
+      staleTime: 60 * 1000,
+    });
+  }, [isOpen, queryClient]);
 
   // Preload the More Games background video as soon as the modal opens
   useEffect(() => {

@@ -130,14 +130,14 @@ function WinnerCard({
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-2">
-        <p className="flex items-center gap-1 text-[11px] font-bold leading-tight text-white">
-          <span className="truncate">{name}</span>
+        <p className="flex items-start gap-1 text-[11px] font-bold leading-tight text-white">
+          <span className="line-clamp-2 break-words">{name}</span>
           {student.hasVerifiedBadge && (
             <VerifiedBadge className="h-3 w-3 shrink-0" />
           )}
         </p>
         {student.techCenter?.name && (
-          <p className="mt-0.5 truncate text-[9px] font-medium text-white/75">
+          <p className="mt-0.5 line-clamp-2 break-words text-[9px] font-medium leading-tight text-white/75">
             {student.techCenter.name}
           </p>
         )}
@@ -250,16 +250,18 @@ function HistoryUserCard({ student }: { student: SpinStudent }) {
   );
 }
 
+export async function fetchSpinStudents(): Promise<SpinStudent[]> {
+  const response = await fetch('/api/dashboard/discover-students?limit=500&all=true');
+  if (!response.ok) throw new Error('Failed to fetch students');
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) throw new Error('Failed to load students');
+  return data.filter(isSpinStudent);
+}
+
 export default function TriviaSpinWheel() {
   const { data: students = [], isLoading, isError } = useQuery<SpinStudent[]>({
     queryKey: ['trivia-spin-students'],
-    queryFn: async () => {
-      const response = await fetch('/api/dashboard/discover-students?limit=500&all=true');
-      if (!response.ok) throw new Error('Failed to fetch students');
-      const data: unknown = await response.json();
-      if (!Array.isArray(data)) throw new Error('Failed to load students');
-      return data.filter(isSpinStudent);
-    },
+    queryFn: fetchSpinStudents,
     staleTime: 60 * 1000,
   });
 
@@ -529,13 +531,6 @@ export default function TriviaSpinWheel() {
             onExpand={winners?.[0] ? () => setFullscreenStudent(winners[0]) : undefined}
           />
         </div>
-        <div className="flex shrink-0 items-center justify-center px-0.5">
-          {winners ? (
-            <span className="text-[10px] font-black italic text-fuchsia-500">VS</span>
-          ) : (
-            <span className="text-[10px] font-bold text-slate-300">·</span>
-          )}
-        </div>
         <div className="min-w-0 flex-1">
           <MatchSlot
             student={winners?.[1] ?? null}
@@ -545,7 +540,10 @@ export default function TriviaSpinWheel() {
         </div>
       </div>
 
-      <p className="mt-1 h-4 text-center text-[10px] font-medium text-slate-500">
+      <p className="mt-1 flex h-4 items-center justify-center gap-1 text-center text-[10px] font-medium text-slate-500">
+        {winners && (
+          <span className="font-black italic text-fuchsia-500">VS</span>
+        )}
         {winners ? 'Say hello and get to know each other!' : ''}
       </p>
 
