@@ -24,6 +24,21 @@ const FULL_TURNS = 5;
 const MAX_SEGMENTS = 16;
 const WHEEL_RADIUS_PCT = 36;
 const SEGMENT_COLORS = ['#EEF2FF', '#F5F3FF', '#FDF2F8', '#ECFEFF', '#FFF7ED'];
+const EXCLUDED_TECH_CENTERS = ['lira', 'mbale', 'jinja'];
+const HIDDEN_WHEEL_ROLES = new Set(['dev', 'super_admin', 'superadmin']);
+
+function isAllowedSpinStudent(student: SpinStudent): boolean {
+  const centerName = student.techCenter?.name?.trim().toLowerCase();
+  if (!centerName) return true;
+  return !EXCLUDED_TECH_CENTERS.some((center) =>
+    centerName.includes(center),
+  );
+}
+
+function isWheelVisible(student: SpinStudent): boolean {
+  const role = student.role?.name?.toLowerCase();
+  return !role || !HIDDEN_WHEEL_ROLES.has(role);
+}
 
 function isSpinStudent(value: unknown): value is SpinStudent {
   return (
@@ -52,19 +67,19 @@ function normalizedGender(student: SpinStudent): 'male' | 'female' | null {
   return g === 'male' || g === 'female' ? g : null;
 }
 
-function pickOppositeGender(
-  first: SpinStudent,
-  students: SpinStudent[],
-): SpinStudent | null {
+function canMatch(first: SpinStudent, second: SpinStudent): boolean {
   const firstGender = normalizedGender(first);
-  if (!firstGender) return null;
-  const opposite = firstGender === 'male' ? 'female' : 'male';
+  const secondGender = normalizedGender(second);
+  const firstCenterId = first.techCenter?.id;
+  const secondCenterId = second.techCenter?.id;
 
-  const pool = students.filter(
-    (s) => s.id !== first.id && normalizedGender(s) === opposite,
+  return (
+    first.id !== second.id &&
+    firstGender !== null &&
+    secondGender !== null &&
+    firstGender !== secondGender &&
+    (!firstCenterId || !secondCenterId || firstCenterId !== secondCenterId)
   );
-  if (pool.length === 0) return null;
-  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function StudentAvatar({
@@ -89,7 +104,7 @@ function StudentAvatar({
           alt={name}
           fill
           sizes="48px"
-          className="object-cover"
+          className="scale-110 object-cover opacity-60 blur-sm"
           unoptimized
         />
       ) : (
@@ -105,20 +120,28 @@ function StudentAvatar({
 function WinnerCard({
   student,
   onExpand,
+  showFullPicture = false,
 }: {
   student: SpinStudent;
   onExpand?: () => void;
+  showFullPicture?: boolean;
 }) {
   const name = `${student.firstName} ${student.lastName}`.trim();
   return (
-    <div className="relative h-40 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm sm:h-44">
+    <div
+      className={`relative w-full overflow-hidden rounded-xl border border-slate-200 shadow-sm ${
+        showFullPicture
+          ? 'h-[min(48dvh,540px)] min-h-[300px] bg-slate-900'
+          : 'h-40 bg-slate-100 sm:h-44'
+      }`}
+    >
       {student.profileImageUrl ? (
         <Image
           src={student.profileImageUrl}
           alt={name}
           fill
           sizes="(max-width: 640px) 45vw, 220px"
-          className="object-cover object-top"
+          className={showFullPicture ? 'object-contain' : 'object-cover object-top'}
           unoptimized
         />
       ) : (
@@ -196,18 +219,30 @@ function MatchSlot({
   student,
   spinning = false,
   onExpand,
+  showFullPicture = false,
+  emptyMessage = 'Spin to find your match',
 }: {
   student: SpinStudent | null;
   spinning?: boolean;
   onExpand?: () => void;
+  showFullPicture?: boolean;
+  emptyMessage?: string;
 }) {
-  if (student) return <WinnerCard student={student} onExpand={onExpand} />;
+  if (student) {
+    return (
+      <WinnerCard
+        student={student}
+        onExpand={onExpand}
+        showFullPicture={showFullPicture}
+      />
+    );
+  }
   if (spinning) return <ShimmerSlot />;
   return (
     <div className="flex h-40 w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 sm:h-44">
       <UserRound className="h-5 w-5 text-slate-300" />
       <p className="px-2 text-center text-[9px] font-semibold leading-tight text-slate-400">
-        Spin to find your match
+        {emptyMessage}
       </p>
     </div>
   );
@@ -258,7 +293,11 @@ export async function fetchSpinStudents(): Promise<SpinStudent[]> {
   return data.filter(isSpinStudent);
 }
 
-export default function TriviaSpinWheel() {
+export default function TriviaSpinWheel({
+  showFullPictureCards = false,
+}: {
+  showFullPictureCards?: boolean;
+}) {
   const { user } = useAuth();
   const role = user?.role?.toLowerCase();
   const isDirector = role === 'super_admin' || role === 'superadmin';
@@ -272,6 +311,7 @@ export default function TriviaSpinWheel() {
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winners, setWinners] = useState<[SpinStudent, SpinStudent] | null>(null);
+  const [pendingStudent, setPendingStudent] = useState<SpinStudent | null>(null);
   const [fullscreenStudent, setFullscreenStudent] = useState<SpinStudent | null>(null);
   const [matches, setMatches] = useState<
     Array<{ first: SpinStudent; second: SpinStudent }>
@@ -298,22 +338,30 @@ export default function TriviaSpinWheel() {
 
   // Restore this user's match history for the session
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(storageKey);
-      const parsed: unknown = raw ? JSON.parse(raw) : [];
-      setMatches(
-        Array.isArray(parsed)
-          ? parsed.filter(
-              (m): m is { first: SpinStudent; second: SpinStudent } =>
-                isRecord(m) && isSpinStudent(m.first) && isSpinStudent(m.second),
-            )
-          : [],
-      );
-    } catch {
-      setMatches([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const raw = sessionStorage.getItem(storageKey);
+        const parsed: unknown = raw ? JSON.parse(raw) : [];
+        setMatches(
+          Array.isArray(parsed)
+            ? parsed.filter(
+                (m): m is { first: SpinStudent; second: SpinStudent } =>
+                  isRecord(m) &&
+                  isSpinStudent(m.first) &&
+                  isSpinStudent(m.second),
+              )
+            : [],
+        );
+      } catch {
+        setMatches([]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
 
   // Persist matches so a refresh doesn't reset the session
   useEffect(() => {
@@ -330,18 +378,14 @@ export default function TriviaSpinWheel() {
     [matches],
   );
 
-  // dev / super_admin never appear on the wheel, but can still be matched
-  const HIDDEN_ROLES = new Set(['dev', 'super_admin', 'superadmin']);
-  const isWheelVisible = (s: SpinStudent) => {
-    const role = s.role?.name?.toLowerCase();
-    return !role || !HIDDEN_ROLES.has(role);
-  };
-
   // Only gendered, non-hidden users can be matched at all
   const genderedStudents = useMemo(
     () =>
       students.filter(
-        (s) => normalizedGender(s) !== null && isWheelVisible(s),
+        (s) =>
+          normalizedGender(s) !== null &&
+          isWheelVisible(s) &&
+          isAllowedSpinStudent(s),
       ),
     [students],
   );
@@ -350,12 +394,6 @@ export default function TriviaSpinWheel() {
   const selfStudent = useMemo(
     () => genderedStudents.find((s) => s.id === user?.id) ?? null,
     [genderedStudents, user?.id],
-  );
-
-  // Everyone matchable (including hidden roles) vs. wheel-visible students
-  const unmatched = useMemo(
-    () => genderedStudents.filter((s) => !matchedIds.has(s.id)),
-    [genderedStudents, matchedIds],
   );
 
   const wheelStudents = useMemo(
@@ -368,28 +406,29 @@ export default function TriviaSpinWheel() {
     [wheelStudents, matchedIds],
   );
 
-  const unmatchedMales = useMemo(
-    () => unmatchedWheel.filter((s) => normalizedGender(s) === 'male'),
-    [unmatchedWheel],
-  );
-  const unmatchedFemales = useMemo(
-    () => unmatchedWheel.filter((s) => normalizedGender(s) === 'female'),
+  const firstSpinCandidates = useMemo(
+    () =>
+      unmatchedWheel.filter((student) =>
+        unmatchedWheel.some((candidate) => canMatch(student, candidate)),
+      ),
     [unmatchedWheel],
   );
 
-  const canSpin =
-    !isSpinning &&
-    unmatchedMales.length > 0 &&
-    unmatchedFemales.length > 0;
+  const nextSpinCandidates = useMemo(() => {
+    if (!pendingStudent) return firstSpinCandidates;
+    return unmatchedWheel.filter((student) => canMatch(pendingStudent, student));
+  }, [firstSpinCandidates, pendingStudent, unmatchedWheel]);
+
+  const canSpin = !isSpinning && nextSpinCandidates.length > 0;
 
   const roundComplete =
     matchedIds.size > 0 &&
     genderedStudents.length >= 2 &&
-    (unmatchedMales.length === 0 || unmatchedFemales.length === 0);
+    firstSpinCandidates.length === 0;
 
   const participants = useMemo(
-    () => shuffle(unmatchedWheel).slice(0, MAX_SEGMENTS),
-    [unmatchedWheel],
+    () => shuffle(nextSpinCandidates).slice(0, MAX_SEGMENTS),
+    [nextSpinCandidates],
   );
 
   const segmentCount = participants.length;
@@ -406,7 +445,7 @@ export default function TriviaSpinWheel() {
   }, [participants, segmentAngle, segmentCount]);
 
   const spin = () => {
-    if (!canSpin || segmentCount < 2) return;
+    if (!canSpin || segmentCount < 1) return;
 
     const targetIndex = Math.floor(Math.random() * segmentCount);
     const midAngle = targetIndex * segmentAngle + segmentAngle / 2;
@@ -418,7 +457,7 @@ export default function TriviaSpinWheel() {
     const finalRotation = rotationRef.current + FULL_TURNS * 360 + delta;
 
     setIsSpinning(true);
-    setWinners(null);
+    if (!pendingStudent) setWinners(null);
 
     // Slow start → fast middle → gentle stop, exactly SPIN_MS total
     const startRotation = rotationRef.current;
@@ -440,25 +479,27 @@ export default function TriviaSpinWheel() {
 
       rotationRef.current = finalRotation;
       setRotation(finalRotation);
-      // First spin of the session features the logged-in user; after that,
-      // every spin is a random pair like everyone else's
-      const selfPending = selfStudent && !matchedIds.has(selfStudent.id);
-      const first = selfPending ? selfStudent : participants[targetIndex];
-      const second = first
-        ? pickOppositeGender(
-            first,
-            unmatched.filter((s) => s.id !== first.id),
-          )
-        : null;
-      const validPair =
-        first &&
-        second &&
-        first.id !== second.id &&
-        normalizedGender(first) !== null &&
-        normalizedGender(first) !== normalizedGender(second);
-      if (validPair && first && second) {
-        setWinners([first, second]);
-        setMatches((prev) => [{ first, second }, ...prev]);
+      if (pendingStudent) {
+        const second = participants[targetIndex];
+        const validPair = second && canMatch(pendingStudent, second);
+        if (validPair) {
+          setWinners([pendingStudent, second]);
+          setMatches((prev) => [
+            { first: pendingStudent, second },
+            ...prev,
+          ]);
+          setPendingStudent(null);
+        }
+      } else {
+        // Feature the logged-in user in the first match when they are eligible.
+        const eligibleSelf = participants.find(
+          (student) => student.id === selfStudent?.id,
+        );
+        const first =
+          eligibleSelf && !matchedIds.has(eligibleSelf.id)
+            ? eligibleSelf
+            : participants[targetIndex];
+        if (first) setPendingStudent(first);
       }
       setIsSpinning(false);
     };
@@ -499,6 +540,7 @@ export default function TriviaSpinWheel() {
           onClick={() => {
             setMatches([]);
             setWinners(null);
+            setPendingStudent(null);
           }}
           className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition hover:bg-indigo-700"
         >
@@ -531,9 +573,16 @@ export default function TriviaSpinWheel() {
       <div className="flex w-full items-stretch gap-1.5">
         <div className="min-w-0 flex-1">
           <MatchSlot
-            student={winners?.[0] ?? null}
+            student={pendingStudent ?? winners?.[0] ?? null}
             spinning={isSpinning}
-            onExpand={winners?.[0] ? () => setFullscreenStudent(winners[0]) : undefined}
+            onExpand={
+              pendingStudent
+                ? () => setFullscreenStudent(pendingStudent)
+                : winners?.[0]
+                  ? () => setFullscreenStudent(winners[0])
+                  : undefined
+            }
+            showFullPicture={showFullPictureCards}
           />
         </div>
         <div className="min-w-0 flex-1">
@@ -541,6 +590,10 @@ export default function TriviaSpinWheel() {
             student={winners?.[1] ?? null}
             spinning={isSpinning}
             onExpand={winners?.[1] ? () => setFullscreenStudent(winners[1]) : undefined}
+            showFullPicture={showFullPictureCards}
+            emptyMessage={
+              pendingStudent ? 'Spin again to find their match' : undefined
+            }
           />
         </div>
       </div>
@@ -549,7 +602,11 @@ export default function TriviaSpinWheel() {
         {winners && (
           <span className="font-black italic text-fuchsia-500">VS</span>
         )}
-        {winners ? 'Say hello and get to know each other!' : ''}
+        {winners
+          ? 'Say hello and get to know each other!'
+          : pendingStudent && !isSpinning
+            ? 'Spin again to find their match'
+            : ''}
       </p>
 
       {/* View toggle */}
@@ -611,6 +668,7 @@ export default function TriviaSpinWheel() {
                 onClick={() => {
                   setMatches([]);
                   setWinners(null);
+                  setPendingStudent(null);
                 }}
                 disabled={matches.length === 0}
                 className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 px-2 py-1 text-[9px] font-bold text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
@@ -687,8 +745,20 @@ export default function TriviaSpinWheel() {
           type="button"
           onClick={spin}
           disabled={!canSpin}
-          aria-label={isSpinning ? 'Spinning' : 'Spin'}
-          title={isSpinning ? 'Spinning…' : winners ? 'Spin' : 'Start spin'}
+          aria-label={
+            isSpinning
+              ? 'Spinning'
+              : pendingStudent
+                ? 'Spin for their match'
+                : 'Spin'
+          }
+          title={
+            isSpinning
+              ? 'Spinning…'
+              : pendingStudent
+                ? 'Spin again to find their match'
+                : 'Start spin'
+          }
           className="absolute left-1/2 top-1/2 z-10 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-indigo-600 to-fuchsia-600 text-white shadow-lg transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSpinning ? (
