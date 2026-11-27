@@ -64,19 +64,22 @@ async function replaceTriviaQuestions() {
     });
   }
 
-  const existingQuestions = await prisma.triviaQuestion.findMany({
-    where: { referenceId: { notIn: newReferenceIds } },
-    select: { id: true },
+  const allQuestions = await prisma.triviaQuestion.findMany({
+    select: { id: true, referenceId: true },
   });
-  if (existingQuestions.length > 0) {
+  const newReferenceIdSet = new Set(newReferenceIds);
+  const oldQuestionIds = allQuestions
+    .filter(({ referenceId }) => !newReferenceIdSet.has(referenceId ?? ''))
+    .map(({ id }) => id);
+  if (oldQuestionIds.length > 0) {
     await prisma.triviaQuestion.updateMany({
-      where: { id: { in: existingQuestions.map(({ id }) => id) } },
+      where: { id: { in: oldQuestionIds } },
       data: { isActive: false },
     });
   }
 
   const activeCount = await prisma.triviaQuestion.count({ where: { isActive: true } });
-  console.log(`Trivia replacement complete: 100 new questions active; ${existingQuestions.length} older questions archived; ${activeCount} active questions total.`);
+  console.log(`Trivia replacement complete: 100 new questions active; ${oldQuestionIds.length} older questions archived; ${activeCount} active questions total.`);
 }
 
 replaceTriviaQuestions()
