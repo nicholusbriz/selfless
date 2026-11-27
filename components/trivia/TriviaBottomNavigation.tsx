@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, Gamepad2, Trophy, Heart, Gift, House } from 'lucide-react';
 
-export type TriviaSection = 'trivia' | 'leaderboard' | 'hearts' | 'gifts' | 'more-games';
+export type TriviaSection = 'trivia' | 'leaderboard' | 'hearts' | 'gifts' | 'more-games' | 'party';
 
 export default function TriviaBottomNavigation({
   activeSection,

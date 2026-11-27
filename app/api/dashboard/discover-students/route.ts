@@ -15,11 +15,11 @@ function shuffle<T>(arr: T[]): T[] {
 // DB is hit at most once per 5 minutes (or until revalidateTag is called).
 // The ordered list is cached; the shuffle happens per-request below.
 const getDiscoverStudents = unstable_cache(
-  async () =>
+  async (includeAll: boolean) =>
     prisma.user.findMany({
       where: {
         profileImageUrl: { not: null },
-        role: { is: { name: { not: 'dev' } } },
+        ...(includeAll ? {} : { role: { is: { name: { not: 'dev' } } } }),
       },
       select: {
         id: true,
@@ -27,6 +27,7 @@ const getDiscoverStudents = unstable_cache(
         lastName: true,
         profileImageUrl: true,
         hasVerifiedBadge: true,
+        gender: true,
         generalCourse: true,
         techCenter: {
           select: {
@@ -54,7 +55,8 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    const allStudents = await getDiscoverStudents();
+    const includeAll = searchParams.get('all') === 'true';
+    const allStudents = await getDiscoverStudents(includeAll);
 
     // Apply pagination
     const paginatedStudents = allStudents.slice(offset, offset + limit);
